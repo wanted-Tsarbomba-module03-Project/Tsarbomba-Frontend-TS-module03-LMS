@@ -262,7 +262,7 @@ export default function ProblemListClient() {
   return (
     <main className={problemListClasses.container}>
       <div className={problemListClasses.header}>
-        <h2 className={problemListClasses.pageTitle}>문제 관리</h2>
+        <h1 className={problemListClasses.pageTitle}>문제 관리</h1>
 
         <div className={problemListClasses.headerActions}>
           <Searchbar

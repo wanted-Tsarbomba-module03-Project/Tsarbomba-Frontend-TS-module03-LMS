@@ -1,6 +1,22 @@
-# v1.6.1 (2026-07-01)
+# v1.6.1 (2026-07-02)
+
+### 폰트 및 tsar-dog 이미지 최적화
+
+- **Changed**
+  - `PretendardVariable.woff2`를 KS X 1001 상용한글 2350자 기준으로 서브셋 (2MB → 491KB, 약 75% 감량)
+  - `@font-face` 에 `font-weight: 45 920` (variable font 범위) 및 `font-display: swap` 명시 — FOIT 제거로 폰트 로딩 체감 개선
+  - `public/assets/img/tsar-dog/` 마스코트 SVG 12개(basic / error / tsardog_400~502)의 임베드 초고해상도 PNG(3966×4096)를 표시 크기에 맞게 리사이즈 후 WebP로 재임베드 (파일명·구조 유지, 폴더 43MB → 약 800KB)
+- **Removed**
+  - 사용되지 않던 tsar-dog SVG 4개 정리 (`angry_tsardog.svg`, `happy_tsardog.svg`, `run_tsardog.svg`, `typing_tsardog.svg`)
+- **Performance**
+  - Slow 4G 기준 홈/강좌/404 페이지 전송량 6.8~10.3MB → 800~910KB (약 87~91% 감량)
+  - Slow 4G 홈 Load 시간 약 40s → 6s
+  - Lighthouse Performance 80 → 91, SEO 82 → 100, Accessibility +4~5, LCP 2.3s (Core Web Vitals 통과)
+
+---
 
 ### SEO 및 구조화 데이터
+
 - **Added**
   - 문제풀이 목록, 문제 상세, 랭킹 페이지에 Schema.org JSON-LD(`BreadcrumbList`, `ItemList`) 추가
   - `robots.txt` 추가 및 `/admin`, `/api` 경로 크롤링 차단 처리
