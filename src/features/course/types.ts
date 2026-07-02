@@ -46,7 +46,6 @@ export interface LectureSummary {
   title: string;
   description: string;
   lectureOrder: number;
-  lectureType?: string;
   videoUrl?: string | null;
   thumbnailUrl?: string | null;
 }
@@ -57,7 +56,6 @@ export interface LectureUpsertBody {
   description: string | null;
   videoUrl?: string | null;
   lectureOrder: number;
-  lectureType?: string;
 }
 
 /* 내 수강 강좌 (enrollment 기준) */
