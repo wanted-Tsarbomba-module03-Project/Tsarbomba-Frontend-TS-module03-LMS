@@ -1,3 +1,16 @@
+# v1.6.2 (2026-07-02)
+
+### GCS 이미지 화이트리스트 및 강의 lectureType 400 수정
+
+- **Fixed**
+  - `next.config.ts` `imageRemotePatterns`에 `https://storage.googleapis.com/codebombalms` 추가 — 프로덕션 강좌 썸네일이 `next/image`에서 400으로 거부되던 문제 해결 (rel-ys 후속)
+  - 강의 생성/수정 요청 페이로드에서 `lectureType` 필드 제거 — BE `LectureCreateRequest` record에 없는 필드로 인해 Jackson unknown property 400이 반환되던 문제 해결
+- **Changed**
+  - `LectureSummary`, `LectureUpsertBody` 타입에서 `lectureType` 필드 제거
+  - 영상/문제 강의 구분은 기존대로 `videoUrl` 유무 기준 유지 (내부 로직 변화 없음)
+
+---
+
 # v1.6.1 (2026-07-02)
 
 ### 폰트 및 tsar-dog 이미지 최적화

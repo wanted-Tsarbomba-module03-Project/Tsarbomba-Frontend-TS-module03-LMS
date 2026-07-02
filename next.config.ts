@@ -9,6 +9,7 @@ const imageRemotePatterns = resolveImageRemotePatterns([
   process.env.NEXT_PUBLIC_API_URL,
   process.env.API_PROXY_TARGET,
   ...(process.env.NEXT_IMAGE_REMOTE_PATTERNS ?? "").split(","),
+  "https://storage.googleapis.com/codebombalms", // GCS 강좌 썸네일
 ]);
 
 const nextConfig: NextConfig = {
