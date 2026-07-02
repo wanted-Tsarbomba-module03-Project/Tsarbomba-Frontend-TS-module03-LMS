@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 import BluebombLogo from "../../../public/assets/img/bluebomb-Icon.svg";
 import BadgeSelectModal from "@/features/badge/components/BadgeSelectModal";
+import { optimizedImageProps } from "@/components/common/imageOptimization";
 import { equipBadge, getMyBadges, syncMyBadges } from "@/features/badge/actions";
 import type { MyBadge } from "@/features/badge/types";
 import OneButtonModal from "@/components/common/OneButtonModal";
@@ -316,10 +317,10 @@ export default function Sidebar({
               alt="장착 뱃지"
               className="w-full h-full object-cover"
               height={48}
-              loader={({ src }) => src}
               src={equippedBadge.imageUrl}
-              unoptimized
               width={48}
+              sizes="48px"
+              {...optimizedImageProps}
             />
           ) : (
             <Image

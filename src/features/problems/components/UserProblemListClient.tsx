@@ -349,7 +349,7 @@ export default function UserProblemListClient({
   return (
     <main className={userProblemListClasses.container}>
       <div className={userProblemListClasses.header}>
-        <h2 className={userProblemListClasses.pageTitle}>문제풀이</h2>
+        <h1 className={userProblemListClasses.pageTitle}>문제풀이</h1>
 
         <div className={userProblemListClasses.searchWrap}>
           <Searchbar
@@ -385,6 +385,7 @@ export default function UserProblemListClient({
               totalPages={isSearchMode ? searchTotalPages : totalPages}
             />
           }
+          rowHref={(item) => `/problems/${item.problemSetId}`}
           rowKey={(item) => item.problemSetId}
         />
       )}

@@ -2,7 +2,9 @@
 
 // CSR - 문제풀이 결과 패널: 실행/제출 결과와 힌트/해설 탭이 풀이 상태에 따라 즉시 전환됨
 import { useState } from "react";
+import Image from "next/image";
 
+import { optimizedImageProps } from "@/components/common/imageOptimization";
 import type {
   ExecutionResult,
   ProblemHint,
@@ -102,15 +104,18 @@ function RecommendedCourseView({
         }`}
         type="button"
       >
-        <div
-          aria-hidden="true"
-          className={problemDetailClasses.recommendedCourseThumb}
-          style={
-            activeCourse.thumbnailUrl
-              ? { backgroundImage: `url(${activeCourse.thumbnailUrl})` }
-              : undefined
-          }
-        />
+        <div className={problemDetailClasses.recommendedCourseThumb}>
+          {activeCourse.thumbnailUrl && (
+            <Image
+              alt=""
+              className="object-cover"
+              fill
+              sizes="132px"
+              src={activeCourse.thumbnailUrl}
+              {...optimizedImageProps}
+            />
+          )}
+        </div>
         <div className={problemDetailClasses.recommendedCourseText}>
           <strong>{activeCourse.title}</strong>
           {activeCourse.description && <span>{activeCourse.description}</span>}

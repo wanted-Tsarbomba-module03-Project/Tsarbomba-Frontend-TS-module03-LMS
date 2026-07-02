@@ -5,9 +5,18 @@ import type { NextConfig } from "next";
 // 값이 있을 때(로컬 개발 등)만 Next 프록시 rewrite 를 건다.
 const apiProxyTarget =
   process.env.API_PROXY_TARGET ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+const imageRemotePatterns = resolveImageRemotePatterns([
+  process.env.NEXT_PUBLIC_API_URL,
+  process.env.API_PROXY_TARGET,
+  ...(process.env.NEXT_IMAGE_REMOTE_PATTERNS ?? "").split(","),
+]);
 
 const nextConfig: NextConfig = {
-  reactStrictMode: false,
+  output: "standalone",
+  images: {
+    formats: ["image/avif", "image/webp"],
+    remotePatterns: imageRemotePatterns,
+  },
   async rewrites() {
     if (!apiProxyTarget) return [];
     return [
@@ -20,3 +29,64 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+function resolveImageRemotePatterns(values: Array<string | undefined>) {
+  const patternMap = new Map<
+    string,
+    {
+      hostname: string;
+      pathname: string;
+      port?: string;
+      protocol: "https";
+    }
+  >();
+
+  values.forEach((value) => {
+    const pattern = toHttpsImageRemotePattern(value);
+
+    if (!pattern) {
+      return;
+    }
+
+    patternMap.set(
+      `${pattern.protocol}:${pattern.hostname}:${pattern.port ?? ""}:${pattern.pathname}`,
+      pattern,
+    );
+  });
+
+  return Array.from(patternMap.values());
+}
+
+function toHttpsImageRemotePattern(value?: string) {
+  const normalizedValue = value?.trim();
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  try {
+    const url = new URL(
+      normalizedValue.includes("://")
+        ? normalizedValue
+        : `https://${normalizedValue}`,
+    );
+
+    if (url.protocol !== "https:") {
+      return null;
+    }
+
+    const pathname =
+      url.pathname && url.pathname !== "/"
+        ? `${url.pathname.replace(/\/$/, "")}/**`
+        : "/**";
+
+    return {
+      hostname: url.hostname,
+      pathname,
+      port: url.port || undefined,
+      protocol: "https" as const,
+    };
+  } catch {
+    return null;
+  }
+}

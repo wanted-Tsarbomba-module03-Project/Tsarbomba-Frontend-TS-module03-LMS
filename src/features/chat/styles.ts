@@ -3,7 +3,7 @@ export const chatClasses = {
   header:
     "flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-border-light bg-bg-box px-6 py-2.5 text-title-lg font-bold text-text-primary max-md:min-h-[52px] max-md:flex-wrap max-md:px-4 max-md:text-title-md",
   titleGroup: "flex min-w-0 flex-1 flex-col gap-1",
-  title: "min-w-0 truncate",
+  title: "m-0 min-w-0 truncate",
   linkedProblemTitle:
     "min-w-0 truncate text-description font-semibold text-text-secondary",
   titleInput:

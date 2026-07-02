@@ -4,7 +4,8 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import Image from "next/image";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import { mobileSidebarClasses } from "@/components/layout/mobileSidebarClasses";
 
@@ -25,7 +26,6 @@ export default function ProblemsLayoutShell({
   children,
 }: ProblemsLayoutShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const selectedCategoryId = searchParams.get("categoryId");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -53,36 +53,30 @@ export default function ProblemsLayoutShell({
 
           <ul className="flex flex-col gap-1">
             <li>
-              <button
+              <Link
                 className={
                   !selectedCategoryId ? itemActiveClass : itemBaseClass
                 }
-                onClick={() => {
-                  closeSidebar();
-                  router.push("/problems");
-                }}
-                type="button"
+                href="/problems"
+                onClick={closeSidebar}
               >
                 전체
-              </button>
+              </Link>
             </li>
 
             {categories.map((category) => (
               <li key={category.categoryId}>
-                <button
+                <Link
                   className={
                     selectedCategoryId === category.categoryId
                       ? itemActiveClass
                       : itemBaseClass
                   }
-                  onClick={() => {
-                    closeSidebar();
-                    router.push(`/problems?categoryId=${category.categoryId}`);
-                  }}
-                  type="button"
+                  href={`/problems?categoryId=${category.categoryId}`}
+                  onClick={closeSidebar}
                 >
                   {category.categoryName}
-                </button>
+                </Link>
               </li>
             ))}
           </ul>
@@ -114,7 +108,7 @@ export default function ProblemsLayoutShell({
         />
       )}
 
-      <main className="flex-1 min-w-0 py-10">{children}</main>
+      <section className="flex-1 min-w-0 py-10">{children}</section>
     </div>
   );
 }

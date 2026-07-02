@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { optimizedImageProps } from "@/components/common/imageOptimization";
 import { deleteCourse } from "@/features/course/actions";
 import {
   enrollCourse,
@@ -258,12 +260,15 @@ export default function CourseDetailClient({
     <div className="min-h-screen bg-white">
       <div className="max-w-4xl mx-auto px-8 py-8">
         <div className="border border-gray-200 rounded-lg overflow-hidden mb-8">
-          <div className="w-full h-72 bg-gray-100 flex items-center justify-center overflow-hidden">
+          <div className="relative w-full h-72 bg-gray-100 flex items-center justify-center overflow-hidden">
             {course.thumbnailUrl ? (
-              <img
+              <Image
                 src={resolveThumbnailUrl(course.thumbnailUrl)}
                 alt={course.title}
                 className="w-full h-full object-cover"
+                fill
+                sizes="(max-width: 896px) 100vw, 896px"
+                {...optimizedImageProps}
               />
             ) : (
               <svg width="64" height="64" viewBox="0 0 56 56" fill="none">

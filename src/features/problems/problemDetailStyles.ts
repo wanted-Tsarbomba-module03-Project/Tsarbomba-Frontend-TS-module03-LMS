@@ -40,7 +40,7 @@ export const problemDetailClasses = {
   recommendedCourseCard:
     "flex min-h-[112px] w-full min-w-0 cursor-pointer gap-3 overflow-hidden rounded-base border border-border-light bg-bg-box p-3 text-left [font:inherit] no-underline transition hover:bg-bg-navbar max-[560px]:flex-col",
   recommendedCourseThumb:
-    "h-[88px] w-[132px] shrink-0 rounded-base bg-bg-navbar bg-cover bg-center max-[560px]:h-[120px] max-[560px]:w-full",
+    "relative h-[88px] w-[132px] shrink-0 overflow-hidden rounded-base bg-bg-navbar max-[560px]:h-[120px] max-[560px]:w-full",
   recommendedCourseText:
     "flex min-w-0 flex-1 flex-col gap-1 overflow-hidden [&_strong]:truncate [&_strong]:text-body [&_strong]:text-text-primary [&_span]:line-clamp-2 [&_span]:overflow-hidden [&_span]:text-ellipsis [&_span]:break-words [&_span]:text-description [&_span]:text-text-secondary",
   recommendedCourseControls:

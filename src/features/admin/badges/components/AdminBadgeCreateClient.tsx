@@ -3,8 +3,10 @@
 // CSR - 관리자 배지 등록: 이미지 파일 미리보기와 입력 검증이 필요한 운영자 폼 화면임
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
+import { optimizedImageProps } from "@/components/common/imageOptimization";
 import OneButtonModal from "@/components/common/OneButtonModal";
 import TwoButtonModal from "@/components/common/TwoButtonModal";
 
@@ -19,7 +21,7 @@ const badgeFormClasses = {
   sectionTitle: "mb-5 mt-0 text-lg font-semibold text-text-primary",
   grid: "grid grid-cols-2 gap-8 max-lg:grid-cols-1",
   imageButton:
-    "flex min-h-[320px] w-full cursor-pointer items-center justify-center overflow-hidden rounded-base border border-border-light bg-bg-navbar text-description text-text-secondary transition hover:bg-bg-hover-gray",
+    "relative flex min-h-[320px] w-full cursor-pointer items-center justify-center overflow-hidden rounded-base border border-border-light bg-bg-navbar text-description text-text-secondary transition hover:bg-bg-hover-gray",
   previewImage: "h-full w-full object-cover",
   hiddenInput: "hidden",
   fieldGroup: "flex flex-col gap-5",
@@ -245,10 +247,14 @@ export default function AdminBadgeCreateClient() {
                 type="button"
               >
                 {badgeImagePreview ? (
-                  <img
+                  <Image
                     alt="배지 이미지 미리보기"
                     className={badgeFormClasses.previewImage}
                     src={badgeImagePreview}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    unoptimized
+                    {...optimizedImageProps}
                   />
                 ) : (
                   <ImageInsertIcon />

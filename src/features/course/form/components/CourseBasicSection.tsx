@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
+import { optimizedImageProps } from "@/components/common/imageOptimization";
 import type { CourseCategory } from "../types";
 
 interface CourseBasicSectionProps {
@@ -39,10 +41,14 @@ export default function CourseBasicSection({
           onClick={() => document.getElementById(thumbnailInputId)?.click()}
         >
           {thumbnailPreview ? (
-            <img
+            <Image
               src={thumbnailPreview}
               alt="썸네일 미리보기"
               className="w-full h-full object-cover"
+              fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              unoptimized
+              {...optimizedImageProps}
             />
           ) : (
             <svg

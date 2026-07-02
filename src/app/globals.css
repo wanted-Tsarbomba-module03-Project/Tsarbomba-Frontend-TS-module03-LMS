@@ -3,6 +3,8 @@
 @font-face {
   font-family: "Pretendard";
   src: url("/assets/font/PretendardVariable.woff2") format("woff2-variations");
+  font-weight: 45 920;
+  font-display: swap;
 }
 
 :root {

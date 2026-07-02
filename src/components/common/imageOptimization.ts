@@ -1,0 +1,7 @@
+export const IMAGE_BLUR_PLACEHOLDER =
+  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iOSIgdmlld0JveD0iMCAwIDE2IDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjkiIGZpbGw9IiNGM0Y0RjYiLz48Y2lyY2xlIGN4PSI0IiBjeT0iNCIgcj0iMiIgZmlsbD0iI0U1RTdFQiIvPjxwYXRoIGQ9Ik0wIDlMNiA0LjVMMTAuNSA3TDEzIDVMMTYgNy4yVjlaIiBmaWxsPSIjRTVFN0VCIi8+PC9zdmc+";
+
+export const optimizedImageProps = {
+  placeholder: "blur",
+  blurDataURL: IMAGE_BLUR_PLACEHOLDER,
+} as const;

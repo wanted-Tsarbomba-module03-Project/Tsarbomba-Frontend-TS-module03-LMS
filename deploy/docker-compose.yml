@@ -9,7 +9,23 @@ services:
     ports:
       - "3000:3000"
     environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - NEXT_TELEMETRY_DISABLED=1
       - API_PROXY_TARGET=http://172.31.45.217:8080   # ← codebomb-spring 사설IP (SSR 전용, 브라우저는 상대경로 /api→ALB)
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1:3000', (res) => process.exit(res.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     restart: unless-stopped
     logging:
       driver: json-file

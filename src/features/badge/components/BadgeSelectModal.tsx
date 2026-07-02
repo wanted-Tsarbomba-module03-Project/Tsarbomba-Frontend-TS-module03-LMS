@@ -3,6 +3,7 @@
 import { useEffect, useId } from "react";
 import Image from "next/image";
 
+import { optimizedImageProps } from "@/components/common/imageOptimization";
 import LoadingIndicator from "@/components/common/LoadingIndicator";
 import type { MyBadge } from "../types";
 
@@ -103,10 +104,10 @@ export default function BadgeSelectModal({
                         alt={badge.badgeName}
                         className="w-full h-full object-cover"
                         height={56}
-                        loader={({ src }) => src}
                         src={badge.imageUrl}
-                        unoptimized
                         width={56}
+                        sizes="56px"
+                        {...optimizedImageProps}
                       />
                     ) : (
                       <span className="text-xs text-text-secondary">없음</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type Key, type ReactNode } from "react";
+import Link from "next/link";
 
 type ListItem = object & {
   id?: Key;
@@ -20,6 +21,7 @@ interface ListProps<T extends ListItem> {
   data: T[];
   columns: ListColumn<T>[];
   onRowClick?: (item: T) => void;
+  rowHref?: (item: T, index: number) => string | undefined;
   rowKey?: (item: T, index: number) => Key;
   rowClassName?: string | ((item: T, index: number) => string);
   rowNumberOffset?: number;
@@ -31,6 +33,7 @@ interface ListProps<T extends ListItem> {
 interface ListCellContentProps {
   children: ReactNode;
   className: string;
+  href?: string;
   title?: string;
 }
 
@@ -56,6 +59,7 @@ export default function List<T extends ListItem>({
   data,
   columns,
   onRowClick,
+  rowHref,
   rowKey,
   rowClassName,
   rowNumberOffset = 0,
@@ -84,39 +88,44 @@ export default function List<T extends ListItem>({
 
       <tbody>
         {data.length > 0 ? (
-          data.map((item, index) => (
-            <tr
-              className={getRowClassName(rowClassName, item, index)}
-              key={rowKey?.(item, index) ?? item.id ?? index}
-              onClick={() => onRowClick?.(item)}
-            >
-              {columns.map((column) => {
-                const cellContent = getCellContent(
-                  item,
-                  column,
-                  index,
-                  rowNumberOffset,
-                );
-                const cellTitle = getCellTitle(
-                  item,
-                  column,
-                  index,
-                  cellContent,
-                );
+          data.map((item, index) => {
+            const href = rowHref?.(item, index);
 
-                return (
-                  <td key={String(column.key)}>
-                    <ListCellContent
-                      className={getCellClassName(column, item, index)}
-                      title={cellTitle}
-                    >
-                      {cellContent}
-                    </ListCellContent>
-                  </td>
-                );
-              })}
-            </tr>
-          ))
+            return (
+              <tr
+                className={getRowClassName(rowClassName, item, index)}
+                key={rowKey?.(item, index) ?? item.id ?? index}
+                onClick={href ? undefined : () => onRowClick?.(item)}
+              >
+                {columns.map((column) => {
+                  const cellContent = getCellContent(
+                    item,
+                    column,
+                    index,
+                    rowNumberOffset,
+                  );
+                  const cellTitle = getCellTitle(
+                    item,
+                    column,
+                    index,
+                    cellContent,
+                  );
+
+                  return (
+                    <td key={String(column.key)}>
+                      <ListCellContent
+                        className={getCellClassName(column, item, index)}
+                        href={href}
+                        title={cellTitle}
+                      >
+                        {cellContent}
+                      </ListCellContent>
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })
         ) : (
           <tr>
             <td colSpan={columns.length}>
@@ -144,6 +153,7 @@ export default function List<T extends ListItem>({
 function ListCellContent({
   children,
   className,
+  href,
   title,
 }: ListCellContentProps) {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -187,7 +197,13 @@ function ListCellContent({
       ref={contentRef}
       title={isOverflowing ? title : undefined}
     >
-      {children}
+      {href ? (
+        <Link className="block min-w-0 text-inherit no-underline" href={href}>
+          {children}
+        </Link>
+      ) : (
+        children
+      )}
     </div>
   );
 }

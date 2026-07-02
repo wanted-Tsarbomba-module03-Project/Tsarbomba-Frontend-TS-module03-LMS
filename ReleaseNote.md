@@ -1,3 +1,57 @@
+# v1.6.1 (2026-07-02)
+
+### 폰트 및 tsar-dog 이미지 최적화
+
+- **Changed**
+  - `PretendardVariable.woff2`를 KS X 1001 상용한글 2350자 기준으로 서브셋 (2MB → 491KB, 약 75% 감량)
+  - `@font-face` 에 `font-weight: 45 920` (variable font 범위) 및 `font-display: swap` 명시 — FOIT 제거로 폰트 로딩 체감 개선
+  - `public/assets/img/tsar-dog/` 마스코트 SVG 12개(basic / error / tsardog_400~502)의 임베드 초고해상도 PNG(3966×4096)를 표시 크기에 맞게 리사이즈 후 WebP로 재임베드 (파일명·구조 유지, 폴더 43MB → 약 800KB)
+- **Removed**
+  - 사용되지 않던 tsar-dog SVG 4개 정리 (`angry_tsardog.svg`, `happy_tsardog.svg`, `run_tsardog.svg`, `typing_tsardog.svg`)
+- **Performance**
+  - Slow 4G 기준 홈/강좌/404 페이지 전송량 6.8~10.3MB → 800~910KB (약 87~91% 감량)
+  - Slow 4G 홈 Load 시간 약 40s → 6s
+  - Lighthouse Performance 80 → 91, SEO 82 → 100, Accessibility +4~5, LCP 2.3s (Core Web Vitals 통과)
+
+---
+
+### SEO 및 구조화 데이터
+
+- **Added**
+  - 문제풀이 목록, 문제 상세, 랭킹 페이지에 Schema.org JSON-LD(`BreadcrumbList`, `ItemList`) 추가
+  - `robots.txt` 추가 및 `/admin`, `/api` 경로 크롤링 차단 처리
+  - `sitemap.xml` 추가 및 공개 검색 대상 라우트 명시
+- **Changed**
+  - `(user)` 라우트 그룹에 기본 `metadataBase`, title template, authors/publisher, 기본 Open Graph/Twitter 메타 추가
+  - 문제풀이 목록/상세, 랭킹, 챗봇, 에러, 관리자 주요 화면에 title, description, canonical, Open Graph, Twitter, robots meta 적용
+  - 개인화/운영 성격의 챗봇, 에러, 관리자 화면은 `noindex`로 검색 노출 대상에서 제외
+  - 문제 목록 row, 문제 카테고리 사이드바, 관리자 뱃지/강의 카드 이동을 실제 anchor 기반 `Link`로 보완
+  - 챗봇 화면 제목을 `h1`로 조정하고 로딩/관리자 화면의 semantic container 구조 보완
+- **Fixed**
+  - `next.config.ts`의 `reactStrictMode: false` 설정 제거
+  - 원격 이미지 허용 범위를 전체 도메인(`hostname: "**"`)에서 https 기반 allowlist(`NEXT_IMAGE_REMOTE_PATTERNS`, `NEXT_PUBLIC_API_URL`, `API_PROXY_TARGET`)로 제한
+  - 공통 이미지 최적화 유틸에서 `loading: "lazy"` 고정을 제거해 호출부별 로딩 전략 선택 가능성을 보장
+  - 카드형 이동 UI의 `div onClick` 사용을 줄여 키보드/스크린리더 접근성 보완
+
+---
+
+### Docker 이미지 최적화
+
+- **Changed**
+  - Next Image 원격 이미지 최적화 설정을 추가하고 AVIF/WebP 포맷 출력을 활성화
+  - 공통 blur placeholder와 lazy loading props를 추가해 이미지 로딩 체감 성능을 개선
+  - 헤더/사이드바 장착 뱃지, 관리자 뱃지, 랭킹 뱃지, 강좌/마이페이지 썸네일 이미지를 Next.js `Image` 컴포넌트 기반으로 정리
+  - 문제풀이 결과 패널의 추천 강좌 썸네일을 CSS `backgroundImage` 방식에서 Next.js `Image` 컴포넌트 기반 렌더링으로 변경
+  - 원격 이미지의 직접 loader/unoptimized 처리를 제거해 Next 이미지 최적화 파이프라인을 사용하도록 변경
+  - 관리자 강좌 카드의 외부 placeholder 이미지 직접 로드를 제거하고 로컬 fallback 이미지를 사용하도록 변경
+
+- **Fixed**
+  - 직접 `<img>` 사용 지점을 제거하고 반응형 `sizes`, lazy loading, blur placeholder를 적용해 고해상도 원본 이미지 직접 로드 가능성을 완화
+  - CSS `backgroundImage`로 원본 썸네일을 직접 로드하던 지점을 제거해 이미지 최적화 누락 가능성을 완화
+  - 로컬 파일 미리보기 이미지는 blob/data URL 호환성을 위해 `Image` 컴포넌트를 유지하되 최적화 예외 처리
+
+---
+
 # v1.6.0 (2026-07-01)
 
 ### 반응형 레이아웃 및 모바일 사이드바

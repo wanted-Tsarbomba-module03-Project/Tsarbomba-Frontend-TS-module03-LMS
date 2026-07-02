@@ -3,8 +3,10 @@
 // CSR - 관리자 배지 수정: 기존 배지 정보를 불러온 뒤 이미지 교체와 상태 변경을 즉시 편집함
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
+import { optimizedImageProps } from "@/components/common/imageOptimization";
 import OneButtonModal from "@/components/common/OneButtonModal";
 import TwoButtonModal from "@/components/common/TwoButtonModal";
 import WarningModal from "@/components/common/WarningModal";
@@ -25,7 +27,7 @@ const badgeFormClasses = {
   section: "mb-8",
   grid: "grid grid-cols-2 gap-8 max-lg:grid-cols-1",
   imageButton:
-    "flex min-h-[320px] w-full cursor-pointer items-center justify-center overflow-hidden rounded-base border border-border-light bg-bg-navbar text-description text-text-secondary transition hover:bg-bg-hover-gray",
+    "relative flex min-h-[320px] w-full cursor-pointer items-center justify-center overflow-hidden rounded-base border border-border-light bg-bg-navbar text-description text-text-secondary transition hover:bg-bg-hover-gray",
   previewImage: "h-full w-full object-cover",
   hiddenInput: "hidden",
   fieldGroup: "flex flex-col gap-5",
@@ -358,10 +360,14 @@ export default function AdminBadgeEditClient({ badgeId }: AdminBadgeEditClientPr
                 type="button"
               >
                 {badgeImagePreview ? (
-                  <img
+                  <Image
                     alt="배지 이미지 미리보기"
                     className={badgeFormClasses.previewImage}
                     src={badgeImagePreview}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    unoptimized
+                    {...optimizedImageProps}
                   />
                 ) : (
                   <ImageInsertIcon />

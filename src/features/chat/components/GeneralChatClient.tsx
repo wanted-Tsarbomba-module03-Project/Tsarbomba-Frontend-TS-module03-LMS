@@ -552,7 +552,7 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
           />
         ) : (
           <div className={chatClasses.titleGroup}>
-            <span className={chatClasses.title}>{chatTitle}</span>
+            <h1 className={chatClasses.title}>{chatTitle}</h1>
             {linkedProblem && (
               <span className={chatClasses.linkedProblemTitle}>
                 연결된 문제풀이방: {linkedProblemLabel}
