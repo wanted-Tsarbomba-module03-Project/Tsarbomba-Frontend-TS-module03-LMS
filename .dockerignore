@@ -14,6 +14,10 @@ README.md
 ReleaseNote.md
 tsconfig.tsbuildinfo
 coverage
+playwright-report
+test-results
+tests
+playwright.config.ts
 dist
 out
 *.log
