@@ -1,3 +1,15 @@
+# v1.6.3 (2026-07-02)
+
+### 강의 생성/수정 problemCategoryId 400 수정
+
+- **Fixed**
+  - 강의 생성/수정 요청 페이로드에 `problemCategoryId` 필드 추가 — 배포 BE의 `LectureCreateRequest`가 `problemCategoryId`를 `@NotNull` 필수 필드로 요구해 400이 반환되던 문제 해결
+- **Changed**
+  - `LectureUpsertBody` 타입에 `problemCategoryId: number` 추가 (선택 → 필수)
+  - 강좌 등록/수정 폼 validate에 "강의가 하나라도 있으면 문제 카테고리 선택 필수" 검증 추가 — 미선택 상태로 등록 시도 시 안내 모달로 사전 차단
+
+---
+
 # v1.6.2 (2026-07-02)
 
 ### GCS 이미지 화이트리스트 및 강의 lectureType 400 수정
