@@ -287,6 +287,8 @@ export default function CourseEditPage() {
     if (!title.trim()) return "강좌 제목을 입력해주세요.";
     if (!courseCategoryId) return "카테고리를 선택해주세요.";
     if (!description.trim()) return "강좌 설명을 입력해주세요.";
+    if (lectures.length > 0 && !selectedProblemCategoryId)
+      return "문제 카테고리를 선택해주세요.";
     for (const lec of lectures) {
       if (lec.type !== "video") continue;
       if (!lec.videoUrl.trim()) return "영상 링크(유튜브)를 입력해주세요.";
@@ -341,6 +343,7 @@ export default function CourseEditPage() {
           description: isVideo ? v!.description : null,
           videoUrl: isVideo ? v!.videoUrl.trim() || null : null,
           lectureOrder: i + 1,
+          problemCategoryId: Number(selectedProblemCategoryId),
         };
 
         if (item.lectureId) {

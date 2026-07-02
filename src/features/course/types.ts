@@ -56,6 +56,7 @@ export interface LectureUpsertBody {
   description: string | null;
   videoUrl?: string | null;
   lectureOrder: number;
+  problemCategoryId: number;
 }
 
 /* 내 수강 강좌 (enrollment 기준) */
