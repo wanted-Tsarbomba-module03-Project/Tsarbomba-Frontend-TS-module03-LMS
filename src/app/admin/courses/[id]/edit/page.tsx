@@ -341,7 +341,6 @@ export default function CourseEditPage() {
           description: isVideo ? v!.description : null,
           videoUrl: isVideo ? v!.videoUrl.trim() || null : null,
           lectureOrder: i + 1,
-          lectureType: isVideo ? "VIDEO" : "PROBLEM",
         };
 
         if (item.lectureId) {
