@@ -591,7 +591,9 @@ export async function getProblemHints(problemId: number) {
     "힌트를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
   );
 
-  return result.data ?? [];
+  return [...(result.data ?? [])].sort(
+    (current, next) => current.hintOrder - next.hintOrder,
+  );
 }
 
 export async function submitProblem(
@@ -745,7 +747,7 @@ function normalizeProblemSetDetail(response: unknown): ProblemSetDetail {
       point: problem.point,
       startCode: problem.startCode ?? "",
       answer: problem.answer,
-      explanation: problem.explanation,
+      explanation: problem.explanation ?? problem.solution,
       status: (problem.status ?? "UNSOLVED") as ProblemStatus,
     })),
   };
