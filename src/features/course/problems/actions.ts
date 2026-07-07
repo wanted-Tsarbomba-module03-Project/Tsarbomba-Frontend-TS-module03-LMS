@@ -227,7 +227,7 @@ function normalizeLectureProblemSet(
       point: merged.point,
       startCode: merged.startCode ?? "",
       answer: merged.answer,
-      explanation: merged.explanation,
+      explanation: merged.explanation ?? merged.solution,
       status: (statusByProblemId.get(merged.problemId) ??
         merged.status ??
         "UNSOLVED") as ProblemStatus,

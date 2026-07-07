@@ -159,6 +159,7 @@ export interface ProblemSetDetailProblem {
   startCode?: string | null;
   answer?: string;
   explanation?: string;
+  solution?: string;
   status?: ProblemStatus;
 }
 
@@ -222,6 +223,7 @@ export interface ProblemSetRecommendationHideResponse {
 
 export interface ProblemHint {
   hintId: number;
+  hintOrder: number;
   hintContent: string;
 }
 

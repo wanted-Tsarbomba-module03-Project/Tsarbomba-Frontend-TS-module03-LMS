@@ -611,6 +611,18 @@ export default function UserProblemDetailClient({
     }
   };
 
+  const handleTabChange = (tab: ProblemResultTab) => {
+    setActiveTab(tab);
+
+    if (
+      tab === "hint" &&
+      currentProblem?.problemId &&
+      !hints[currentIndex]?.length
+    ) {
+      void fetchHints(currentProblem.problemId, currentIndex);
+    }
+  };
+
   const handleRun = async () => {
     if (!currentProblem?.problemId || isRunning) {
       return;
@@ -1099,7 +1111,7 @@ export default function UserProblemDetailClient({
               onCodeChange={handleCodeChange}
               onRecommendedCourseSelect={handleRecommendedCourseSelect}
               onSubmit={handleSubmit}
-              onTabChange={setActiveTab}
+              onTabChange={handleTabChange}
               recommendedCourses={
                 currentProblem?.problemId
                   ? (recommendedCourses[currentProblem.problemId] ?? [])
