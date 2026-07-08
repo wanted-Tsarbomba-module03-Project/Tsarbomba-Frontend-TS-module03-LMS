@@ -26,11 +26,18 @@ export const problemDetailClasses = {
     "whitespace-pre-wrap break-words text-body leading-normal text-text-primary",
   editorSection: "relative",
   codeEditor:
-    "min-h-[220px] w-full resize-y rounded-base border border-border-light p-3 font-mono text-body text-text-primary",
+    "relative h-[280px] min-h-[220px] w-full resize-y overflow-hidden rounded-base border shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]",
+  codeEditorDark: "border-[#111751] bg-[#1e1e1e]",
+  codeEditorLight: "border-[#94a3b8] bg-[#ffffff]",
+  codeEditorThemeToggle:
+    "absolute right-2 top-2 z-10 inline-flex h-8 min-w-[64px] cursor-pointer items-center justify-center rounded-base border border-[#1a237e] bg-[#eef2ff] px-2.5 text-description font-semibold text-[#1a237e] shadow-sm transition hover:bg-[#dbeafe] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a237e]",
+  codeEditorLoading:
+    "flex h-full min-h-[220px] items-center justify-center bg-[#1e1e1e] px-3 font-mono text-description text-[#d4d4d4]",
   hintToast:
     "absolute left-1/2 top-[42px] z-10 -translate-x-1/2 whitespace-nowrap rounded-base bg-button-blue-bg px-[18px] py-3 text-body font-semibold text-text-white",
-  tabs: "mt-3 mb-2 grid min-w-0 grid-cols-4 gap-2 overflow-x-auto [&_button]:min-w-0 [&_button]:cursor-pointer [&_button]:whitespace-nowrap [&_button]:rounded-base [&_button]:border [&_button]:border-border-light [&_button]:bg-bg-box [&_button]:px-2.5 [&_button]:py-[9px] [&_button]:text-[15px] [&_button]:text-text-primary [&_button:disabled]:cursor-not-allowed [&_button:disabled]:bg-bg-navbar [&_button:disabled]:text-[#9ca3af] max-[560px]:flex max-[560px]:grid-cols-none max-[560px]:gap-1.5 max-[560px]:[&_button]:min-w-[88px] max-[560px]:[&_button]:px-1.5 max-[560px]:[&_button]:text-description",
-  activeTab: "bg-bg-navbar! text-text-blue!",
+  tabs: "mt-3 mb-2 grid min-w-0 grid-cols-4 gap-2 overflow-x-auto [&_button]:min-w-0 [&_button]:cursor-pointer [&_button]:whitespace-nowrap [&_button]:rounded-base [&_button]:border [&_button]:border-[#1a237e] [&_button]:bg-[#fff] [&_button]:px-2.5 [&_button]:py-[9px] [&_button]:text-[15px] [&_button]:font-semibold [&_button]:text-[#1a237e] [&_button]:transition [&_button:hover:not(:disabled)]:bg-[#dbeafe] [&_button:hover:not(:disabled)]:shadow-[0_0_0_2px_rgba(26,35,126,0.18)] [&_button:focus-visible]:outline-none [&_button:focus-visible]:ring-2 [&_button:focus-visible]:ring-[#1a237e] [&_button:disabled]:cursor-not-allowed [&_button:disabled]:border-[#cbd5e1] [&_button:disabled]:bg-[#f1f5f9] [&_button:disabled]:text-[#64748b] [&_button:disabled]:opacity-100 max-[560px]:flex max-[560px]:grid-cols-none max-[560px]:gap-1.5 max-[560px]:[&_button]:min-w-[88px] max-[560px]:[&_button]:px-1.5 max-[560px]:[&_button]:text-description",
+  activeTab:
+    "border-button-blue-bg! bg-button-blue-bg! text-text-white! shadow-[0_0_0_2px_rgba(26,35,126,0.22)]!",
   bottomPanel:
     "h-[180px] w-full max-w-full overflow-y-auto rounded-base border border-border-light p-3 text-body text-text-primary",
   executionOutput: "m-0 whitespace-pre-wrap break-words font-mono",

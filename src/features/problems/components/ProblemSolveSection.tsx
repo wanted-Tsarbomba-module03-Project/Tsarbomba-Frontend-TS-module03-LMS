@@ -11,6 +11,7 @@ import type {
   RecommendedCourse,
   SubmissionResult,
 } from "../types";
+import ProblemCodeEditor from "./ProblemCodeEditor";
 import ProblemResultPanel from "./ProblemResultPanel";
 
 interface ProblemSolveSectionProps {
@@ -66,12 +67,7 @@ function ProblemSolveSection({
             힌트를 확인할 수 있습니다.
           </div>
         )}
-        <textarea
-          aria-label="답안 코드 입력"
-          className={problemDetailClasses.codeEditor}
-          onChange={(event) => onCodeChange(event.target.value)}
-          value={code}
-        />
+        <ProblemCodeEditor code={code} onCodeChange={onCodeChange} />
       </div>
 
       <div
