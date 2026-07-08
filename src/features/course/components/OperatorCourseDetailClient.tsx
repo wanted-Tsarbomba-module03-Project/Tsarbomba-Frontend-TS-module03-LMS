@@ -271,7 +271,7 @@ export default function OperatorCourseDetailClient({
         </div>
 
         <section>
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">커리큘럼</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">강의목록</h2>
 
           {lectures.length === 0 ? (
             <div className="border border-gray-200 rounded-lg py-12 text-center text-sm text-gray-400">
