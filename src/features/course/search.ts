@@ -3,6 +3,15 @@ import type { Course, CourseStatusFilter } from "./types";
 export const ALL_COURSE_CATEGORY = "전체";
 export const COURSE_SEARCH_PARAM = "keyword";
 
+// 화면에서 숨길 카테고리 (BE 목록에 남아있어도 프론트에서 제외).
+// SQL/시각화/파이썬 제거 → 데이터 분석·머신러닝·통계·빅데이터 4개만 노출.
+const HIDDEN_CATEGORY_NAMES = new Set(["python", "파이썬", "sql", "시각화"]);
+
+export function isVisibleCategory(name?: string | null): boolean {
+  if (!name) return false;
+  return !HIDDEN_CATEGORY_NAMES.has(name.trim().toLowerCase());
+}
+
 interface CourseFilterOptions {
   category?: string;
   keyword?: string;

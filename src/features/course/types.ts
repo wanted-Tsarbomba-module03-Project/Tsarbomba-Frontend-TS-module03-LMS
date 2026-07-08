@@ -70,6 +70,10 @@ export interface Enrollment {
   instructorName?: string | null;
   status?: string | null;
   enrolledAt?: string | null;
+  // 완료 여부는 status(ACTIVE/CANCELED)가 아니라 아래 학습 필드로 판단
+  learningCompleted?: boolean;
+  displayStatus?: string | null; // "수강 중" / "수강 완료"
+  lectureProgressRate?: number;
 }
 
 /* 수강생 학습 현황 (강사·OPERATOR 용) — 강의 수강률 + 문제 풀이 진도 */

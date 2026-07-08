@@ -82,6 +82,7 @@ export default function CourseDetailClient({
       : (localStorage.getItem("userRole") ?? ""),
   );
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
   const isTeacher = TEACHER_ROLES.includes(userRole);
 
   useEffect(() => {
@@ -93,11 +94,16 @@ export default function CourseDetailClient({
     if (isTeacher || !loggedIn) return;
 
     getMyEnrollments()
-      .then((enrollments) =>
-        setIsEnrolled(
-          enrollments.some((e) => String(e.courseId) === String(courseId)),
-        ),
-      )
+      .then((enrollments) => {
+        const mine = enrollments.find(
+          (e) => String(e.courseId) === String(courseId),
+        );
+        setIsEnrolled(!!mine);
+        setIsCompleted(
+          mine?.learningCompleted === true ||
+            (mine?.displayStatus ?? "").includes("완료"),
+        );
+      })
       .catch(() => {
         /* ignore */
       });
@@ -242,9 +248,16 @@ export default function CourseDetailClient({
         redirect: "/myclassroom",
       });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "오류가 발생했습니다.";
+      const raw = err instanceof Error ? err.message : "";
+      // 잠금 계정: 딱딱한 원문("잠긴 계정입니다.") 대신 안내형 문구로
+      const locked = raw.includes("잠긴") || raw.includes("잠금");
+      const content = locked
+        ? "계정이 잠겨 있어 수강 신청할 수 없습니다.\n관리자에게 문의해 주세요."
+        : raw && raw.length <= 60
+          ? raw
+          : "수강 신청에 실패했습니다. 잠시 후 다시 시도해 주세요.";
       setShowEnrollConfirm(false);
-      setResultModal({ title: "수강 신청 실패", content: msg });
+      setResultModal({ title: "수강 신청 실패", content });
     } finally {
       setIsEnrolling(false);
     }
@@ -348,7 +361,7 @@ export default function CourseDetailClient({
                       추가 문제
                     </button>
                     <span className="px-6 py-2 text-sm font-medium text-blue-900 bg-gray-100 rounded-lg whitespace-nowrap">
-                      수강 중
+                      {isCompleted ? "수강 완료" : "수강 중"}
                     </span>
                   </>
                 ) : (
@@ -366,7 +379,7 @@ export default function CourseDetailClient({
         </div>
 
         <section>
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">커리큘럼</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">강의목록</h2>
 
           {lectures.length === 0 ? (
             <div className="border border-gray-200 rounded-lg py-12 text-center text-sm text-gray-400">

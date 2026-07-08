@@ -14,8 +14,10 @@ interface MyClassroomClientProps {
   initialEnrollments: Enrollment[];
 }
 
-const isCompleted = (status?: string | null) =>
-  (status ?? "").toUpperCase() === "COMPLETED";
+// 완료 판단은 enrollment.status(ACTIVE/CANCELED)가 아니라 BE 학습 완료 플래그 기준.
+// displayStatus("수강 완료") 폴백까지 지원.
+const isCompleted = (e: Enrollment) =>
+  e.learningCompleted === true || (e.displayStatus ?? "").includes("완료");
 
 export default function MyClassroomClient({
   initialEnrollments,
@@ -25,8 +27,8 @@ export default function MyClassroomClient({
   const [cancelTarget, setCancelTarget] = useState<Enrollment | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  const inProgress = initialEnrollments.filter((e) => !isCompleted(e.status));
-  const completed = initialEnrollments.filter((e) => isCompleted(e.status));
+  const inProgress = initialEnrollments.filter((e) => !isCompleted(e));
+  const completed = initialEnrollments.filter((e) => isCompleted(e));
 
   const handleCancelConfirm = async () => {
     if (cancelTarget?.enrollmentId == null) return;
