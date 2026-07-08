@@ -42,14 +42,18 @@ export const chatClasses = {
 
 export const problemChatClasses = {
   chatPanel:
-    "absolute right-0 top-3.5 z-20 flex h-[calc(100%-28px)] min-h-[620px] w-[min(420px,calc(100%-32px))] flex-col rounded-base border border-border-light bg-bg-box shadow-[0_12px_32px_rgba(15,23,42,0.16)] transition-[opacity,transform] duration-200 ease-in-out max-md:fixed max-md:inset-x-3 max-md:bottom-3 max-md:top-[max(74px,calc(env(safe-area-inset-top)+12px))] max-md:h-auto max-md:min-h-0 max-md:w-auto max-[380px]:inset-x-2",
+    "fixed right-4 top-[92px] z-[950] flex h-[min(720px,calc(100dvh-112px))] min-h-[560px] w-[min(420px,calc(100dvw-32px))] flex-col rounded-base border border-border-light bg-bg-box shadow-[0_12px_32px_rgba(15,23,42,0.16)] transition-[opacity,transform] duration-200 ease-in-out max-md:inset-x-3 max-md:bottom-3 max-md:top-[max(74px,calc(env(safe-area-inset-top)+12px))] max-md:h-auto max-md:min-h-0 max-md:w-auto max-[380px]:inset-x-2",
   closed: "pointer-events-none translate-x-6 opacity-0",
   open: "pointer-events-auto translate-x-0 opacity-100",
   chatHeader:
-    "relative flex min-h-[86px] flex-col justify-center gap-2 border-b border-border-light px-5 pt-4 pr-14 pb-2 text-text-primary",
+    "relative flex min-h-[86px] flex-col justify-center gap-2 border-b border-border-light px-5 pt-5 pr-14 pb-2 text-text-primary",
+  chatHeaderDraggable:
+    "cursor-move select-none max-md:cursor-default max-md:select-auto",
   chatHeaderTitle: "text-title-md font-bold leading-6",
+  chatDragHint:
+    "absolute left-1/2 top-2 h-1 w-14 -translate-x-1/2 rounded-full bg-[#94a3b8] opacity-70 max-md:hidden",
   closeButton:
-    "absolute right-4 top-4 inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-base border border-border-light bg-bg-box text-xl leading-none text-text-primary hover:bg-bg-hover-gray",
+    "absolute right-4 top-4 inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-base border border-border-light bg-bg-box text-xl leading-none text-text-primary transition hover:border-button-red-bg hover:bg-button-red-bg hover:text-text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-button-red-bg",
   chatRoomTitleRow: "flex min-h-8 max-w-full items-center gap-2",
   chatRoomTitle: "min-w-0 truncate text-description text-text-secondary",
   chatRoomTitleInput:
