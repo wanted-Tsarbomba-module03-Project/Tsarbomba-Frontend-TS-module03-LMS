@@ -13,6 +13,7 @@ import { COURSE_PROGRESS_COLUMN_LABELS } from "@/features/course/constants";
 import { getCourseLearningProgress } from "@/features/course/progressActions";
 import { getFinalProblemSetCandidates } from "@/features/course/recommendActions";
 import { resolveThumbnailUrl } from "@/features/course/http";
+import { isEnrollmentCompleted } from "@/features/course/search";
 import type {
   CourseDetail,
   StudentLearningProgress,
@@ -99,10 +100,7 @@ export default function CourseDetailClient({
           (e) => String(e.courseId) === String(courseId),
         );
         setIsEnrolled(!!mine);
-        setIsCompleted(
-          mine?.learningCompleted === true ||
-            (mine?.displayStatus ?? "").includes("완료"),
-        );
+        setIsCompleted(isEnrollmentCompleted(mine));
       })
       .catch(() => {
         /* ignore */

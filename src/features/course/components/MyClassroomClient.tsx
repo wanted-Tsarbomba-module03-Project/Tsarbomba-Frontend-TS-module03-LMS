@@ -7,17 +7,13 @@ import { useRouter } from "next/navigation";
 import { optimizedImageProps } from "@/components/common/imageOptimization";
 import { cancelEnrollment } from "@/features/course/enrollmentActions";
 import { resolveThumbnailUrl } from "@/features/course/http";
+import { isEnrollmentCompleted } from "@/features/course/search";
 import type { Enrollment } from "@/features/course/types";
 import TwoButtonModal from "@/components/common/TwoButtonModal";
 
 interface MyClassroomClientProps {
   initialEnrollments: Enrollment[];
 }
-
-// 완료 판단은 enrollment.status(ACTIVE/CANCELED)가 아니라 BE 학습 완료 플래그 기준.
-// displayStatus("수강 완료") 폴백까지 지원.
-const isCompleted = (e: Enrollment) =>
-  e.learningCompleted === true || (e.displayStatus ?? "").includes("완료");
 
 export default function MyClassroomClient({
   initialEnrollments,
@@ -27,8 +23,10 @@ export default function MyClassroomClient({
   const [cancelTarget, setCancelTarget] = useState<Enrollment | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  const inProgress = initialEnrollments.filter((e) => !isCompleted(e));
-  const completed = initialEnrollments.filter((e) => isCompleted(e));
+  const inProgress = initialEnrollments.filter(
+    (e) => !isEnrollmentCompleted(e),
+  );
+  const completed = initialEnrollments.filter((e) => isEnrollmentCompleted(e));
 
   const handleCancelConfirm = async () => {
     if (cancelTarget?.enrollmentId == null) return;

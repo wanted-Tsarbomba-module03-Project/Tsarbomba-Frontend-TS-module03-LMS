@@ -1,4 +1,4 @@
-import type { Course, CourseStatusFilter } from "./types";
+import type { Course, CourseStatusFilter, Enrollment } from "./types";
 
 export const ALL_COURSE_CATEGORY = "전체";
 export const COURSE_SEARCH_PARAM = "keyword";
@@ -10,6 +10,16 @@ const HIDDEN_CATEGORY_NAMES = new Set(["python", "파이썬", "sql", "시각화"
 export function isVisibleCategory(name?: string | null): boolean {
   if (!name) return false;
   return !HIDDEN_CATEGORY_NAMES.has(name.trim().toLowerCase());
+}
+
+// 수강 완료 여부 — enrollment.status(ACTIVE/CANCELED)가 아니라 BE 학습 완료 플래그로 판단.
+// displayStatus("수강 완료") 폴백까지 지원.
+export function isEnrollmentCompleted(enrollment?: Enrollment | null): boolean {
+  if (!enrollment) return false;
+  return (
+    enrollment.learningCompleted === true ||
+    (enrollment.displayStatus ?? "").includes("완료")
+  );
 }
 
 interface CourseFilterOptions {
