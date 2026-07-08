@@ -38,6 +38,11 @@ interface DragPosition {
   y: number;
 }
 
+interface DragListeners {
+  onPointerMove: (event: PointerEvent) => void;
+  onPointerUp: () => void;
+}
+
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
@@ -71,6 +76,7 @@ export default function ProblemChatPanel({
     null,
   );
   const dragPointerOffsetRef = useRef<DragPosition | null>(null);
+  const dragListenersRef = useRef<DragListeners | null>(null);
   const [dragPosition, setDragPosition] = useState<DragPosition | null>(null);
   const isChatDisabled = chatSending || !chatOpen;
 
@@ -200,6 +206,22 @@ export default function ProblemChatPanel({
     };
   }, []);
 
+  const endDrag = useCallback(() => {
+    const listeners = dragListenersRef.current;
+
+    if (listeners) {
+      window.removeEventListener("pointermove", listeners.onPointerMove);
+      window.removeEventListener("pointerup", listeners.onPointerUp);
+      dragListenersRef.current = null;
+    }
+
+    dragPointerOffsetRef.current = null;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  }, []);
+
+  useEffect(() => endDrag, [endDrag]);
+
   const handleDragStart = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       if (!window.matchMedia(DESKTOP_DRAG_MEDIA_QUERY).matches) {
@@ -232,6 +254,8 @@ export default function ProblemChatPanel({
         setDragPosition(nextPosition);
       }
 
+      endDrag();
+
       const handlePointerMove = (pointerEvent: PointerEvent) => {
         const clampedPosition = getClampedDragPosition(
           pointerEvent.clientX,
@@ -244,19 +268,19 @@ export default function ProblemChatPanel({
       };
 
       const handlePointerUp = () => {
-        dragPointerOffsetRef.current = null;
-        window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("pointerup", handlePointerUp);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
+        endDrag();
       };
 
       document.body.style.cursor = "move";
       document.body.style.userSelect = "none";
+      dragListenersRef.current = {
+        onPointerMove: handlePointerMove,
+        onPointerUp: handlePointerUp,
+      };
       window.addEventListener("pointermove", handlePointerMove);
       window.addEventListener("pointerup", handlePointerUp, { once: true });
     },
-    [getClampedDragPosition],
+    [endDrag, getClampedDragPosition],
   );
 
   useEffect(() => {
@@ -325,9 +349,8 @@ export default function ProblemChatPanel({
         onPointerDown={handleDragStart}
       >
         <span
-          aria-label="채팅창 이동 핸들"
+          aria-hidden="true"
           className={problemChatClasses.chatDragHint}
-          role="img"
         />
         <span className={problemChatClasses.chatHeaderTitle}>
           문제풀이 챗봇
