@@ -34,6 +34,7 @@ import type {
   SubmissionResult,
 } from "@/features/problems/types";
 import ProblemChatPanel from "@/features/problems/components/ProblemChatPanel";
+import ProblemCodeEditor from "@/features/problems/components/ProblemCodeEditor";
 import ProblemResultPanel from "@/features/problems/components/ProblemResultPanel";
 import { useResizableProblemPanel } from "@/features/problems/hooks/useResizableProblemPanel";
 
@@ -619,11 +620,7 @@ export default function CourseProblemDetailClient({
                     힌트를 확인할 수 있습니다.
                   </div>
                 )}
-                <textarea
-                  className={styles.codeEditor}
-                  onChange={(event) => handleCodeChange(event.target.value)}
-                  value={code}
-                />
+                <ProblemCodeEditor code={code} onCodeChange={handleCodeChange} />
               </div>
 
               <div className={styles.tabs}>

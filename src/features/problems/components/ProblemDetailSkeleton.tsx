@@ -21,6 +21,17 @@ const skeletonClasses = {
     "w-2 shrink-0 rounded-base bg-border-light max-[1180px]:hidden",
   textBlock: "mt-4 flex flex-col gap-3",
   tabs: "mt-3 mb-2 grid min-w-0 grid-cols-4 gap-2 max-[560px]:gap-1.5",
+  editorFrame:
+    "relative mt-3 h-[280px] min-h-[220px] overflow-hidden rounded-base border border-[#111751] bg-[#1e1e1e] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]",
+  editorToggle:
+    "absolute right-2 top-2 z-10 h-8 w-16 rounded-base border border-[#1a237e] bg-[#eef2ff]",
+  editorLines: "flex flex-col gap-3 px-4 pt-14",
+  tabButton:
+    "h-[42px] rounded-base border border-[#1a237e] bg-[#fff]",
+  tabButtonActive:
+    "h-[42px] rounded-base border border-button-blue-bg bg-button-blue-bg",
+  tabButtonDisabled:
+    "h-[42px] rounded-base border border-[#cbd5e1] bg-[#f1f5f9]",
   submitWrap: "mt-3 flex justify-end",
 } as const;
 
@@ -32,6 +43,33 @@ function SkeletonLine({
   width: string;
 }) {
   return <Skeleton borderRadius="8px" height={height} width={width} />;
+}
+
+function CodeEditorSkeleton() {
+  return (
+    <div className={skeletonClasses.editorFrame}>
+      <div className={skeletonClasses.editorToggle} />
+      <div className={skeletonClasses.editorLines}>
+        <Skeleton borderRadius="8px" height="16px" width="68%" />
+        <Skeleton borderRadius="8px" height="16px" width="54%" />
+        <Skeleton borderRadius="8px" height="16px" width="76%" />
+        <Skeleton borderRadius="8px" height="16px" width="46%" />
+        <Skeleton borderRadius="8px" height="16px" width="62%" />
+        <Skeleton borderRadius="8px" height="16px" width="38%" />
+      </div>
+    </div>
+  );
+}
+
+function ResultTabsSkeleton() {
+  return (
+    <div className={skeletonClasses.tabs}>
+      <div className={skeletonClasses.tabButtonActive} />
+      <div className={skeletonClasses.tabButton} />
+      <div className={skeletonClasses.tabButtonDisabled} />
+      <div className={skeletonClasses.tabButtonDisabled} />
+    </div>
+  );
 }
 
 export default function ProblemDetailSkeleton() {
@@ -86,16 +124,9 @@ export default function ProblemDetailSkeleton() {
 
           <section className={skeletonClasses.solveBox}>
             <SkeletonLine height="1.25rem" width="132px" />
-            <div className="mt-3">
-              <Skeleton borderRadius="8px" height="220px" width="100%" />
-            </div>
+            <CodeEditorSkeleton />
 
-            <div className={skeletonClasses.tabs}>
-              <Skeleton borderRadius="8px" height="42px" width="100%" />
-              <Skeleton borderRadius="8px" height="42px" width="100%" />
-              <Skeleton borderRadius="8px" height="42px" width="100%" />
-              <Skeleton borderRadius="8px" height="42px" width="100%" />
-            </div>
+            <ResultTabsSkeleton />
 
             <Skeleton borderRadius="8px" height="180px" width="100%" />
 
