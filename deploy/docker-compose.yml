@@ -4,7 +4,7 @@
 
 services:
   frontend:
-    image: ${ECR_REGISTRY}/codebomb-frontend:latest
+    image: ${ECR_REGISTRY}/team05/frontend:latest
     container_name: lms-frontend
     ports:
       - "3000:3000"
@@ -13,7 +13,7 @@ services:
       - PORT=3000
       - HOSTNAME=0.0.0.0
       - NEXT_TELEMETRY_DISABLED=1
-      - API_PROXY_TARGET=http://172.31.45.217:8080   # ← codebomb-spring 사설IP (SSR 전용, 브라우저는 상대경로 /api→ALB)
+      - API_PROXY_TARGET=http://172.31.51.4:8080   # ← team05-01-backend 사설IP (SSR 전용)
     healthcheck:
       test:
         [
