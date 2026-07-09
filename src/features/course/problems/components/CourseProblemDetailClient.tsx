@@ -34,6 +34,7 @@ import type {
   SubmissionResult,
 } from "@/features/problems/types";
 import ProblemChatPanel from "@/features/problems/components/ProblemChatPanel";
+import ProblemCodeEditor from "@/features/problems/components/ProblemCodeEditor";
 import ProblemResultPanel from "@/features/problems/components/ProblemResultPanel";
 import { useResizableProblemPanel } from "@/features/problems/hooks/useResizableProblemPanel";
 
@@ -323,6 +324,18 @@ export default function CourseProblemDetailClient({
     }
   };
 
+  const handleTabChange = (tab: ProblemResultTab) => {
+    setActiveTab(tab);
+
+    if (
+      tab === "hint" &&
+      currentProblem?.problemId &&
+      !hints[currentIndex]?.length
+    ) {
+      void fetchHints(currentProblem.problemId, currentIndex);
+    }
+  };
+
   const handleRun = async () => {
     if (!currentProblem?.problemId || isRunning) return;
     if (!code.trim()) {
@@ -607,17 +620,13 @@ export default function CourseProblemDetailClient({
                     힌트를 확인할 수 있습니다.
                   </div>
                 )}
-                <textarea
-                  className={styles.codeEditor}
-                  onChange={(event) => handleCodeChange(event.target.value)}
-                  value={code}
-                />
+                <ProblemCodeEditor code={code} onCodeChange={handleCodeChange} />
               </div>
 
               <div className={styles.tabs}>
                 <button
                   className={activeTab === "result" ? styles.activeTab : ""}
-                  onClick={() => setActiveTab("result")}
+                  onClick={() => handleTabChange("result")}
                   type="button"
                 >
                   실행결과
@@ -625,7 +634,7 @@ export default function CourseProblemDetailClient({
                 <button
                   className={activeTab === "hint" ? styles.activeTab : ""}
                   disabled={!hintEnabled[currentIndex]}
-                  onClick={() => setActiveTab("hint")}
+                  onClick={() => handleTabChange("hint")}
                   type="button"
                 >
                   힌트
@@ -633,7 +642,7 @@ export default function CourseProblemDetailClient({
                 <button
                   className={activeTab === "solution" ? styles.activeTab : ""}
                   disabled={!solutionEnabled[currentIndex]}
-                  onClick={() => setActiveTab("solution")}
+                  onClick={() => handleTabChange("solution")}
                   type="button"
                 >
                   해설보기

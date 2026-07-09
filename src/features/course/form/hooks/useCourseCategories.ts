@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getCourseCategories } from "@/features/course/actions";
+import { isVisibleCategory } from "@/features/course/search";
 import type { CourseCategory } from "../types";
 
 interface Options {
@@ -14,7 +15,8 @@ export function useCourseCategories({ selectFirstAsDefault }: Options = {}) {
 
   useEffect(() => {
     getCourseCategories()
-      .then((arr) => {
+      .then((all) => {
+        const arr = all.filter((c) => isVisibleCategory(c.name));
         setCategories(arr);
         if (selectFirstAsDefault && arr.length) {
           setDefaultId(String(arr[0].courseCategoryId));

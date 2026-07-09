@@ -1,7 +1,12 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { getCourseCategories } from "@/features/course/actions";
+import {
+  ALL_COURSE_CATEGORY,
+  isVisibleCategory,
+} from "@/features/course/search";
 
 interface CategoryNavProps {
   variant?: "category" | "problem-detail";
@@ -11,17 +16,6 @@ interface CategoryNavProps {
   isProblemChatOpen?: boolean;
   isRunning?: boolean;
 }
-
-const CATEGORIES = [
-  "전체",
-  "데이터 분석",
-  "머신러닝",
-  "Python",
-  "SQL",
-  "통계",
-  "시각화",
-  "빅데이터",
-];
 
 // Next.js 정적 prerender 시 useSearchParams 를 만나면 Suspense 경계 필요.
 export default function CategoryNav(props: CategoryNavProps) {
@@ -44,7 +38,24 @@ function CategoryNavInner({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const currentCategory = searchParams.get("category") || "전체";
+  const currentCategory = searchParams.get("category") || ALL_COURSE_CATEGORY;
+
+  // 카테고리는 BE 조회 (SQL/시각화/파이썬 등 제거는 BE 목록 기준으로 자동 반영)
+  const [categoryNames, setCategoryNames] = useState<string[]>([]);
+  useEffect(() => {
+    if (variant !== "category") return;
+    getCourseCategories()
+      .then((arr) =>
+        setCategoryNames(
+          arr.map((c) => c.name).filter((name) => isVisibleCategory(name)),
+        ),
+      )
+      .catch(() => {
+        /* 조회 실패 시 전체 버튼만 노출 */
+      });
+  }, [variant]);
+
+  const categories = [ALL_COURSE_CATEGORY, ...categoryNames];
 
   // if (pathname) {
   //   if (/^\/courses\/\d+$/.test(pathname)) return null;
@@ -114,7 +125,7 @@ function CategoryNavInner({
     <nav className="w-full border-b bg-white border-[#e8e8e8] py-3 mb-4">
       <div className="flex items-center justify-between max-w-300 mx-auto px-6 gap-4">
         <div className="flex items-center gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-none">
-          {CATEGORIES.map((category) => (
+          {categories.map((category) => (
             <button
               key={category}
               className={category === currentCategory ? btnActive : btnBase}
