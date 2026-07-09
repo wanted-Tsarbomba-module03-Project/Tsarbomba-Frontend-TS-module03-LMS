@@ -12,9 +12,9 @@ concurrency:
 
 env:
   AWS_REGION: ap-northeast-2
-  ECR_REPO: codebomb-frontend
-  S3_PREFIX: s3://codebomb-deploy/frontend/
-  EC2_NAME_TAG: codebomb-frontend
+  ECR_REPO: team05/frontend
+  S3_PREFIX: s3://team05-01-deploy-0708-635249349258-ap-northeast-2-an/frontend/
+  EC2_NAME_TAG: team05-01-frontend
 
 jobs:
   deploy:
@@ -42,10 +42,10 @@ jobs:
         continue-on-error: true
         # type-check/test 스크립트는 미존재. 타입검사는 아래 Docker의 next build가 수행.
 
-      - name: AWS 자격증명 (OIDC, codebomb-github-actions)
+      - name: AWS 자격증명 (OIDC, team05-github-actions)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::143924590342:role/codebomb-github-actions
+          role-to-assume: arn:aws:iam::635249349258:role/team05-github-actions
           aws-region: ${{ env.AWS_REGION }}
 
       - name: ECR 로그인
@@ -56,7 +56,7 @@ jobs:
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
           TAG: ${{ github.sha }}
-          API_URL: "" # env로 받아 인젝션 방지
+          API_URL: ${{ vars.NEXT_PUBLIC_API_URL }} # 브라우저용 BE 주소(빌드주입) = BE_EIP
         run: |
           set -euo pipefail
           docker build \
