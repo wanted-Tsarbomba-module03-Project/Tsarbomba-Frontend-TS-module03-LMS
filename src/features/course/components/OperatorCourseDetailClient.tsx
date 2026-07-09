@@ -294,18 +294,30 @@ export default function OperatorCourseDetailClient({
                   <span className="text-base text-gray-800">
                     {lecture.lectureOrder}주차: {lecture.title}
                   </span>
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="#6B7280"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M6 4l4 4-4 4" />
-                  </svg>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span
+                      className={[
+                        "text-xs font-medium px-2 py-0.5 rounded",
+                        lecture.videoUrl
+                          ? "bg-blue-50 text-blue-700"
+                          : "bg-amber-50 text-amber-700",
+                      ].join(" ")}
+                    >
+                      {lecture.videoUrl ? "영상" : "문제"}
+                    </span>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="#6B7280"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M6 4l4 4-4 4" />
+                    </svg>
+                  </div>
                 </button>
               ))}
             </div>

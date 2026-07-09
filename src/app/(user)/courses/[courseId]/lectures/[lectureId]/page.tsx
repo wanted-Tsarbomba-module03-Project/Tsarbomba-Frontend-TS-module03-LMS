@@ -78,6 +78,7 @@ export default function LectureDetailPage() {
     null,
   );
   const [notEnrolledOpen, setNotEnrolledOpen] = useState(false);
+  const [deletedOpen, setDeletedOpen] = useState(false);
   const [lockedAccessOpen, setLockedAccessOpen] = useState(false);
   const [lockedRedirectTarget, setLockedRedirectTarget] =
     useState<LectureSummary | null>(null);
@@ -175,11 +176,15 @@ export default function LectureDetailPage() {
           }
         }
 
-        // 잠긴/미수강 강의는 BE 가 403/404 를 줄 수 있음 — 죽은 404 대신 강좌 페이지로 안내.
+        // 삭제/없는 강의(404)는 에러 페이지 대신 안내 모달, 접근 불가(403)는 강좌 페이지로.
         const lectureData = await getLecture(lectureId).catch((err: unknown) => {
           const status =
             err instanceof ApiClientError ? err.status : undefined;
-          if (status === 403 || status === 404) {
+          if (status === 404) {
+            setDeletedOpen(true);
+            return null;
+          }
+          if (status === 403) {
             router.replace(`/courses/${courseId}`);
             return null;
           }
@@ -321,6 +326,17 @@ export default function LectureDetailPage() {
     );
   }
 
+  if (deletedOpen) {
+    return (
+      <OneButtonModal
+        isOpen={true}
+        onClose={() => router.replace(`/courses/${courseId}`)}
+        modalTitle="삭제된 강의입니다"
+        modalContent={"삭제되었거나 존재하지 않는 강의예요.\n강좌 페이지로 이동합니다."}
+      />
+    );
+  }
+
   if (lockedAccessOpen) {
     const targetOrder = lockedRedirectTarget?.lectureOrder;
     const targetId = lockedRedirectTarget?.lectureId;
@@ -379,13 +395,31 @@ export default function LectureDetailPage() {
             <h1 className="text-lg font-semibold text-gray-800 truncate">
               {lecture.lectureOrder}주차: {lecture.title}
             </h1>
+            <span
+              className={[
+                "shrink-0 text-xs font-medium px-2 py-0.5 rounded",
+                isProblemLecture
+                  ? "bg-amber-50 text-amber-700"
+                  : "bg-blue-50 text-blue-700",
+              ].join(" ")}
+            >
+              {isProblemLecture ? "문제" : "영상"}
+            </span>
           </div>
 
-          <p className="mb-3 text-xs text-blue-900">
+          <p className="mb-0.5 pl-2.5 -indent-2.5 text-xs text-red-600">
             {isProblemLecture
-              ? "문제를 모두 풀이해야 다음 강의가 열립니다."
-              : "강의 영상을 끝까지 시청해야 다음 강의가 열립니다. 처음 시청 시에는 재생바 이동과 배속 재생이 제한됩니다."}
+              ? "* 문제를 모두 풀이해야 다음 강의가 열립니다."
+              : "* 강의 영상을 끝까지 시청해야 다음 강의가 열립니다. 처음 시청 시에는 재생바 이동과 배속 재생이 제한됩니다."}
           </p>
+
+          {!isProblemLecture && (
+            <p className="mb-3 pl-2.5 -indent-2.5 text-xs text-red-600">
+              * 본 영상은 외부 YouTube 영상을 임베드하여 제공됩니다. 영상의 무단
+              배포, 캡처 후 공유, 재업로드 및 재사용으로 인해 발생하는 책임은
+              이용자 본인에게 있습니다.
+            </p>
+          )}
 
           {isProblemLecture ? (
             <div className="w-full aspect-video bg-gray-100 rounded-lg flex flex-col items-center justify-center gap-5 px-6 text-center">
@@ -655,18 +689,18 @@ export default function LectureDetailPage() {
                         <span className="truncate flex-1">
                           {item.lectureOrder}. {item.title}
                         </span>
-                        {isProblem && (
-                          <span
-                            className={[
-                              "text-xs px-1.5 py-0.5 rounded shrink-0",
-                              isCurrent
-                                ? "bg-white/20 text-white"
-                                : "bg-gray-100 text-gray-500",
-                            ].join(" ")}
-                          >
-                            문제
-                          </span>
-                        )}
+                        <span
+                          className={[
+                            "text-xs px-1.5 py-0.5 rounded shrink-0",
+                            isCurrent
+                              ? "bg-white/20 text-white"
+                              : isProblem
+                                ? "bg-amber-50 text-amber-700"
+                                : "bg-blue-50 text-blue-700",
+                          ].join(" ")}
+                        >
+                          {isProblem ? "문제" : "영상"}
+                        </span>
                       </button>
                     </li>
                   );
