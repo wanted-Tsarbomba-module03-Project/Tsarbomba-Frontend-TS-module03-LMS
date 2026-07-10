@@ -339,7 +339,7 @@ export default function SignupForm() {
 
   return (
     <div className="w-full flex items-center justify-center bg-white px-4 py-10">
-      <div className="w-125 p-[25px_40px] bg-white border border-border-light rounded-base text-center box-border">
+      <div className="w-full max-w-125 p-6 sm:p-[25px_40px] bg-white border border-border-light rounded-base text-center box-border">
         <h1 className="text-2xl font-bold text-text-primary mb-7.5">
           회원가입
         </h1>
@@ -347,11 +347,11 @@ export default function SignupForm() {
         <form onSubmit={handleSignupSubmit} className="space-y-4" noValidate>
           <div className="text-left">
             <label className="auth-label">이메일*</label>
-            <div className="flex gap-2 items-center">
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
               <input
                 ref={emailRef}
                 type="email"
-                className={`w-full auth-input ${emailErr ? "border-text-red" : "focus:border-text-blue"}`}
+                className={`w-full sm:flex-1 sm:min-w-0 auth-input ${emailErr ? "border-text-red" : "focus:border-text-blue"}`}
                 placeholder="your@email.com"
                 value={email}
                 disabled={isVerified}
@@ -376,11 +376,11 @@ export default function SignupForm() {
 
           <div className="text-left">
             <label className="auth-label">이메일 확인*</label>
-            <div className="flex gap-2 items-center">
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
               <input
                 ref={codeRef}
                 type="text"
-                className={`flex-1 auth-input ${codeErr ? "border-text-red" : "focus:border-text-blue"}`}
+                className={`w-full sm:flex-1 sm:min-w-0 auth-input ${codeErr ? "border-text-red" : "focus:border-text-blue"}`}
                 placeholder="인증번호 입력"
                 value={code}
                 disabled={isVerified}
@@ -398,10 +398,10 @@ export default function SignupForm() {
                   인증번호 전송
                 </button>
               ) : (
-                <div className="flex gap-1.5">
+                <div className="flex gap-1.5 w-full sm:w-auto">
                   <button
                     type="button"
-                    className="h-11 px-3.5 text-sm bg-bg-gray-box text-text-primary border border-border-light rounded-base whitespace-nowrap flex items-center justify-center hover:bg-bg-gray-box-hover transition-colors disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                    className="h-11 flex-1 sm:flex-none px-3.5 text-sm bg-bg-gray-box text-text-primary border border-border-light rounded-base whitespace-nowrap flex items-center justify-center hover:bg-bg-gray-box-hover transition-colors disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                     onClick={handleSendEmail}
                     disabled={isVerified || timer > 0}
                   >
@@ -409,7 +409,7 @@ export default function SignupForm() {
                   </button>
                   <button
                     type="button"
-                    className="h-11 px-3.5 text-sm bg-button-blue-bg text-white border-none rounded-base cursor-pointer whitespace-nowrap flex items-center justify-center hover:bg-button-blue-hover-bg transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                    className="h-11 flex-1 sm:flex-none px-3.5 text-sm bg-button-blue-bg text-white border-none rounded-base cursor-pointer whitespace-nowrap flex items-center justify-center hover:bg-button-blue-hover-bg transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                     onClick={handleVerifyCode}
                     disabled={isVerified}
                   >
@@ -479,11 +479,11 @@ export default function SignupForm() {
 
           <div className="text-left">
             <label className="auth-label">닉네임*</label>
-            <div className="flex gap-2 items-center">
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
               <input
                 ref={nicknameRef}
                 type="text"
-                className={`flex-1 auth-input ${nicknameErr ? "border-text-red" : "focus:border-text-blue"}`}
+                className={`w-full sm:flex-1 sm:min-w-0 auth-input ${nicknameErr ? "border-text-red" : "focus:border-text-blue"}`}
                 placeholder="닉네임을 입력해주세요"
                 value={nickname}
                 onBlur={(e) => {

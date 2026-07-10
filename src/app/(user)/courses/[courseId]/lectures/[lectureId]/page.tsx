@@ -369,7 +369,7 @@ export default function LectureDetailPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-6">
-      <div className="flex gap-4 items-start">
+      <div className="flex flex-col lg:flex-row gap-4 items-start">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
             <button
@@ -377,7 +377,7 @@ export default function LectureDetailPage() {
               onClick={() => router.push(`/courses/${courseId}`)}
               aria-label="강좌 페이지로 돌아가기"
               title="강좌 페이지로 돌아가기"
-              className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-md text-gray-500 hover:text-blue-900 hover:bg-gray-100 transition-colors cursor-pointer"
+              className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-md text-text-secondary hover:text-text-blue hover:bg-bg-gray-box transition-colors cursor-pointer"
             >
               <svg
                 width="16"
@@ -392,29 +392,29 @@ export default function LectureDetailPage() {
                 <path d="M10 4L6 8l4 4" />
               </svg>
             </button>
-            <h1 className="text-lg font-semibold text-gray-800 truncate">
+            <h1 className="text-lg font-semibold text-text-primary truncate">
               {lecture.lectureOrder}주차: {lecture.title}
             </h1>
             <span
               className={[
                 "shrink-0 text-xs font-medium px-2 py-0.5 rounded",
                 isProblemLecture
-                  ? "bg-amber-50 text-amber-700"
-                  : "bg-blue-50 text-blue-700",
+                  ? "bg-tag-problem-bg text-tag-problem-text"
+                  : "bg-tag-video-bg text-tag-video-text",
               ].join(" ")}
             >
               {isProblemLecture ? "문제" : "영상"}
             </span>
           </div>
 
-          <p className="mb-0.5 pl-2.5 -indent-2.5 text-xs text-red-600">
+          <p className="mb-0.5 pl-2.5 -indent-2.5 text-xs text-text-red">
             {isProblemLecture
               ? "* 문제를 모두 풀이해야 다음 강의가 열립니다."
               : "* 강의 영상을 끝까지 시청해야 다음 강의가 열립니다. 처음 시청 시에는 재생바 이동과 배속 재생이 제한됩니다."}
           </p>
 
           {!isProblemLecture && (
-            <p className="mb-3 pl-2.5 -indent-2.5 text-xs text-red-600">
+            <p className="mb-3 pl-2.5 -indent-2.5 text-xs text-text-red">
               * 본 영상은 외부 YouTube 영상을 임베드하여 제공됩니다. 영상의 무단
               배포, 캡처 후 공유, 재업로드 및 재사용으로 인해 발생하는 책임은
               이용자 본인에게 있습니다.
@@ -422,7 +422,7 @@ export default function LectureDetailPage() {
           )}
 
           {isProblemLecture ? (
-            <div className="w-full aspect-video bg-gray-100 rounded-lg flex flex-col items-center justify-center gap-5 px-6 text-center">
+            <div className="w-full aspect-video bg-bg-gray-box rounded-lg flex flex-col items-center justify-center gap-5 px-6 text-center">
               <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
                 <rect
                   x="12"
@@ -442,10 +442,10 @@ export default function LectureDetailPage() {
                 />
               </svg>
               <div>
-                <p className="text-lg font-semibold text-gray-800 mb-1">
+                <p className="text-lg font-semibold text-text-primary mb-1">
                   문제 강의입니다
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-text-secondary">
                   {currentLink
                     ? "아래 버튼을 눌러 문제를 풀어보세요."
                     : "문제 연결 정보를 불러오지 못했어요. 잠시 후 새로고침 해주세요."}
@@ -455,14 +455,14 @@ export default function LectureDetailPage() {
                 <button
                   type="button"
                   onClick={() => setProblemNavTarget(currentLink)}
-                  className="px-6 py-2.5 text-base font-medium bg-blue-900 text-white rounded-lg cursor-pointer hover:bg-blue-950 transition-colors"
+                  className="px-6 py-2.5 text-base font-medium bg-button-blue-bg text-text-white rounded-lg cursor-pointer hover:bg-button-blue-hover-bg transition-colors"
                 >
                   문제 풀러 가기
                 </button>
               )}
             </div>
           ) : (
-            <div className="w-full aspect-video bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
+            <div className="w-full aspect-video bg-bg-gray-box-hover rounded-lg overflow-hidden flex items-center justify-center">
               {embedUrl ? (
                 <YoutubeProgressPlayer
                   lectureId={lectureId}
@@ -537,12 +537,12 @@ export default function LectureDetailPage() {
             </div>
           )}
 
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-border-light">
             <button
               type="button"
               disabled={!prevLecture}
               onClick={() => prevLecture && goToLecture(prevLecture.lectureId)}
-              className="flex items-center gap-1 text-base font-medium text-gray-800 cursor-pointer hover:text-blue-900 transition-colors disabled:text-gray-400 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 text-base font-medium text-text-primary cursor-pointer hover:text-text-blue transition-colors disabled:text-text-muted disabled:cursor-not-allowed"
             >
               <svg
                 width="18"
@@ -568,7 +568,7 @@ export default function LectureDetailPage() {
                   ? "현재 강의를 완료하면 다음 강의가 열립니다."
                   : undefined
               }
-              className="flex items-center gap-1 text-base font-medium text-gray-800 cursor-pointer hover:text-blue-900 transition-colors disabled:text-gray-400 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 text-base font-medium text-text-primary cursor-pointer hover:text-text-blue transition-colors disabled:text-text-muted disabled:cursor-not-allowed"
             >
               다음
               <svg
@@ -587,12 +587,12 @@ export default function LectureDetailPage() {
           </div>
         </div>
 
-        <div className="shrink-0 flex items-start">
+        <div className="shrink-0 flex items-start w-full lg:w-auto">
           {!panelOpen && (
             <button
               type="button"
               onClick={() => setPanelOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-800 hover:bg-gray-100 transition-colors whitespace-nowrap cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 border border-border-light rounded-lg text-sm text-text-primary hover:bg-bg-gray-box transition-colors whitespace-nowrap cursor-pointer"
             >
               <svg
                 width="16"
@@ -612,19 +612,19 @@ export default function LectureDetailPage() {
           <div
             className={[
               "overflow-hidden transition-all duration-300",
-              panelOpen ? "w-72 opacity-100" : "w-0 opacity-0",
+              panelOpen ? "w-full lg:w-72 opacity-100" : "w-0 opacity-0",
             ].join(" ")}
           >
-            <div className="w-72 border border-gray-200 rounded-lg bg-white">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                <span className="text-base font-semibold text-gray-800">
+            <div className="w-full lg:w-72 border border-border-light rounded-lg bg-bg-box">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border-light">
+                <span className="text-base font-semibold text-text-primary">
                   강의 목록
                 </span>
                 <button
                   type="button"
                   onClick={() => setPanelOpen(false)}
                   aria-label="목록 접기"
-                  className="text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
+                  className="text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
                 >
                   <svg
                     width="18"
@@ -656,10 +656,10 @@ export default function LectureDetailPage() {
                         className={[
                           "w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center gap-2 cursor-pointer",
                           isCurrent
-                            ? "bg-blue-900 text-white"
+                            ? "bg-button-blue-bg text-text-white"
                             : locked
-                              ? "text-gray-400 hover:bg-gray-50"
-                              : "text-gray-800 hover:bg-gray-100",
+                              ? "text-text-muted hover:bg-bg-box-hover"
+                              : "text-text-primary hover:bg-bg-gray-box",
                         ].join(" ")}
                       >
                         {locked && (
@@ -693,10 +693,10 @@ export default function LectureDetailPage() {
                           className={[
                             "text-xs px-1.5 py-0.5 rounded shrink-0",
                             isCurrent
-                              ? "bg-white/20 text-white"
+                              ? "bg-white/20 text-text-white"
                               : isProblem
-                                ? "bg-amber-50 text-amber-700"
-                                : "bg-blue-50 text-blue-700",
+                                ? "bg-tag-problem-bg text-tag-problem-text"
+                                : "bg-tag-video-bg text-tag-video-text",
                           ].join(" ")}
                         >
                           {isProblem ? "문제" : "영상"}
