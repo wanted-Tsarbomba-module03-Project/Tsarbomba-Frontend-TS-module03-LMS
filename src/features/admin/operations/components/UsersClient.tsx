@@ -15,6 +15,7 @@ import { handleClientError } from "@/lib/errorHandling";
 
 import { getAdminUsers, getAllAdminUsers } from "../actions";
 import {
+  ACCOUNT_LOCK_STATUS_LABEL,
   ADMIN_USER_LIST_COLUMN_LABELS,
   ADMIN_USER_PAGE_SIZE,
 } from "../constants";
@@ -34,7 +35,10 @@ const userColumns: ListColumn<AdminUserSummary>[] = [
   {
     key: "isLocked",
     label: ADMIN_USER_LIST_COLUMN_LABELS[5],
-    render: (user) => (user.isLocked ? "비활성" : "활성"),
+    render: (user) =>
+      user.isLocked
+        ? ACCOUNT_LOCK_STATUS_LABEL.locked
+        : ACCOUNT_LOCK_STATUS_LABEL.unlocked,
   },
 ];
 
