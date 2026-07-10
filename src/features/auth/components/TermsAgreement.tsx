@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { TERMS, type TermsKey } from "@/features/auth/terms";
-import TermsViewModal from "@/features/auth/components/TermsViewModal";
+import { TERMS, type TermsKey } from "@/lib/terms";
+import TermsViewModal from "@/components/common/TermsViewModal";
 
 export interface TermsAgreementValue {
   serviceAgreed: boolean;

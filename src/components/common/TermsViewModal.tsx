@@ -1,6 +1,7 @@
 "use client";
 
-import { TERMS, type TermsKey } from "@/features/auth/terms";
+import { useEffect } from "react";
+import { TERMS, type TermsKey } from "@/lib/terms";
 
 interface TermsViewModalProps {
   /** 표시할 약관 키. null 이면 닫힘 */
@@ -15,6 +16,16 @@ export default function TermsViewModal({
   onClose,
   onAgree,
 }: TermsViewModalProps) {
+  // Esc 로 닫기 (열려 있을 때만 리스너 등록)
+  useEffect(() => {
+    if (!termsKey) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [termsKey, onClose]);
+
   if (!termsKey) return null;
   const doc = TERMS[termsKey];
 

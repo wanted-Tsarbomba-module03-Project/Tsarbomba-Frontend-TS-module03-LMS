@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import TermsViewModal from "@/features/auth/components/TermsViewModal";
-import type { TermsKey } from "@/features/auth/terms";
+import TermsViewModal from "@/components/common/TermsViewModal";
+import type { TermsKey } from "@/lib/terms";
 
 function Footer() {
   const [viewing, setViewing] = useState<TermsKey | null>(null);
