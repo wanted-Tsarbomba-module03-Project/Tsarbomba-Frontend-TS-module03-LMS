@@ -66,6 +66,7 @@ export function VideoLectureCard({
 }: VideoLectureCardProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteFailed, setDeleteFailed] = useState(false);
 
   const existingMaterials = item.existingMaterials ?? [];
 
@@ -73,6 +74,7 @@ export function VideoLectureCard({
   const handleDeleteExisting = async (materialId: number) => {
     if (deletingId !== null) return;
     setDeletingId(materialId);
+    setDeleteFailed(false);
     try {
       await deleteLectureMaterial(materialId);
       onUpdate(
@@ -81,7 +83,8 @@ export function VideoLectureCard({
         existingMaterials.filter((m) => m.lectureMaterialId !== materialId),
       );
     } catch {
-      /* 삭제 실패 — 조용히 무시 (재시도 가능) */
+      // 삭제 실패 — 사용자에게 안내해 재시도 유도
+      setDeleteFailed(true);
     } finally {
       setDeletingId(null);
     }
@@ -190,7 +193,7 @@ export function VideoLectureCard({
                   <button
                     type="button"
                     onClick={() => handleDeleteExisting(m.lectureMaterialId)}
-                    disabled={deletingId === m.lectureMaterialId}
+                    disabled={deletingId !== null}
                     className="text-text-placeholder hover:text-text-red transition-colors shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label="기존 첨부 삭제"
                   >
@@ -209,6 +212,12 @@ export function VideoLectureCard({
                 </li>
               ))}
             </ul>
+          )}
+
+          {deleteFailed && (
+            <p className="mt-1 text-xs text-text-red">
+              첨부 삭제에 실패했어요. 잠시 후 다시 시도해주세요.
+            </p>
           )}
 
           {item.files.length > 0 && (
