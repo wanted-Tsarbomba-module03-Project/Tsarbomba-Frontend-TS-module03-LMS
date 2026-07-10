@@ -16,6 +16,11 @@
   --color-text-white: #ffffff;
   --color-text-blue: #1a237e;
   --color-text-red: #fb2c36;
+  --color-text-muted: #9ca3af;
+  --color-tag-video-bg: #eff6ff;
+  --color-tag-video-text: #1d4ed8;
+  --color-tag-problem-bg: #fffbeb;
+  --color-tag-problem-text: #b45309;
   --font-size-title-lg: 20px;
   --font-size-title-md: 18px;
   --font-size-body: 16px;
@@ -45,6 +50,11 @@
   --color-text-white: var(--color-text-white);
   --color-text-blue: var(--color-text-blue);
   --color-text-red: var(--color-text-red);
+  --color-text-muted: var(--color-text-muted);
+  --color-tag-video-bg: var(--color-tag-video-bg);
+  --color-tag-video-text: var(--color-tag-video-text);
+  --color-tag-problem-bg: var(--color-tag-problem-bg);
+  --color-tag-problem-text: var(--color-tag-problem-text);
   --color-bg-header: var(--color-bg-header);
   --color-bg-sidebar: var(--color-bg-sidebar);
   --color-bg-main: var(--color-bg-main);

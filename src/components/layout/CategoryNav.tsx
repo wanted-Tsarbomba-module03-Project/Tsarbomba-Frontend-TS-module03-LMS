@@ -123,8 +123,8 @@ function CategoryNavInner({
 
   return (
     <nav className="w-full border-b bg-white border-[#e8e8e8] py-3 mb-4">
-      <div className="flex items-center justify-between max-w-300 mx-auto px-6 gap-4">
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-none">
+      <div className="flex items-center justify-between max-w-300 mx-auto px-4 sm:px-6 gap-3 sm:gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-none">
           {categories.map((category) => (
             <button
               key={category}

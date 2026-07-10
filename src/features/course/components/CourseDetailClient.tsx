@@ -35,7 +35,7 @@ interface CourseDetailClientProps {
 const TEACHER_ROLES = ["INSTRUCTOR", "OPERATOR", "ADMIN"];
 
 const outlineBtn =
-  "px-4 py-2 text-sm font-medium bg-white text-blue-900 border border-blue-900 rounded-lg cursor-pointer hover:bg-blue-900 hover:text-white transition-colors whitespace-nowrap";
+  "px-4 py-2 text-sm font-medium bg-bg-box text-text-blue border border-text-blue rounded-lg cursor-pointer hover:bg-button-blue-bg hover:text-text-white transition-colors whitespace-nowrap";
 
 // "이동하기" 는 학생 답안 view-only 화면 — 백엔드 API 확정 전까지 비활성 stub.
 const progressColumns: ListColumn<StudentLearningProgress>[] = [
@@ -61,7 +61,7 @@ const progressColumns: ListColumn<StudentLearningProgress>[] = [
         type="button"
         disabled
         title="준비 중인 기능입니다"
-        className="px-3 py-1 text-xs font-medium text-blue-900 border border-blue-900 rounded-md opacity-60 cursor-not-allowed"
+        className="px-3 py-1 text-xs font-medium text-text-blue border border-text-blue rounded-md opacity-60 cursor-not-allowed"
       >
         이동하기
       </button>
@@ -84,6 +84,7 @@ export default function CourseDetailClient({
   );
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
   const isTeacher = TEACHER_ROLES.includes(userRole);
 
   useEffect(() => {
@@ -267,11 +268,13 @@ export default function CourseDetailClient({
     if (redirect) router.push(redirect);
   };
 
+  const needsDescToggle = !!course.description && course.description.length > 90;
+
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-4xl mx-auto px-8 py-8">
-        <div className="border border-gray-200 rounded-lg overflow-hidden mb-8">
-          <div className="relative w-full h-72 bg-gray-100 flex items-center justify-center overflow-hidden">
+    <div className="min-h-screen bg-bg-main">
+      <div className="max-w-4xl mx-auto px-4 sm:px-8 py-8">
+        <div className="border border-border-light rounded-lg overflow-hidden mb-8">
+          <div className="relative w-full h-48 sm:h-72 bg-bg-gray-box flex items-center justify-center overflow-hidden">
             {course.thumbnailUrl ? (
               <Image
                 src={resolveThumbnailUrl(course.thumbnailUrl)}
@@ -308,22 +311,47 @@ export default function CourseDetailClient({
 
           <div className="p-6">
             {course.instructorName && (
-              <p className="text-sm text-gray-500 mb-1">
+              <p className="text-sm text-text-secondary mb-1">
                 강사: {course.instructorName}
               </p>
             )}
 
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl font-bold text-gray-800 mb-2">
+                <h1 className="text-xl font-bold text-text-primary mb-2">
                   {course.title}
                 </h1>
-                <p className="text-sm text-gray-500 leading-relaxed line-clamp-3">
-                  {course.description}
-                </p>
+                <div className="relative">
+                  <p
+                    className={[
+                      "text-sm text-text-secondary leading-relaxed",
+                      descExpanded ? "" : "line-clamp-3 pr-12",
+                    ].join(" ")}
+                  >
+                    {course.description}
+                    {descExpanded && needsDescToggle && (
+                      <button
+                        type="button"
+                        onClick={() => setDescExpanded(false)}
+                        className="ml-1 text-xs font-medium text-text-blue hover:underline cursor-pointer whitespace-nowrap"
+                      >
+                        접기
+                      </button>
+                    )}
+                  </p>
+                  {!descExpanded && needsDescToggle && (
+                    <button
+                      type="button"
+                      onClick={() => setDescExpanded(true)}
+                      className="absolute bottom-0 right-0 bg-bg-main pl-2 text-xs font-medium text-text-blue hover:underline cursor-pointer whitespace-nowrap"
+                    >
+                      더보기
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0 mt-1">
+              <div className="flex flex-wrap items-center gap-2 shrink-0 mt-1">
                 {isTeacher ? (
                   <>
                     <button
@@ -343,7 +371,7 @@ export default function CourseDetailClient({
                     <button
                       type="button"
                       onClick={() => setShowDeleteConfirm(true)}
-                      className="px-4 py-2 text-sm font-medium bg-white text-red-500 border border-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors whitespace-nowrap"
+                      className="px-4 py-2 text-sm font-medium bg-bg-box text-text-red border border-button-red-bg rounded-lg hover:bg-button-red-bg hover:text-text-white transition-colors whitespace-nowrap"
                     >
                       삭제하기
                     </button>
@@ -358,7 +386,7 @@ export default function CourseDetailClient({
                     >
                       추가 문제
                     </button>
-                    <span className="px-6 py-2 text-sm font-medium text-blue-900 bg-gray-100 rounded-lg whitespace-nowrap">
+                    <span className="px-6 py-2 text-sm font-medium text-text-blue bg-bg-gray-box rounded-lg whitespace-nowrap">
                       {isCompleted ? "수강 완료" : "수강 중"}
                     </span>
                   </>
@@ -366,7 +394,7 @@ export default function CourseDetailClient({
                   <button
                     type="button"
                     onClick={handleEnrollClick}
-                    className="px-6 py-2 text-sm font-medium bg-blue-900 text-white rounded-lg cursor-pointer hover:bg-blue-950 transition-colors whitespace-nowrap"
+                    className="px-6 py-2 text-sm font-medium bg-button-blue-bg text-text-white rounded-lg cursor-pointer hover:bg-button-blue-hover-bg transition-colors whitespace-nowrap"
                   >
                     수강 신청
                   </button>
@@ -377,27 +405,27 @@ export default function CourseDetailClient({
         </div>
 
         <section>
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">강의목록</h2>
+          <h2 className="text-lg font-semibold text-text-primary mb-4">강의목록</h2>
 
           {lectures.length === 0 ? (
-            <div className="border border-gray-200 rounded-lg py-12 text-center text-sm text-gray-400">
+            <div className="border border-border-light rounded-lg py-12 text-center text-sm text-text-muted">
               등록된 강의가 없습니다.
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-border-light rounded-lg overflow-hidden">
               {lectures.map((lecture, index) => (
                 <button
                   key={lecture.lectureId}
                   type="button"
                   onClick={() => handleLectureClick(lecture.lectureId)}
                   className={[
-                    "w-full flex items-center justify-between px-5 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors",
+                    "w-full flex items-center justify-between px-5 py-4 text-left cursor-pointer hover:bg-bg-gray-box transition-colors",
                     index < lectures.length - 1
-                      ? "border-b border-gray-200"
+                      ? "border-b border-border-light"
                       : "",
                   ].join(" ")}
                 >
-                  <span className="text-base text-gray-800">
+                  <span className="text-base text-text-primary">
                     {lecture.lectureOrder}주차: {lecture.title}
                   </span>
                   <div className="flex items-center gap-2 shrink-0">
@@ -405,8 +433,8 @@ export default function CourseDetailClient({
                       className={[
                         "text-xs font-medium px-2 py-0.5 rounded",
                         lecture.videoUrl
-                          ? "bg-blue-50 text-blue-700"
-                          : "bg-amber-50 text-amber-700",
+                          ? "bg-tag-video-bg text-tag-video-text"
+                          : "bg-tag-problem-bg text-tag-problem-text",
                       ].join(" ")}
                     >
                       {lecture.videoUrl ? "영상" : "문제"}
@@ -451,15 +479,15 @@ export default function CourseDetailClient({
 
       {showProgress && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-screen flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-800">
+          <div className="bg-bg-box rounded-lg shadow-2xl w-full max-w-2xl max-h-screen flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border-light">
+              <h3 className="text-lg font-semibold text-text-primary">
                 수강생 학습 현황
               </h3>
               <button
                 type="button"
                 onClick={() => setShowProgress(false)}
-                className="text-gray-500 hover:text-gray-800 transition-colors"
+                className="text-text-secondary hover:text-text-primary transition-colors"
               >
                 <svg
                   width="20"
@@ -493,11 +521,11 @@ export default function CourseDetailClient({
               )}
             </div>
 
-            <div className="flex justify-end px-6 py-4 border-t border-gray-200">
+            <div className="flex justify-end px-6 py-4 border-t border-border-light">
               <button
                 type="button"
                 onClick={() => setShowProgress(false)}
-                className="px-5 py-2.5 text-sm text-white bg-blue-900 rounded-lg hover:bg-blue-950 transition-colors font-medium"
+                className="px-5 py-2.5 text-sm text-text-white bg-button-blue-bg rounded-lg hover:bg-button-blue-hover-bg transition-colors font-medium"
               >
                 닫기
               </button>
@@ -515,13 +543,13 @@ export default function CourseDetailClient({
             role="dialog"
             aria-modal="true"
             aria-labelledby={recommendTitleId}
-            className="bg-white rounded-lg shadow-2xl w-full max-w-md max-h-screen flex flex-col"
+            className="bg-bg-box rounded-lg shadow-2xl w-full max-w-md max-h-screen flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border-light">
               <h3
                 id={recommendTitleId}
-                className="text-lg font-semibold text-gray-800"
+                className="text-lg font-semibold text-text-primary"
               >
                 추천 문제
               </h3>
@@ -529,7 +557,7 @@ export default function CourseDetailClient({
                 type="button"
                 onClick={() => setShowRecommend(false)}
                 aria-label="모달 닫기"
-                className="text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
+                className="text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
               >
                 <svg
                   width="20"
@@ -551,26 +579,26 @@ export default function CourseDetailClient({
               ) : recommendBlocked ? (
                 <p
                   role="status"
-                  className="text-center text-sm text-gray-500 py-8 leading-relaxed"
+                  className="text-center text-sm text-text-secondary py-8 leading-relaxed"
                 >
                   강좌의 모든 강의를 수강한 뒤<br />
                   추천 문제를 받을 수 있어요.
                 </p>
               ) : recommendError ? (
                 <div className="text-center py-8">
-                  <p className="text-sm text-red-500 mb-3">
+                  <p className="text-sm text-text-red mb-3">
                     추천 문제를 불러오지 못했어요.
                   </p>
                   <button
                     type="button"
                     onClick={handleRecommendClick}
-                    className="px-4 py-2 text-sm font-medium text-blue-900 border border-blue-900 rounded-lg hover:bg-blue-900 hover:text-white transition-colors cursor-pointer"
+                    className="px-4 py-2 text-sm font-medium text-text-blue border border-text-blue rounded-lg hover:bg-button-blue-bg hover:text-text-white transition-colors cursor-pointer"
                   >
                     다시 시도
                   </button>
                 </div>
               ) : recommendData.length === 0 ? (
-                <p className="text-center text-sm text-gray-400 py-8">
+                <p className="text-center text-sm text-text-muted py-8">
                   추천할 문제가 없어요.
                 </p>
               ) : (
@@ -580,12 +608,12 @@ export default function CourseDetailClient({
                       <button
                         type="button"
                         onClick={() => router.push(`/problems/${ps.problemSetId}`)}
-                        className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-blue-900 hover:bg-gray-50 transition-colors cursor-pointer"
+                        className="w-full text-left p-4 rounded-lg border border-border-light hover:border-text-blue hover:bg-bg-box-hover transition-colors cursor-pointer"
                       >
-                        <p className="text-sm font-semibold text-gray-800 mb-1">
+                        <p className="text-sm font-semibold text-text-primary mb-1">
                           {ps.title}
                         </p>
-                        <p className="text-xs text-gray-500 line-clamp-2">
+                        <p className="text-xs text-text-secondary line-clamp-2">
                           {ps.description}
                         </p>
                       </button>
@@ -595,11 +623,11 @@ export default function CourseDetailClient({
               )}
             </div>
 
-            <div className="flex justify-end px-6 py-4 border-t border-gray-200">
+            <div className="flex justify-end px-6 py-4 border-t border-border-light">
               <button
                 type="button"
                 onClick={() => setShowRecommend(false)}
-                className="px-5 py-2.5 text-sm text-white bg-blue-900 rounded-lg hover:bg-blue-950 transition-colors font-medium cursor-pointer"
+                className="px-5 py-2.5 text-sm text-text-white bg-button-blue-bg rounded-lg hover:bg-button-blue-hover-bg transition-colors font-medium cursor-pointer"
               >
                 닫기
               </button>
