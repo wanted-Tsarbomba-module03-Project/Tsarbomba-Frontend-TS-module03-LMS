@@ -38,6 +38,20 @@ export interface SignupRequest {
   name: string;
   nickname: string;
   phone: string;
+  /** 이용약관 동의 — 반드시 true */
+  termsOfServiceAgreed: boolean;
+  /** 개인정보 수집·이용 동의 — 반드시 true */
+  privacyPolicyAgreed: boolean;
+}
+
+/** 소셜 추가정보 제출 요청 */
+export interface OAuthCompleteRequest {
+  nickname: string;
+  phone: string;
+  /** 이용약관 동의 — 반드시 true */
+  termsOfServiceAgreed: boolean;
+  /** 개인정보 수집·이용 동의 — 반드시 true */
+  privacyPolicyAgreed: boolean;
 }
 
 /** 이메일 인증 코드 검증 요청 */

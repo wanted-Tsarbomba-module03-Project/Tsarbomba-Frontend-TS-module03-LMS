@@ -92,6 +92,13 @@ export default function WithdrawModal({
             ? `이 작업은 되돌릴 수 없습니다.\n계속하려면 아래에 '${WITHDRAW_CONFIRM_TEXT}' 를 입력해주세요.`
             : "이 작업은 되돌릴 수 없습니다.\n계속하려면 비밀번호를 입력해주세요."}
         </p>
+        <p className="mt-3 whitespace-pre-line text-center text-description leading-5 text-text-secondary">
+          회원 탈퇴 시 회원정보는 부정 이용 방지 등을 위해{"\n"}
+          <span className="font-semibold text-text-primary">
+            1년간 보관 후 파기
+          </span>
+          됩니다.
+        </p>
 
         <input
           type={isSocial ? "text" : "password"}

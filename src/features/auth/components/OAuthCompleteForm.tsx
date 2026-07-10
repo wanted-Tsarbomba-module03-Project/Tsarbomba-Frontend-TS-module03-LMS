@@ -9,6 +9,9 @@ import {
 } from "@/features/auth/actions";
 import OneButtonModal from "@/components/common/OneButtonModal";
 import LoadingIndicator from "@/components/common/LoadingIndicator";
+import TermsAgreement, {
+  type TermsAgreementValue,
+} from "@/features/auth/components/TermsAgreement";
 
 const PHONE_REGEX = /^01[0-9]-\d{3,4}-\d{4}$/;
 
@@ -25,6 +28,11 @@ export default function OAuthCompleteForm() {
   const [nicknameErr, setNicknameErr] = useState("");
   const [phoneErr, setPhoneErr] = useState("");
   const [isNicknameChecked, setIsNicknameChecked] = useState(false);
+  const [terms, setTerms] = useState<TermsAgreementValue>({
+    serviceAgreed: false,
+    privacyAgreed: false,
+  });
+  const [termsErr, setTermsErr] = useState("");
   const [submitErr, setSubmitErr] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -135,10 +143,19 @@ export default function OAuthCompleteForm() {
       phoneRef.current?.focus();
       return;
     }
+    if (!terms.serviceAgreed || !terms.privacyAgreed) {
+      setTermsErr("필수 약관에 모두 동의해주세요.");
+      return;
+    }
 
     setSubmitting(true);
     try {
-      await completeOauthSignup(nickname, phone);
+      await completeOauthSignup({
+        nickname,
+        phone,
+        termsOfServiceAgreed: terms.serviceAgreed,
+        privacyPolicyAgreed: terms.privacyAgreed,
+      });
       // BE 가 AT/RT 쿠키 발급 — 헤더가 읽는 localStorage 는 모달 의존 없이 즉시 세팅
       if (typeof window !== "undefined") {
         localStorage.setItem("userNickname", nickname);
@@ -259,6 +276,15 @@ export default function OAuthCompleteForm() {
             />
             {phoneErr && <p className="auth-error">{phoneErr}</p>}
           </div>
+
+          <TermsAgreement
+            value={terms}
+            onChange={(next) => {
+              setTerms(next);
+              if (next.serviceAgreed && next.privacyAgreed) setTermsErr("");
+            }}
+            error={termsErr}
+          />
 
           {submitErr && (
             <p
