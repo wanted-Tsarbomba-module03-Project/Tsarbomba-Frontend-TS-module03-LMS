@@ -88,20 +88,20 @@ function Section({
   onCancel,
 }: SectionProps) {
   return (
-    <section className="border border-gray-200 rounded-lg p-6">
+    <section className="border border-border-light rounded-lg p-6">
       <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-lg font-bold text-gray-800">{title}</h2>
-        <span className="text-sm font-medium text-blue-900 bg-gray-100 px-2 py-0.5 rounded-full">
+        <h2 className="text-lg font-bold text-text-primary">{title}</h2>
+        <span className="text-sm font-medium text-text-blue bg-bg-gray-box px-2 py-0.5 rounded-full">
           {count}개
         </span>
       </div>
 
       {items.length === 0 ? (
-        <div className="py-10 text-center text-sm text-gray-400">
+        <div className="py-10 text-center text-sm text-text-muted">
           {emptyText}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 md:grid-cols-4 sm:overflow-x-visible sm:pb-0">
           {items.map((e) => (
             <CourseCard
               key={e.enrollmentId ?? e.courseId}
@@ -128,9 +128,9 @@ function CourseCard({
     : undefined;
 
   return (
-    <article className="border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow">
+    <article className="w-[78%] shrink-0 sm:w-auto sm:shrink border border-border-light rounded-lg overflow-hidden bg-bg-box hover:shadow-md transition-shadow">
       <CourseCardLink
-        className="relative flex w-full h-36 bg-gray-100 items-center justify-center overflow-hidden"
+        className="relative flex w-full h-36 bg-bg-gray-box items-center justify-center overflow-hidden"
         href={courseHref}
       >
         {thumb ? (
@@ -158,7 +158,7 @@ function CourseCard({
 
       <div className="p-4">
         {enrollment.courseCategoryName && (
-          <span className="inline-block text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded mb-2">
+          <span className="inline-block text-xs font-medium text-text-secondary bg-bg-gray-box px-2 py-0.5 rounded mb-2">
             {enrollment.courseCategoryName}
           </span>
         )}
@@ -166,15 +166,15 @@ function CourseCard({
           className="block text-inherit no-underline"
           href={courseHref}
         >
-          <h3 className="text-base font-semibold text-gray-800 line-clamp-1">
+          <h3 className="text-base font-semibold text-text-primary line-clamp-1">
             {enrollment.courseTitle ?? "제목 없음"}
           </h3>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2 min-h-9">
+          <p className="text-sm text-text-secondary mt-1 line-clamp-2 min-h-9">
             {enrollment.courseDescription ?? ""}
           </p>
         </CourseCardLink>
         {enrollment.instructorName && (
-          <p className="text-xs text-gray-500 mt-3">
+          <p className="text-xs text-text-secondary mt-3">
             {enrollment.instructorName} 강사
           </p>
         )}
@@ -184,7 +184,7 @@ function CourseCard({
           onClick={() => {
             onCancel();
           }}
-          className="mt-3 w-full py-2 text-sm font-medium text-red-500 border border-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
+          className="mt-3 w-full py-2 text-sm font-medium text-text-red border border-button-red-bg rounded-lg hover:bg-button-red-bg hover:text-text-white transition-colors"
         >
           수강 취소
         </button>

@@ -164,11 +164,11 @@ function HeaderInner({ isSimple }: HeaderProps) {
           >
             <Image
               src={Logo}
-              className="h-10 w-auto object-contain"
+              className="h-8 sm:h-10 w-auto object-contain"
               alt="로고"
               priority
             />
-            <span className="text-xl font-bold text-[#1a237e] tracking-tight whitespace-nowrap">
+            <span className="text-base sm:text-xl font-bold text-[#1a237e] tracking-tight whitespace-nowrap">
               codebomba
             </span>
           </Link>
@@ -179,18 +179,18 @@ function HeaderInner({ isSimple }: HeaderProps) {
 
   return (
     <header className="w-full border-b border-[#e8e8e8] bg-white sticky top-0 z-50">
-      <div className="flex h-16 items-center justify-between px-6 max-w-300 mx-auto">
+      <div className="flex h-16 items-center justify-between px-4 sm:px-6 max-w-300 mx-auto">
         <Link
           href={logoTargetHref}
           className="flex shrink-0 items-center gap-2 cursor-pointer select-none"
         >
           <Image
             src={Logo}
-            className="h-10 w-auto object-contain"
+            className="h-8 sm:h-10 w-auto object-contain"
             alt="로고"
             priority
           />
-          <span className="text-xl font-bold text-[#1a237e] tracking-tight whitespace-nowrap">
+          <span className="hidden sm:inline text-base sm:text-xl font-bold text-[#1a237e] tracking-tight whitespace-nowrap">
             {isManagementRole && isAdminPath ? "관리자 페이지" : "codebomba"}
           </span>
         </Link>
@@ -208,10 +208,10 @@ function HeaderInner({ isSimple }: HeaderProps) {
         )}
 
         {/* 우측 네비게이션 및 프로필 영역 */}
-        <div className="flex shrink-0 items-center gap-6">
+        <div className="flex shrink-0 items-center gap-3 sm:gap-6">
           {/* 일반 학생 유저 로그인 시 메뉴 */}
           {!isAdminPath && isLoggedIn && !isManagementRole && (
-            <nav className="flex items-center gap-5 text-sm font-semibold text-[#1f2937] whitespace-nowrap">
+            <nav className="flex items-center gap-3 sm:gap-5 text-sm font-semibold text-[#1f2937] whitespace-nowrap">
               <Link
                 href="/chat"
                 className="cursor-pointer hover:text-[#1a237e] transition-colors"
@@ -299,7 +299,7 @@ function HeaderInner({ isSimple }: HeaderProps) {
                     </>
                   )}
                 </div>
-                <span>{nickname}</span>
+                <span className="hidden sm:inline">{nickname}</span>
               </button>
 
               {/* 프로필 드롭다운 */}

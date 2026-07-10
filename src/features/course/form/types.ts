@@ -1,5 +1,6 @@
 // 강좌 등록/수정 폼 전용 타입 (도메인 타입은 ../types 참조)
 export type { CourseCategory } from "../types";
+import type { LectureMaterial } from "../materialActions";
 
 /* 문제 카테고리 (우측 패널 드롭다운) */
 export interface ProblemCategory {
@@ -22,6 +23,8 @@ export interface VideoLecture {
   videoUrl: string;
   description: string;
   files: File[];
+  /** 이미 업로드된 기존 첨부(수정 화면에서 표시/삭제용). 신규 강의는 없음 */
+  existingMaterials?: LectureMaterial[];
   lectureOrder?: number;
 }
 

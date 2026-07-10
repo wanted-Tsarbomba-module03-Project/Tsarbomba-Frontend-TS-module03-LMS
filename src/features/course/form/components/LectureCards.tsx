@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { deleteLectureMaterial } from "../../materialActions";
 import type { ProblemSetSummary, VideoLecture, ProblemLecture } from "../types";
 
 // ── 드래그 핸들 아이콘 ──────────────────────────────────────────────────────────
@@ -64,6 +65,30 @@ export function VideoLectureCard({
   onRemove,
 }: VideoLectureCardProps) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteFailed, setDeleteFailed] = useState(false);
+
+  const existingMaterials = item.existingMaterials ?? [];
+
+  // 기존 첨부 삭제 — 즉시 API 호출 후 목록에서 제거
+  const handleDeleteExisting = async (materialId: number) => {
+    if (deletingId !== null) return;
+    setDeletingId(materialId);
+    setDeleteFailed(false);
+    try {
+      await deleteLectureMaterial(materialId);
+      onUpdate(
+        item.id,
+        "existingMaterials",
+        existingMaterials.filter((m) => m.lectureMaterialId !== materialId),
+      );
+    } catch {
+      // 삭제 실패 — 사용자에게 안내해 재시도 유도
+      setDeleteFailed(true);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div className="p-5">
@@ -156,6 +181,44 @@ export function VideoLectureCard({
               }}
             />
           </div>
+
+          {existingMaterials.length > 0 && (
+            <ul className="mt-2 flex flex-col gap-1">
+              {existingMaterials.map((m) => (
+                <li
+                  key={m.lectureMaterialId}
+                  className="flex items-center gap-2 text-sm text-gray-600"
+                >
+                  <span className="truncate flex-1">{m.originalFileName}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteExisting(m.lectureMaterialId)}
+                    disabled={deletingId !== null}
+                    className="text-text-placeholder hover:text-text-red transition-colors shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="기존 첨부 삭제"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 14 14"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                    >
+                      <path d="M10.5 3.5l-7 7M3.5 3.5l7 7" />
+                    </svg>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {deleteFailed && (
+            <p className="mt-1 text-xs text-text-red">
+              첨부 삭제에 실패했어요. 잠시 후 다시 시도해주세요.
+            </p>
+          )}
 
           {item.files.length > 0 && (
             <ul className="mt-2 flex flex-col gap-1">

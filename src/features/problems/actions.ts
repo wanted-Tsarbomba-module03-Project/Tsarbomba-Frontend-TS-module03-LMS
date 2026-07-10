@@ -717,8 +717,12 @@ function normalizeProblemSetDetail(response: unknown): ProblemSetDetail {
     id?: number;
     problemSetId?: number;
     title?: string;
+    description?: string;
     currentProblemId?: number;
     currentProblemNumber?: number;
+    totalProblemCount?: number;
+    solvedProblemCount?: number;
+    isCompleted?: boolean;
     problem?: ProblemSetDetailProblem;
     problems?: ProblemSetDetailProblem[];
   };
@@ -737,18 +741,24 @@ function normalizeProblemSetDetail(response: unknown): ProblemSetDetail {
     id: rawData.problemSetId ?? rawData.id ?? 0,
     problemSetId: rawData.problemSetId,
     title: rawData.title,
+    description: rawData.description,
     currentProblemId: rawData.currentProblemId,
     currentProblemNumber: rawData.currentProblemNumber,
+    totalProblemCount: rawData.totalProblemCount,
+    solvedProblemCount: rawData.solvedProblemCount,
+    isCompleted: rawData.isCompleted,
     problems: problems.map((problem, index) => ({
       problemId: problem.problemId,
       problemNumber: problem.problemNumber ?? index + 1,
       title: problem.title ?? `문제 ${index + 1}`,
       content: problem.content ?? "",
+      problemType: problem.problemType,
       point: problem.point,
       startCode: problem.startCode ?? "",
       answer: problem.answer,
       explanation: problem.explanation ?? problem.solution,
       status: (problem.status ?? "UNSOLVED") as ProblemStatus,
+      latestSubmissionId: problem.latestSubmissionId ?? null,
     })),
   };
 }
