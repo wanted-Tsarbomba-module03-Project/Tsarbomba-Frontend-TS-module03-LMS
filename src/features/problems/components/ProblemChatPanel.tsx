@@ -241,6 +241,7 @@ export default function ProblemChatPanel({
       }
 
       event.preventDefault();
+      endDrag();
 
       const panelRect = panel.getBoundingClientRect();
       dragPointerOffsetRef.current = {
@@ -253,8 +254,6 @@ export default function ProblemChatPanel({
       if (nextPosition) {
         setDragPosition(nextPosition);
       }
-
-      endDrag();
 
       const handlePointerMove = (pointerEvent: PointerEvent) => {
         const clampedPosition = getClampedDragPosition(

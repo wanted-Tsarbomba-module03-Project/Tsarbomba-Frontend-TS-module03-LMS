@@ -155,20 +155,26 @@ export interface ProblemSetDetailProblem {
   problemNumber?: number;
   title: string;
   content: string;
+  problemType?: string;
   point?: number;
   startCode?: string | null;
   answer?: string;
   explanation?: string;
   solution?: string;
   status?: ProblemStatus;
+  latestSubmissionId?: number | null;
 }
 
 export interface ProblemSetDetail {
   id: number;
   problemSetId?: number;
   title?: string;
+  description?: string;
   currentProblemId?: number;
   currentProblemNumber?: number;
+  totalProblemCount?: number;
+  solvedProblemCount?: number;
+  isCompleted?: boolean;
   problems: ProblemSetDetailProblem[];
 }
 

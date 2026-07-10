@@ -8,7 +8,11 @@ import { usePathname, useRouter } from "next/navigation";
 import BluebombLogo from "../../../public/assets/img/bluebomb-Icon.svg";
 import BadgeSelectModal from "@/features/badge/components/BadgeSelectModal";
 import { optimizedImageProps } from "@/components/common/imageOptimization";
-import { equipBadge, getMyBadges, syncMyBadges } from "@/features/badge/actions";
+import {
+  equipBadge,
+  getMyBadges,
+  syncMyBadges,
+} from "@/features/badge/actions";
 import type { MyBadge } from "@/features/badge/types";
 import OneButtonModal from "@/components/common/OneButtonModal";
 import { ChatRoomListSkeleton } from "@/features/chat/components/ChatPageSkeleton";
@@ -234,6 +238,18 @@ export default function Sidebar({
                 href="/admin/problems"
               >
                 문제 관리
+              </Link>
+            </li>
+            <li>
+              <Link
+                className={
+                  pathname === "/admin/category"
+                    ? itemActiveClass
+                    : itemBaseClass
+                }
+                href="/admin/category"
+              >
+                카테고리 관리
               </Link>
             </li>
             <li>

@@ -22,9 +22,11 @@ interface ProblemDetailModalsProps {
   onChatRoomTitleConfirm: () => void;
   onChatRoomTitleConfirmClose: () => void;
   onEmptySubmitClose: () => void;
+  onProblemCompleteConfirm: () => void;
   onRecommendedCourseCancel: () => void;
   onRecommendedCourseConfirm: () => void;
   onSuccessClose: () => void;
+  problemCompleteModalOpen: boolean;
   recommendedCourseModalOpen: boolean;
   successModalOpen: boolean;
   warningModalOpen: boolean;
@@ -42,9 +44,11 @@ export default function ProblemDetailModals({
   onChatRoomTitleConfirm,
   onChatRoomTitleConfirmClose,
   onEmptySubmitClose,
+  onProblemCompleteConfirm,
   onRecommendedCourseCancel,
   onRecommendedCourseConfirm,
   onSuccessClose,
+  problemCompleteModalOpen,
   recommendedCourseModalOpen,
   successModalOpen,
   warningModalOpen,
@@ -56,6 +60,12 @@ export default function ProblemDetailModals({
         modalContent="해당 문제의 해설을 확인할 수 있습니다."
         modalTitle="정답입니다"
         onClose={onSuccessClose}
+      />
+      <OneButtonModal
+        isOpen={problemCompleteModalOpen}
+        modalContent="모든 문제 풀이를 완료했습니다. 확인을 누르면 문제풀이 목록으로 이동합니다."
+        modalTitle="축하합니다!"
+        onClose={onProblemCompleteConfirm}
       />
       <OneButtonModal
         isOpen={emptySubmitModalOpen}

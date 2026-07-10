@@ -224,6 +224,8 @@ export default function UserProblemDetailClient({
   const [showHintToast, setShowHintToast] = useState(false);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [problemCompleteModalOpen, setProblemCompleteModalOpen] =
+    useState(false);
   const [emptySubmitModalOpen, setEmptySubmitModalOpen] = useState(false);
   const [pendingRecommendedCourseId, setPendingRecommendedCourseId] =
     useState<number | null>(null);
@@ -674,25 +676,24 @@ export default function UserProblemDetailClient({
       setActiveTab("result");
 
       if (result.isCorrect) {
-        setProblemStates((prev) =>
-          prev.map((state, index) => {
-            const problemId = problemSet?.problems[index]?.problemId;
+        const nextProblemStates = problemStates.map((state, index) => {
+          const problemId = problemSet?.problems[index]?.problemId;
 
-            if (index === currentIndex) {
-              return "CORRECT";
-            }
+          if (index === currentIndex) {
+            return "CORRECT";
+          }
 
-            if (
-              result.nextProblemId &&
-              problemId === result.nextProblemId &&
-              state === "LOCKED"
-            ) {
-              return "UNSOLVED";
-            }
+          if (
+            result.nextProblemId &&
+            problemId === result.nextProblemId &&
+            state === "LOCKED"
+          ) {
+            return "UNSOLVED";
+          }
 
-            return state;
-          }),
-        );
+          return state;
+        });
+        setProblemStates(nextProblemStates);
         setHintEnabled((prev) => updateArrayItem(prev, currentIndex, true));
         setSolutionEnabled((prev) => updateArrayItem(prev, currentIndex, true));
 
@@ -700,7 +701,20 @@ export default function UserProblemDetailClient({
           await fetchHints(currentProblem.problemId, currentIndex);
         }
 
-        setSuccessModalOpen(true);
+        const totalProblemCount =
+          problemSet.totalProblemCount ?? problemSet.problems.length;
+        const isLastProblem =
+          currentIndex === problemSet.problems.length - 1 ||
+          (currentProblem.problemNumber ?? currentIndex + 1) >= totalProblemCount;
+        const isAllCorrect = nextProblemStates.every(
+          (state) => state === "CORRECT",
+        );
+
+        if (isLastProblem || isAllCorrect || problemSet.isCompleted) {
+          setProblemCompleteModalOpen(true);
+        } else {
+          setSuccessModalOpen(true);
+        }
       } else {
         setProblemStates((prev) => updateArrayItem(prev, currentIndex, "WRONG"));
         setHintEnabled((prev) => updateArrayItem(prev, currentIndex, true));
@@ -1080,6 +1094,8 @@ export default function UserProblemDetailClient({
               content={currentProblem.content}
               isDownloadingDataset={isDatasetDownloading}
               onDownloadDataset={handleDatasetDownload}
+              problemSetDescription={problemSet.description}
+              problemSetTitle={problemSet.title}
               style={isPanelSplitAvailable ? problemPanelStyle : undefined}
             />
 
@@ -1164,9 +1180,11 @@ export default function UserProblemDetailClient({
           }
         }}
         onEmptySubmitClose={() => setEmptySubmitModalOpen(false)}
+        onProblemCompleteConfirm={() => router.push("/problems")}
         onRecommendedCourseCancel={() => setPendingRecommendedCourseId(null)}
         onRecommendedCourseConfirm={handleRecommendedCourseMove}
         onSuccessClose={() => setSuccessModalOpen(false)}
+        problemCompleteModalOpen={problemCompleteModalOpen}
         recommendedCourseModalOpen={pendingRecommendedCourseId !== null}
         successModalOpen={successModalOpen}
         warningModalOpen={warningModalOpen}

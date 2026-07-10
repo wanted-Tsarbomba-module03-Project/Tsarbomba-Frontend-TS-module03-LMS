@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { LoadingIndicator, OneButtonModal } from "@/components/common";
@@ -16,10 +16,50 @@ import { adminRuleClasses } from "../styles";
 import type { AutomationRule } from "../types";
 
 type NumericRuleField = "thresholdValue" | "minSampleCount";
+interface RuleSnapshotValue {
+  enabled: boolean;
+  minSampleCount: number | null;
+  thresholdValue: number | null;
+}
+
+type RuleSnapshot = Record<number, RuleSnapshotValue>;
+
+const normalizeNumberField = (
+  value: AutomationRule["thresholdValue"] | AutomationRule["minSampleCount"],
+) => (value === "" || value === null ? null : Number(value));
+
+const createRuleSnapshot = (rules: AutomationRule[]): RuleSnapshot =>
+  rules.reduce<RuleSnapshot>((snapshot, rule) => {
+    snapshot[rule.operationRuleId] = {
+      enabled: rule.enabled,
+      minSampleCount: normalizeNumberField(rule.minSampleCount),
+      thresholdValue: normalizeNumberField(rule.thresholdValue),
+    };
+
+    return snapshot;
+  }, {});
+
+const hasRuleChanges = (rules: AutomationRule[], baseline: RuleSnapshot) =>
+  rules.some((rule) => {
+    const initialRule = baseline[rule.operationRuleId];
+
+    if (!initialRule) {
+      return true;
+    }
+
+    return (
+      initialRule.enabled !== rule.enabled ||
+      initialRule.minSampleCount !== normalizeNumberField(rule.minSampleCount) ||
+      initialRule.thresholdValue !== normalizeNumberField(rule.thresholdValue)
+    );
+  });
 
 export default function RulesClient() {
   const router = useRouter();
   const [rules, setRules] = useState<AutomationRule[]>([]);
+  const [initialRuleSnapshot, setInitialRuleSnapshot] = useState<RuleSnapshot>(
+    {},
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [noticeModal, setNoticeModal] = useState({
@@ -40,7 +80,9 @@ export default function RulesClient() {
     try {
       setLoading(true);
       const result = await getAutomationRules();
-      setRules(result.data ?? []);
+      const nextRules = result.data ?? [];
+      setRules(nextRules);
+      setInitialRuleSnapshot(createRuleSnapshot(nextRules));
     } catch (error) {
       console.error("규칙 조회 실패:", error);
       handleClientError(error, {
@@ -81,6 +123,11 @@ export default function RulesClient() {
     );
   };
 
+  const hasUnsavedChanges = useMemo(
+    () => hasRuleChanges(rules, initialRuleSnapshot),
+    [initialRuleSnapshot, rules],
+  );
+
   const handleToggleEnabled = async (rule: AutomationRule) => {
     try {
       await updateAutomationRuleEnabled(rule.operationRuleId, !rule.enabled);
@@ -91,6 +138,16 @@ export default function RulesClient() {
             : item,
         ),
       );
+      setInitialRuleSnapshot((prev) => ({
+        ...prev,
+        [rule.operationRuleId]: {
+          ...(prev[rule.operationRuleId] ?? {
+            minSampleCount: normalizeNumberField(rule.minSampleCount),
+            thresholdValue: normalizeNumberField(rule.thresholdValue),
+          }),
+          enabled: !rule.enabled,
+        },
+      }));
     } catch (error) {
       console.error("규칙 활성 상태 변경 실패:", error);
       handleClientError(error, {
@@ -103,10 +160,15 @@ export default function RulesClient() {
   };
 
   const handleSubmit = async () => {
+    if (saving || !hasUnsavedChanges) {
+      return;
+    }
+
     try {
       setSaving(true);
       await updateAutomationRules(rules);
       openNoticeModal("수정 완료", "규칙이 수정되었습니다.");
+      setInitialRuleSnapshot(createRuleSnapshot(rules));
       await fetchRules();
     } catch (error) {
       console.error("규칙 수정 실패:", error);
@@ -159,7 +221,7 @@ export default function RulesClient() {
         <div className={adminRuleClasses.submitWrapper}>
           <button
             className={adminRuleClasses.submitButton}
-            disabled={saving}
+            disabled={saving || !hasUnsavedChanges}
             onClick={() => void handleSubmit()}
             type="button"
           >
