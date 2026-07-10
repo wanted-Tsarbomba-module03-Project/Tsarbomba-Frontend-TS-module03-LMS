@@ -36,7 +36,7 @@ export const adminRuleClasses = {
   disabled: "bg-[#e5e7eb] text-[#374151] hover:bg-[#d1d5db]",
   submitWrapper: "mt-3 mb-10 flex w-[min(100%,960px)] justify-center",
   submitButton:
-    "h-[50px] w-[180px] cursor-pointer rounded-[10px] border-0 bg-button-blue-bg text-body font-semibold text-text-white transition duration-200 ease-in-out hover:not-disabled:bg-button-blue-hover-bg disabled:cursor-not-allowed disabled:opacity-60 max-[560px]:w-full",
+    "h-[50px] w-[180px] cursor-pointer rounded-[10px] border-0 bg-button-blue-bg text-body font-semibold text-text-white transition duration-200 ease-in-out hover:not-disabled:bg-button-blue-hover-bg disabled:cursor-not-allowed disabled:bg-[#6b7280] disabled:text-text-white disabled:opacity-100 max-[560px]:w-full",
 } as const;
 
 export const adminMasterClasses = {
