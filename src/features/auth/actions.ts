@@ -2,6 +2,7 @@ import type {
   AuthResponse,
   EmailVerifyRequest,
   LoginRequest,
+  OAuthCompleteRequest,
   SignupRequest,
 } from "./types";
 
@@ -335,14 +336,13 @@ export const getOauthTempInfo = async (): Promise<{
 /* 소셜 추가정보 제출 — POST /api/v1/auth/oauth2/complete
  * 닉네임/전화번호로 가입 완료. 성공 시 BE 가 AT/RT 쿠키 발급 + TEMP_TOKEN 제거 */
 export const completeOauthSignup = async (
-  nickname: string,
-  phone: string,
+  body: OAuthCompleteRequest,
 ): Promise<AuthResponse | null> => {
   const response = await fetch(`${BASE_URL}/api/v1/auth/oauth2/complete`, {
     method: "POST",
     headers: HEADERS,
     credentials: "include",
-    body: JSON.stringify({ nickname, phone }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {

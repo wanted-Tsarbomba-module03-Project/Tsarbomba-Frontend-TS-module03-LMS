@@ -10,6 +10,9 @@ import {
   verifyCode,
 } from "@/features/auth/actions";
 import OneButtonModal from "@/components/common/OneButtonModal";
+import TermsAgreement, {
+  type TermsAgreementValue,
+} from "@/features/auth/components/TermsAgreement";
 
 export default function SignupForm() {
   const router = useRouter();
@@ -21,6 +24,11 @@ export default function SignupForm() {
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
   const [phone, setPhone] = useState("");
+  const [terms, setTerms] = useState<TermsAgreementValue>({
+    serviceAgreed: false,
+    privacyAgreed: false,
+  });
+  const [termsErr, setTermsErr] = useState("");
 
   const [isSent, setIsSent] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
@@ -309,6 +317,10 @@ export default function SignupForm() {
       phoneRef.current?.focus();
       return;
     }
+    if (!terms.serviceAgreed || !terms.privacyAgreed) {
+      setTermsErr("필수 약관에 모두 동의해주세요.");
+      return;
+    }
 
     {
       try {
@@ -319,6 +331,8 @@ export default function SignupForm() {
           name,
           nickname,
           phone,
+          termsOfServiceAgreed: terms.serviceAgreed,
+          privacyPolicyAgreed: terms.privacyAgreed,
         });
         setModalTitle("회원가입 완료");
         setModalContent("회원가입이 성공적으로 완료되었습니다!");
@@ -523,6 +537,15 @@ export default function SignupForm() {
             />
             {phoneErr && <p className="auth-error">{phoneErr}</p>}
           </div>
+
+          <TermsAgreement
+            value={terms}
+            onChange={(next) => {
+              setTerms(next);
+              if (next.serviceAgreed && next.privacyAgreed) setTermsErr("");
+            }}
+            error={termsErr}
+          />
 
           <div className="flex gap-3 pt-4">
             <button
