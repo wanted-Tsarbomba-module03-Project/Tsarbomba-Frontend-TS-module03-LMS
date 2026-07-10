@@ -9,7 +9,9 @@
   - 문제세트 상세 타입/정규화에 `description`, `totalProblemCount`, `solvedProblemCount`, `isCompleted`, `problemType`, `latestSubmissionId` 필드 반영
 
 - 수정
+  - 문제 소개/문제 내용 탭에 `aria-controls`, `aria-labelledby`, `tabpanel`, roving tabindex, 좌우 방향키 이동을 적용해 접근성 보완
   - 문제풀이 챗봇 드래그 시작 직후 위치 계산 기준점이 초기화되어 패널이 움직이지 않던 문제 수정
+  - 카테고리 관리 placeholder 페이지의 빈 렌더링을 `return null;`로 명시
 
 ### 규칙 관리 페이지 변경 사항이 있을 때만 저장 버튼 활성화 (#255)
 

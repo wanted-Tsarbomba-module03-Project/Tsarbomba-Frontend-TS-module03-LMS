@@ -6,5 +6,5 @@ export const metadata = createPageMetadata({
   title: "카테고리 관리",
 });
 export default function CategoryManagementPage() {
-  return;
+  return null;
 }
