@@ -13,7 +13,11 @@ import {
   getCourseLectures,
   updateLecture,
 } from "@/features/course/lectureActions";
-import { uploadLectureMaterial } from "@/features/course/materialActions";
+import {
+  deleteLectureMaterial,
+  getLectureMaterials,
+  uploadLectureMaterial,
+} from "@/features/course/materialActions";
 import {
   configureCourseProblemSets,
   getCourseProblemSets,
@@ -121,8 +125,8 @@ export default function CourseEditPage() {
           problemLinks.map((link) => `${link.lectureId}:${link.problemSetId}`),
         );
 
-        setLectures(
-          lectureData.map((l) => {
+        const mappedLectures = await Promise.all(
+          lectureData.map(async (l) => {
             const linkedPsId = psByLecture.get(l.lectureId);
             if (linkedPsId != null) {
               return {
@@ -135,6 +139,10 @@ export default function CourseEditPage() {
                 lectureOrder: l.lectureOrder,
               } as ProblemLecture;
             }
+            // 영상 강의는 기존 첨부자료를 함께 불러와 수정 화면에 표시
+            const existingMaterials = await getLectureMaterials(
+              l.lectureId,
+            ).catch(() => []);
             return {
               id: uid("edit"),
               lectureId: l.lectureId,
@@ -143,10 +151,12 @@ export default function CourseEditPage() {
               videoUrl: l.videoUrl ?? "",
               description: l.description ?? "",
               files: [],
+              existingMaterials,
               lectureOrder: l.lectureOrder,
             } as VideoLecture;
           }),
         );
+        setLectures(mappedLectures);
 
         const linkedIds = problemLinks.map((link) => link.problemSetId);
         if (linkedIds.length > 0) {
