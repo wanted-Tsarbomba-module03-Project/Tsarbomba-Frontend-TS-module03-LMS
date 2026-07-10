@@ -24,6 +24,8 @@ export const problemDetailClasses = {
     "min-w-0 rounded-base border border-border-light bg-bg-box p-4 max-md:p-3 [&_h2]:mt-0 [&_h2]:mb-2.5 [&_h2]:text-title-lg [&_h2]:font-bold [&_h2]:text-text-primary max-md:[&_h2]:text-title-md",
   problemContent:
     "whitespace-pre-wrap break-words text-body leading-normal text-text-primary",
+  problemSetOverview:
+    "whitespace-pre-wrap break-words text-body leading-normal text-text-primary [&_p]:mb-0 [&_p]:mt-2 [&_strong]:block [&_strong]:text-title-md [&_strong]:font-bold [&_strong]:text-[#1a237e]",
   editorSection: "relative",
   codeEditor:
     "relative h-[280px] min-h-[220px] w-full resize-y overflow-hidden rounded-base border shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]",
@@ -38,6 +40,8 @@ export const problemDetailClasses = {
   hintToast:
     "absolute left-1/2 top-[42px] z-10 -translate-x-1/2 whitespace-nowrap rounded-base bg-button-blue-bg px-[18px] py-3 text-body font-semibold text-text-white",
   tabs: "mt-3 mb-2 grid min-w-0 grid-cols-4 gap-2 overflow-x-auto [&_button]:min-w-0 [&_button]:cursor-pointer [&_button]:whitespace-nowrap [&_button]:rounded-base [&_button]:border [&_button]:border-[#1a237e] [&_button]:bg-[#fff] [&_button]:px-2.5 [&_button]:py-[9px] [&_button]:text-[15px] [&_button]:font-semibold [&_button]:text-[#1a237e] [&_button]:transition [&_button:hover:not(:disabled)]:bg-[#dbeafe] [&_button:hover:not(:disabled)]:shadow-[0_0_0_2px_rgba(26,35,126,0.18)] [&_button:focus-visible]:outline-none [&_button:focus-visible]:ring-2 [&_button:focus-visible]:ring-[#1a237e] [&_button:disabled]:cursor-not-allowed [&_button:disabled]:border-[#cbd5e1] [&_button:disabled]:bg-[#f1f5f9] [&_button:disabled]:text-[#64748b] [&_button:disabled]:opacity-100 max-[560px]:flex max-[560px]:grid-cols-none max-[560px]:gap-1.5 max-[560px]:[&_button]:min-w-[88px] max-[560px]:[&_button]:px-1.5 max-[560px]:[&_button]:text-description",
+  statementTabs:
+    "mb-3 grid min-w-0 grid-cols-2 gap-2 [&_button]:min-w-0 [&_button]:cursor-pointer [&_button]:whitespace-nowrap [&_button]:rounded-base [&_button]:border [&_button]:border-[#1a237e] [&_button]:bg-[#fff] [&_button]:px-2.5 [&_button]:py-[9px] [&_button]:text-[15px] [&_button]:font-semibold [&_button]:text-[#1a237e] [&_button]:transition [&_button:hover]:bg-[#dbeafe] [&_button:hover]:shadow-[0_0_0_2px_rgba(26,35,126,0.18)] [&_button:focus-visible]:outline-none [&_button:focus-visible]:ring-2 [&_button:focus-visible]:ring-[#1a237e] max-[560px]:[&_button]:text-description",
   activeTab:
     "border-button-blue-bg! bg-button-blue-bg! text-text-white! shadow-[0_0_0_2px_rgba(26,35,126,0.22)]!",
   bottomPanel:

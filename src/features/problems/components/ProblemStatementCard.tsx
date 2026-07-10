@@ -1,16 +1,20 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import Image from "next/image";
 import type { CSSProperties } from "react";
 
 import { problemDetailClasses } from "../problemDetailStyles";
+
+type StatementTab = "problem" | "overview";
 
 interface ProblemStatementCardProps {
   className?: string;
   content?: string;
   isDownloadingDataset?: boolean;
   onDownloadDataset?: () => void;
+  problemSetDescription?: string;
+  problemSetTitle?: string;
   style?: CSSProperties;
 }
 
@@ -19,8 +23,13 @@ function ProblemStatementCard({
   content,
   isDownloadingDataset = false,
   onDownloadDataset,
+  problemSetDescription,
+  problemSetTitle,
   style,
 }: ProblemStatementCardProps) {
+  const [activeTab, setActiveTab] = useState<StatementTab>("overview");
+  const hasOverview = Boolean(problemSetTitle || problemSetDescription);
+
   return (
     <article
       className={`${problemDetailClasses.problemBox} ${className}`}
@@ -46,7 +55,44 @@ function ProblemStatementCard({
           </button>
         )}
       </div>
-      <div className={problemDetailClasses.problemContent}>{content}</div>
+      {hasOverview && (
+        <div
+          aria-label="문제 내용 보기 방식"
+          className={problemDetailClasses.statementTabs}
+          role="tablist"
+        >
+          <button
+            aria-selected={activeTab === "overview"}
+            className={
+              activeTab === "overview" ? problemDetailClasses.activeTab : ""
+            }
+            onClick={() => setActiveTab("overview")}
+            role="tab"
+            type="button"
+          >
+            문제 소개
+          </button>
+          <button
+            aria-selected={activeTab === "problem"}
+            className={
+              activeTab === "problem" ? problemDetailClasses.activeTab : ""
+            }
+            onClick={() => setActiveTab("problem")}
+            role="tab"
+            type="button"
+          >
+            문제 내용
+          </button>
+        </div>
+      )}
+      {activeTab === "overview" && hasOverview ? (
+        <div className={problemDetailClasses.problemSetOverview}>
+          {problemSetTitle && <strong>{problemSetTitle}</strong>}
+          {problemSetDescription && <p>{problemSetDescription}</p>}
+        </div>
+      ) : (
+        <div className={problemDetailClasses.problemContent}>{content}</div>
+      )}
     </article>
   );
 }
