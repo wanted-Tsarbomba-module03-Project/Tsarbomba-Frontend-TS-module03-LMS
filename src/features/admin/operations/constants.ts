@@ -28,6 +28,16 @@ export const ADMIN_ACCOUNT_LIST_COLUMN_LABELS = [
   "규칙 관리 권한",
 ] as const;
 
+export const ACCOUNT_LOCK_STATUS_LABEL = {
+  locked: "잠금",
+  unlocked: "정상",
+} as const;
+
+export const ACCOUNT_LOCK_ACTION_LABEL = {
+  lock: "계정 잠금",
+  unlock: "잠금 해제",
+} as const;
+
 export const USER_DETAIL_COURSE_COLUMN_LABELS = [
   "No.",
   "강의명",

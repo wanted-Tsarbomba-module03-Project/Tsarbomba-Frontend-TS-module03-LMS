@@ -19,6 +19,8 @@ import {
   toggleUserLock,
 } from "../actions";
 import {
+  ACCOUNT_LOCK_ACTION_LABEL,
+  ACCOUNT_LOCK_STATUS_LABEL,
   USER_DETAIL_COURSE_COLUMN_LABELS,
   USER_DETAIL_PROBLEM_COLUMN_LABELS,
 } from "../constants";
@@ -162,10 +164,12 @@ export default function UserDetailClient() {
       setUser((prev) => (prev ? { ...prev, isLocked: nextLocked } : prev));
       setLockModalOpen(false);
       openNoticeModal(
-        nextLocked ? "계정이 비활성화되었습니다." : "계정이 활성화되었습니다.",
         nextLocked
-          ? "해당 회원의 계정이 비활성화되었습니다."
-          : "해당 회원의 계정이 활성화되었습니다.",
+          ? "계정이 잠금 처리되었습니다."
+          : "계정 잠금이 해제되었습니다.",
+        nextLocked
+          ? "해당 회원은 더 이상 서비스를 이용할 수 없습니다."
+          : "해당 회원은 다시 서비스를 이용할 수 있습니다.",
       );
     } catch (error) {
       console.error("회원 상태 변경 실패:", error);
@@ -194,7 +198,9 @@ export default function UserDetailClient() {
     );
   }
 
-  const nextLockLabel = user.isLocked ? "잠금해제" : "계정잠금";
+  const nextLockLabel = user.isLocked
+    ? ACCOUNT_LOCK_ACTION_LABEL.unlock
+    : ACCOUNT_LOCK_ACTION_LABEL.lock;
 
   return (
     <>
@@ -236,7 +242,11 @@ export default function UserDetailClient() {
           <ReadonlyField label="역할" value={user.role} />
           <ReadonlyField
             label="계정 상태"
-            value={user.isLocked ? "비활성" : "활성"}
+            value={
+              user.isLocked
+                ? ACCOUNT_LOCK_STATUS_LABEL.locked
+                : ACCOUNT_LOCK_STATUS_LABEL.unlocked
+            }
           />
         </section>
 
@@ -297,8 +307,16 @@ export default function UserDetailClient() {
         cancelDisabled={saving}
         confirmDisabled={saving}
         isOpen={lockModalOpen}
-        modalContent={`${nextLockLabel} 상태로 변경합니다.`}
-        modalTitle={`회원 계정을 ${nextLockLabel}하시겠습니까?`}
+        modalContent={
+          user.isLocked
+            ? "해당 회원의 계정 잠금을 해제합니다."
+            : "해당 회원의 계정을 잠금 처리합니다."
+        }
+        modalTitle={
+          user.isLocked
+            ? "회원 계정 잠금을 해제하시겠습니까?"
+            : "회원 계정을 잠금 처리하시겠습니까?"
+        }
         onClose={() => {
           if (!saving) setLockModalOpen(false);
         }}
