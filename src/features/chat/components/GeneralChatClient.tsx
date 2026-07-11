@@ -524,8 +524,12 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
       return;
     }
 
+    const params = new URLSearchParams({
+      problemId: linkedProblem.problemId,
+    });
+
     setMoveConfirmOpen(false);
-    router.push(`/problems/${linkedProblem.problemSetId}`);
+    router.push(`/problems/${linkedProblem.problemSetId}?${params.toString()}`);
   };
 
   return (

@@ -20,7 +20,12 @@ import { mobileSidebarClasses } from "./mobileSidebarClasses";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
-type ProblemState = "LOCKED" | "UNSOLVED" | "CORRECT" | "WRONG";
+type ProblemState =
+  | "LOCKED"
+  | "UNSOLVED"
+  | "CORRECT"
+  | "WRONG"
+  | "EXPLANATION_VIEWED";
 
 interface ChatRoom {
   roomId: number;

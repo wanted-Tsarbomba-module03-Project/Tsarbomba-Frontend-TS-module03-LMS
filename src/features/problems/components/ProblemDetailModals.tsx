@@ -16,12 +16,16 @@ interface ProblemDetailModalsProps {
   chatRoomTitleInput: string;
   chatRoomTitleUpdating: boolean;
   emptySubmitModalOpen: boolean;
+  explanationViewConfirmOpen: boolean;
+  explanationViewConfirming: boolean;
   onAlertClose: () => void;
   onBackCancel: () => void;
   onBackConfirm: () => void;
   onChatRoomTitleConfirm: () => void;
   onChatRoomTitleConfirmClose: () => void;
   onEmptySubmitClose: () => void;
+  onExplanationViewCancel: () => void;
+  onExplanationViewConfirm: () => void;
   onProblemCompleteConfirm: () => void;
   onRecommendedCourseCancel: () => void;
   onRecommendedCourseConfirm: () => void;
@@ -38,12 +42,16 @@ export default function ProblemDetailModals({
   chatRoomTitleInput,
   chatRoomTitleUpdating,
   emptySubmitModalOpen,
+  explanationViewConfirmOpen,
+  explanationViewConfirming,
   onAlertClose,
   onBackCancel,
   onBackConfirm,
   onChatRoomTitleConfirm,
   onChatRoomTitleConfirmClose,
   onEmptySubmitClose,
+  onExplanationViewCancel,
+  onExplanationViewConfirm,
   onProblemCompleteConfirm,
   onRecommendedCourseCancel,
   onRecommendedCourseConfirm,
@@ -72,6 +80,17 @@ export default function ProblemDetailModals({
         modalContent="실행하거나 제출할 코드를 입력해 주세요."
         modalTitle="내용을 입력해 주세요"
         onClose={onEmptySubmitClose}
+      />
+      <TwoButtonModal
+        cancelDisabled={explanationViewConfirming}
+        confirmDisabled={explanationViewConfirming}
+        isOpen={explanationViewConfirmOpen}
+        modalContent={
+          "해설을 확인하면 이 문제의 포인트를 얻을 수 없고,\n이후 해설과 힌트를 확인할 수 있습니다."
+        }
+        modalTitle="해설을 확인하시겠습니까?"
+        onClose={onExplanationViewCancel}
+        onConfirm={onExplanationViewConfirm}
       />
       <OneButtonModal
         isOpen={alertModal.open}

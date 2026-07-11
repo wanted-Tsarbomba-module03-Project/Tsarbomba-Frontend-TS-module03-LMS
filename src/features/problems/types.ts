@@ -146,9 +146,18 @@ export interface NormalizedProblemDetail {
   datasetId: number | null;
 }
 
-export type ProblemStatus = "LOCKED" | "UNSOLVED" | "CORRECT" | "WRONG";
+export type ProblemStatus =
+  | "LOCKED"
+  | "UNSOLVED"
+  | "CORRECT"
+  | "WRONG"
+  | "EXPLANATION_VIEWED";
 
-export type ProblemResultTab = "result" | "hint" | "recommendedCourses" | "solution";
+export type ProblemResultTab =
+  | "result"
+  | "hint"
+  | "recommendedCourses"
+  | "solution";
 
 export interface ProblemSetDetailProblem {
   problemId: number;
@@ -163,6 +172,8 @@ export interface ProblemSetDetailProblem {
   solution?: string;
   status?: ProblemStatus;
   latestSubmissionId?: number | null;
+  submittedCode?: string | null;
+  latestSubmission?: ProblemCodeSubmission | null;
 }
 
 export interface ProblemSetDetail {
@@ -197,6 +208,45 @@ export interface ProblemSetResult {
   totalCompletedUserCount: number;
   correctCompletedUserCount: number;
   submissions: ProblemSetResultSubmission[];
+}
+
+export interface ProblemSetProgressProblem {
+  problemId: number;
+  problemNumber?: number;
+  title?: string;
+  status: ProblemStatus;
+  latestSubmissionId?: number | null;
+}
+
+export interface ProblemSetProgress {
+  problemSetId: number;
+  totalProblemCount?: number;
+  currentProblemNumber?: number;
+  currentProblemId?: number;
+  solvedProblemCount?: number;
+  problems: ProblemSetProgressProblem[];
+}
+
+export interface ProblemCodeSubmissionTestCaseResult {
+  testCaseId: number;
+  isPassed: boolean;
+  isHidden: boolean;
+  actualOutput?: string | null;
+  errorMessage?: string | null;
+  executionTimeMs?: number | null;
+}
+
+export interface ProblemCodeSubmission {
+  submissionId: number;
+  problemId: number;
+  submittedCode: string;
+  isCorrect: boolean;
+  passedTestCount?: number;
+  totalTestCount?: number;
+  executionStatus?: string;
+  errorMessage?: string | null;
+  submittedAt?: string;
+  testCaseResults?: ProblemCodeSubmissionTestCaseResult[];
 }
 
 export interface ProblemDatasetDownloadUrl {
@@ -252,6 +302,17 @@ export interface SubmissionResult {
   explanation?: string;
   nextProblemId?: number;
   submittedAt?: string;
+}
+
+export interface ExplanationViewResult {
+  problemId: number;
+  status: ProblemStatus | string;
+  displayStatus?: "CORRECT" | ProblemStatus | string;
+  explanation?: string;
+  nextProblemId?: number | null;
+  problemSetCompleted?: boolean;
+  earnedPoint?: number;
+  pointGranted?: boolean;
 }
 
 export interface ChatMessage {

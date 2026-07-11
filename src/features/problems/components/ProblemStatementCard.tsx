@@ -81,12 +81,20 @@ function ProblemStatementCard({
             title="CSV 다운로드"
             type="button"
           >
-            <Image
-              alt=""
-              height={18}
-              src="/assets/img/download-Icon.svg"
-              width={18}
-            />
+            <span
+              aria-hidden="true"
+              className={problemDetailClasses.datasetDownloadIcon}
+            >
+              <Image
+                alt=""
+                height={18}
+                src="/assets/img/download-Icon.svg"
+                width={18}
+              />
+            </span>
+            <span className={problemDetailClasses.datasetDownloadText}>
+              CSV파일 다운로드
+            </span>
           </button>
         )}
       </div>
