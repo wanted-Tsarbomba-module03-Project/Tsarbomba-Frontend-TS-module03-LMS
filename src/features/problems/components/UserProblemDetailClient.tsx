@@ -504,7 +504,39 @@ export default function UserProblemDetailClient({
     return () => {
       isMounted = false;
     };
-  }, [initialUserId, problemSetId, router, userId]);
+  }, [initialUserId, problemSetId, router, targetProblemId, userId]);
+
+  useEffect(() => {
+    if (!targetProblemId) {
+      return;
+    }
+
+    const nextIndex = problemSet.problems.findIndex(
+      (problem) => normalizeId(problem.problemId) === targetProblemId,
+    );
+
+    if (nextIndex < 0 || nextIndex === currentIndex) {
+      return;
+    }
+
+    const nextCodes = updateArrayItem(userCodes, currentIndex, code);
+
+    setUserCodes(nextCodes);
+    setCurrentIndex(nextIndex);
+    setCode(nextCodes[nextIndex] ?? "");
+    setSubmissionResult(submissionResults[nextIndex] ?? null);
+    setActiveTab("result");
+    setExecutionResult(null);
+    resetChatState();
+  }, [
+    code,
+    currentIndex,
+    problemSet.problems,
+    resetChatState,
+    submissionResults,
+    targetProblemId,
+    userCodes,
+  ]);
 
   useEffect(() => {
     let isMounted = true;
@@ -676,7 +708,7 @@ export default function UserProblemDetailClient({
       tab === "solution" &&
       isCorrectLikeStatus(problemStates[currentIndex])
     ) {
-      void handleExplanationViewConfirm();
+      setActiveTab("solution");
       return;
     }
 

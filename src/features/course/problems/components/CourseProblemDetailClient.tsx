@@ -343,7 +343,7 @@ export default function CourseProblemDetailClient({
       tab === "solution" &&
       isCorrectLikeStatus(problemStates[currentIndex])
     ) {
-      void handleExplanationViewConfirm();
+      setActiveTab("solution");
       return;
     }
 

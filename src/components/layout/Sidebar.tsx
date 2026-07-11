@@ -16,16 +16,12 @@ import {
 import type { MyBadge } from "@/features/badge/types";
 import OneButtonModal from "@/components/common/OneButtonModal";
 import { ChatRoomListSkeleton } from "@/features/chat/components/ChatPageSkeleton";
+import type { ProblemStatus } from "@/features/problems/types";
 import { mobileSidebarClasses } from "./mobileSidebarClasses";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
-type ProblemState =
-  | "LOCKED"
-  | "UNSOLVED"
-  | "CORRECT"
-  | "WRONG"
-  | "EXPLANATION_VIEWED";
+type ProblemState = ProblemStatus;
 
 interface ChatRoom {
   roomId: number;

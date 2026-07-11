@@ -306,8 +306,8 @@ export interface SubmissionResult {
 
 export interface ExplanationViewResult {
   problemId: number;
-  status: ProblemStatus | string;
-  displayStatus?: "CORRECT" | ProblemStatus | string;
+  status: ProblemStatus;
+  displayStatus?: ProblemStatus;
   explanation?: string;
   nextProblemId?: number | null;
   problemSetCompleted?: boolean;

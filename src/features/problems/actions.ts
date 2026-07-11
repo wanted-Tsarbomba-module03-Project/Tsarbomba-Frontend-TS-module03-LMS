@@ -538,10 +538,10 @@ export async function getProblemSetDetailWithProgress(
   userId: string,
   init: NextRequestInit = {},
 ) {
-  const detail = await getProblemSetDetail(problemSetId, userId, init);
-  const progress = await getProblemSetProgress(problemSetId, userId, init).catch(
-    () => null,
-  );
+  const [detail, progress] = await Promise.all([
+    getProblemSetDetail(problemSetId, userId, init),
+    getProblemSetProgress(problemSetId, userId, init).catch(() => null),
+  ]);
   const mergedDetail = mergeProblemSetProgress(detail, progress);
   const latestSubmissionEntries = await Promise.all(
     mergedDetail.problems.map(async (problem) => {
