@@ -23,6 +23,7 @@ interface ProblemSolveSectionProps {
   executionResult: ExecutionResult | null;
   hintEnabled: boolean;
   isCurrentProblemCorrect: boolean;
+  isViewingExplanation: boolean;
   isSubmitting: boolean;
   onCodeChange: (nextCode: string) => void;
   onRecommendedCourseSelect?: (courseId: number) => void;
@@ -44,6 +45,7 @@ function ProblemSolveSection({
   executionResult,
   hintEnabled,
   isCurrentProblemCorrect,
+  isViewingExplanation,
   isSubmitting,
   onCodeChange,
   onRecommendedCourseSelect,
@@ -114,12 +116,12 @@ function ProblemSolveSection({
           className={
             activeTab === "solution" ? problemDetailClasses.activeTab : ""
           }
-          disabled={!solutionEnabled}
+          disabled={isViewingExplanation}
           onClick={() => onTabChange("solution")}
           role="tab"
           type="button"
         >
-          해설보기
+          {isViewingExplanation ? "해설 조회 중" : "해설보기"}
         </button>
       </div>
 

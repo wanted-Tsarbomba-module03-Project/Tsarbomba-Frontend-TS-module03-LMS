@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 
 import JsonLdScript from "@/components/common/JsonLdScript";
 import {
-  getProblemSetDetail,
+  getProblemSetDetailWithProgress,
   getProblemSetResult,
 } from "@/features/problems/actions";
 import UserProblemDetailClient from "@/features/problems/components/UserProblemDetailClient";
@@ -40,7 +40,11 @@ export default async function ProblemDetailPage({
     cache: "no-store",
     ...(cookieHeader ? { headers: { Cookie: cookieHeader } } : {}),
   } as const;
-  const problemSet = await getProblemSetDetail(id, userId ?? "", requestInit);
+  const problemSet = await getProblemSetDetailWithProgress(
+    id,
+    userId ?? "",
+    requestInit,
+  );
   const problemSetResult = await getProblemSetResult(id, requestInit).catch(
     () => null,
   );
