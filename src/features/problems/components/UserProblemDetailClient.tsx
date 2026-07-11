@@ -23,11 +23,12 @@ import {
   getProblemChatRooms,
   getProblemHints,
   getProblemRecommendedCourses,
-  getProblemSetDetail,
+  getProblemSetDetailWithProgress,
   getProblemSetResult,
   runProblem,
   submitProblem,
   updateProblemChatRoomTitle,
+  viewProblemExplanation,
 } from "../actions";
 import { problemDetailClasses } from "../problemDetailStyles";
 import type {
@@ -70,7 +71,26 @@ const MIN_SOLVE_PANEL_WIDTH = 400;
 const RESIZE_HANDLE_RESERVED_WIDTH = 32;
 const DEFAULT_PROBLEM_PANEL_PERCENT = 50;
 
-function getInitialProblemIndex(problemSet: ProblemSetDetail) {
+const isExplanationViewedStatus = (status?: ProblemStatus) =>
+  status === "EXPLANATION_VIEWED";
+
+const isCorrectLikeStatus = (status?: ProblemStatus) =>
+  status === "CORRECT" || isExplanationViewedStatus(status);
+
+function getInitialProblemIndex(
+  problemSet: ProblemSetDetail,
+  targetProblemId = "",
+) {
+  if (targetProblemId) {
+    const targetProblemIndex = problemSet.problems.findIndex(
+      (problem) => normalizeId(problem.problemId) === targetProblemId,
+    );
+
+    if (targetProblemIndex >= 0) {
+      return targetProblemIndex;
+    }
+  }
+
   return Math.max(
     problemSet.problems.findIndex((problem) =>
       problemSet.currentProblemId
@@ -89,13 +109,43 @@ function getCorrectSubmissionMap(problemSetResult: ProblemSetResult | null) {
   );
 }
 
+function getInitialProblemCode(
+  problem: ProblemSetDetail["problems"][number] | undefined,
+  correctSubmissionMap: Map<number, ProblemSetResult["submissions"][number]>,
+) {
+  if (!problem) {
+    return "";
+  }
+
+  return (
+    problem.submittedCode ??
+    problem.latestSubmission?.submittedCode ??
+    correctSubmissionMap.get(problem.problemId)?.submittedAnswer ??
+    problem.startCode ??
+    ""
+  );
+}
+
 function getInitialProblemState(
   problemSet: ProblemSetDetail,
   problemSetResult: ProblemSetResult | null,
+  targetProblemId = "",
 ) {
-  const initialIndex = getInitialProblemIndex(problemSet);
+  const initialIndex = getInitialProblemIndex(problemSet, targetProblemId);
   const correctSubmissionMap = getCorrectSubmissionMap(problemSetResult);
   const submissionResults = problemSet.problems.map((problem) => {
+    if (problem.latestSubmission) {
+      return {
+        isCorrect: problem.latestSubmission.isCorrect,
+        passedTestCount: problem.latestSubmission.passedTestCount,
+        totalTestCount: problem.latestSubmission.totalTestCount,
+        executionStatus: problem.latestSubmission.executionStatus,
+        errorMessage: problem.latestSubmission.errorMessage ?? undefined,
+        explanation: problem.explanation,
+        submittedAt: problem.latestSubmission.submittedAt,
+      } satisfies SubmissionResult;
+    }
+
     const submission = correctSubmissionMap.get(problem.problemId);
 
     if (!submission) {
@@ -112,6 +162,7 @@ function getInitialProblemState(
   return {
     currentIndex: initialIndex,
     problemStates: problemSet.problems.map((problem) =>
+      problem.latestSubmission?.isCorrect ||
       correctSubmissionMap.has(problem.problemId)
         ? "CORRECT"
         : (problem.status ?? "UNSOLVED"),
@@ -120,26 +171,22 @@ function getInitialProblemState(
       (problem) =>
         correctSubmissionMap.has(problem.problemId) ||
         problem.status === "WRONG" ||
-        problem.status === "CORRECT",
+        isCorrectLikeStatus(problem.status),
     ),
     solutionEnabled: problemSet.problems.map(
       (problem) =>
         correctSubmissionMap.has(problem.problemId) ||
-        problem.status === "CORRECT",
+        isCorrectLikeStatus(problem.status),
     ),
     hints: problemSet.problems.map(() => [] as ProblemHint[]),
-    userCodes: problemSet.problems.map(
-      (problem) =>
-        correctSubmissionMap.get(problem.problemId)?.submittedAnswer ??
-        problem.startCode ??
-        "",
+    userCodes: problemSet.problems.map((problem) =>
+      getInitialProblemCode(problem, correctSubmissionMap),
     ),
     submissionResults,
-    code:
-      correctSubmissionMap.get(problemSet.problems[initialIndex]?.problemId)
-        ?.submittedAnswer ??
-      problemSet.problems[initialIndex]?.startCode ??
-      "",
+    code: getInitialProblemCode(
+      problemSet.problems[initialIndex],
+      correctSubmissionMap,
+    ),
   };
 }
 
@@ -187,9 +234,15 @@ export default function UserProblemDetailClient({
 }: UserProblemDetailClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const targetProblemId = normalizeId(searchParams.get("problemId"));
   const initialState = useMemo(
-    () => getInitialProblemState(initialProblemSet, initialProblemSetResult),
-    [initialProblemSet, initialProblemSetResult],
+    () =>
+      getInitialProblemState(
+        initialProblemSet,
+        initialProblemSetResult,
+        targetProblemId,
+      ),
+    [initialProblemSet, initialProblemSetResult, targetProblemId],
   );
 
   const [problemSet, setProblemSet] = useState<ProblemSetDetail>(initialProblemSet);
@@ -227,6 +280,9 @@ export default function UserProblemDetailClient({
   const [problemCompleteModalOpen, setProblemCompleteModalOpen] =
     useState(false);
   const [emptySubmitModalOpen, setEmptySubmitModalOpen] = useState(false);
+  const [explanationViewConfirmOpen, setExplanationViewConfirmOpen] =
+    useState(false);
+  const [isViewingExplanation, setIsViewingExplanation] = useState(false);
   const [pendingRecommendedCourseId, setPendingRecommendedCourseId] =
     useState<number | null>(null);
   const [alertModal, setAlertModal] = useState({
@@ -276,7 +332,9 @@ export default function UserProblemDetailClient({
 
   const currentProblem = problemSet.problems[currentIndex];
   const currentHints = hints[currentIndex] ?? [];
-  const isCurrentProblemCorrect = problemStates[currentIndex] === "CORRECT";
+  const isCurrentProblemCorrect = isCorrectLikeStatus(
+    problemStates[currentIndex],
+  );
 
   const problemPanelStyle = useMemo(
     () =>
@@ -407,10 +465,10 @@ export default function UserProblemDetailClient({
         }
 
         const [data, result] = await Promise.all([
-          getProblemSetDetail(problemSetId, userId),
+          getProblemSetDetailWithProgress(problemSetId, userId),
           getProblemSetResult(problemSetId).catch(() => null),
         ]);
-        const nextState = getInitialProblemState(data, result);
+        const nextState = getInitialProblemState(data, result, targetProblemId);
 
         if (!isMounted) {
           return;
@@ -446,7 +504,39 @@ export default function UserProblemDetailClient({
     return () => {
       isMounted = false;
     };
-  }, [initialUserId, problemSetId, router, userId]);
+  }, [initialUserId, problemSetId, router, targetProblemId, userId]);
+
+  useEffect(() => {
+    if (!targetProblemId) {
+      return;
+    }
+
+    const nextIndex = problemSet.problems.findIndex(
+      (problem) => normalizeId(problem.problemId) === targetProblemId,
+    );
+
+    if (nextIndex < 0 || nextIndex === currentIndex) {
+      return;
+    }
+
+    const nextCodes = updateArrayItem(userCodes, currentIndex, code);
+
+    setUserCodes(nextCodes);
+    setCurrentIndex(nextIndex);
+    setCode(nextCodes[nextIndex] ?? "");
+    setSubmissionResult(submissionResults[nextIndex] ?? null);
+    setActiveTab("result");
+    setExecutionResult(null);
+    resetChatState();
+  }, [
+    code,
+    currentIndex,
+    problemSet.problems,
+    resetChatState,
+    submissionResults,
+    targetProblemId,
+    userCodes,
+  ]);
 
   useEffect(() => {
     let isMounted = true;
@@ -563,7 +653,7 @@ export default function UserProblemDetailClient({
       return "bg-[#1a237e] text-white";
     }
 
-    if (state === "CORRECT") {
+    if (isCorrectLikeStatus(state)) {
       return "border border-[#1a237e] text-[#1a237e] bg-white";
     }
 
@@ -614,6 +704,19 @@ export default function UserProblemDetailClient({
   };
 
   const handleTabChange = (tab: ProblemResultTab) => {
+    if (
+      tab === "solution" &&
+      isCorrectLikeStatus(problemStates[currentIndex])
+    ) {
+      setActiveTab("solution");
+      return;
+    }
+
+    if (tab === "solution" && !solutionEnabled[currentIndex]) {
+      setExplanationViewConfirmOpen(true);
+      return;
+    }
+
     setActiveTab(tab);
 
     if (
@@ -622,6 +725,90 @@ export default function UserProblemDetailClient({
       !hints[currentIndex]?.length
     ) {
       void fetchHints(currentProblem.problemId, currentIndex);
+    }
+  };
+
+  const handleExplanationViewConfirm = async () => {
+    if (!currentProblem?.problemId || isViewingExplanation) {
+      return;
+    }
+
+    setIsViewingExplanation(true);
+
+    try {
+      const result = await viewProblemExplanation(currentProblem.problemId);
+
+      if (!result) {
+        return;
+      }
+
+      const currentProblemState = problemStates[currentIndex];
+      const nextCurrentProblemState =
+        currentProblemState === "CORRECT" ? "CORRECT" : "EXPLANATION_VIEWED";
+      const nextProblemStates = problemStates.map((state, index) => {
+        const problemId = problemSet.problems[index]?.problemId;
+
+        if (index === currentIndex) {
+          return nextCurrentProblemState;
+        }
+
+        if (
+          result.nextProblemId &&
+          problemId === result.nextProblemId &&
+          state === "LOCKED"
+        ) {
+          return "UNSOLVED";
+        }
+
+        return state;
+      });
+
+      setProblemStates(nextProblemStates);
+      setProblemSet((prev) => ({
+        ...prev,
+        isCompleted: result.problemSetCompleted ?? prev.isCompleted,
+        problems: prev.problems.map((problem) =>
+          problem.problemId === result.problemId
+            ? {
+                ...problem,
+                explanation: result.explanation ?? problem.explanation,
+                status: nextCurrentProblemState,
+              }
+            : problem,
+        ),
+      }));
+      setExecutionResult(null);
+      setSubmissionResult({
+        isCorrect: true,
+        explanation: result.explanation ?? currentProblem.explanation,
+        nextProblemId: result.nextProblemId ?? undefined,
+      });
+      setSubmissionResults((prev) =>
+        updateArrayItem(prev, currentIndex, {
+          isCorrect: true,
+          explanation: result.explanation ?? currentProblem.explanation,
+          nextProblemId: result.nextProblemId ?? undefined,
+        }),
+      );
+      setHintEnabled((prev) => updateArrayItem(prev, currentIndex, true));
+      setSolutionEnabled((prev) => updateArrayItem(prev, currentIndex, true));
+
+      if (!hints[currentIndex]?.length) {
+        await fetchHints(currentProblem.problemId, currentIndex);
+      }
+
+      setExplanationViewConfirmOpen(false);
+      setActiveTab("solution");
+    } catch (error) {
+      handleClientError(error, {
+        router,
+        fallbackTitle: "해설 조회 실패",
+        fallbackMessage: "해설을 조회하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        showModal: (title, content) =>
+          setAlertModal({ open: true, title, content }),
+      });
+    } finally {
+      setIsViewingExplanation(false);
     }
   };
 
@@ -707,7 +894,7 @@ export default function UserProblemDetailClient({
           currentIndex === problemSet.problems.length - 1 ||
           (currentProblem.problemNumber ?? currentIndex + 1) >= totalProblemCount;
         const isAllCorrect = nextProblemStates.every(
-          (state) => state === "CORRECT",
+          (state) => isCorrectLikeStatus(state),
         );
 
         if (isLastProblem || isAllCorrect || problemSet.isCompleted) {
@@ -1124,6 +1311,7 @@ export default function UserProblemDetailClient({
               hintEnabled={hintEnabled[currentIndex]}
               isCurrentProblemCorrect={isCurrentProblemCorrect}
               isSubmitting={isSubmitting}
+              isViewingExplanation={isViewingExplanation}
               onCodeChange={handleCodeChange}
               onRecommendedCourseSelect={handleRecommendedCourseSelect}
               onSubmit={handleSubmit}
@@ -1168,6 +1356,8 @@ export default function UserProblemDetailClient({
         chatRoomTitleInput={chatRoomTitleInput}
         chatRoomTitleUpdating={chatRoomTitleUpdating}
         emptySubmitModalOpen={emptySubmitModalOpen}
+        explanationViewConfirmOpen={explanationViewConfirmOpen}
+        explanationViewConfirming={isViewingExplanation}
         onAlertClose={() =>
           setAlertModal((prev) => ({ ...prev, open: false }))
         }
@@ -1180,6 +1370,12 @@ export default function UserProblemDetailClient({
           }
         }}
         onEmptySubmitClose={() => setEmptySubmitModalOpen(false)}
+        onExplanationViewCancel={() => {
+          if (!isViewingExplanation) {
+            setExplanationViewConfirmOpen(false);
+          }
+        }}
+        onExplanationViewConfirm={handleExplanationViewConfirm}
         onProblemCompleteConfirm={() => router.push("/problems")}
         onRecommendedCourseCancel={() => setPendingRecommendedCourseId(null)}
         onRecommendedCourseConfirm={handleRecommendedCourseMove}

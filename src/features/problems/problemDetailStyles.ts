@@ -19,7 +19,11 @@ export const problemDetailClasses = {
   problemHeader:
     "mb-2.5 flex items-center justify-between gap-3 max-[560px]:flex-wrap",
   datasetDownloadButton:
-    "inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-base border border-border-light bg-bg-box transition hover:bg-bg-hover-gray disabled:cursor-not-allowed disabled:opacity-50",
+    "group relative inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden whitespace-nowrap rounded-base border border-border-light bg-bg-box px-0 transition-all duration-200 ease-out hover:w-[136px] hover:border-[#1a237e] hover:bg-[#eef2ff] hover:shadow-[0_0_0_2px_rgba(26,35,126,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a237e] disabled:pointer-events-none disabled:cursor-not-allowed disabled:border-[#cbd5e1] disabled:bg-[#f1f5f9] disabled:opacity-100",
+  datasetDownloadIcon:
+    "absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out group-hover:scale-90 group-hover:opacity-0",
+  datasetDownloadText:
+    "absolute inset-0 flex items-center justify-center px-2 text-center text-description font-semibold text-[#1a237e] opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100",
   solveBox:
     "min-w-0 rounded-base border border-border-light bg-bg-box p-4 max-md:p-3 [&_h2]:mt-0 [&_h2]:mb-2.5 [&_h2]:text-title-lg [&_h2]:font-bold [&_h2]:text-text-primary max-md:[&_h2]:text-title-md",
   problemContent:

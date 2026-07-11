@@ -13,12 +13,15 @@ import type {
   ChatResponse,
   ChatRoomTitleUpdate,
   ExecutionResult,
+  ExplanationViewResult,
   ProblemHint,
   ProblemInfo,
+  ProblemCodeSubmission,
   ProblemChatRoom,
   ProblemDatasetDownloadUrl,
   ProblemRecommendedCoursesResponse,
   ProblemSetDetail,
+  ProblemSetProgress,
   ProblemSetRecommendationHideResponse,
   ProblemSetRecommendationResponse,
   ProblemSetDetailProblem,
@@ -494,6 +497,82 @@ export async function getProblemSetDetail(
   return normalizeProblemSetDetail(result);
 }
 
+export async function getProblemSetProgress(
+  problemSetId: string,
+  userId = "",
+  init: NextRequestInit = {},
+) {
+  const params = new URLSearchParams();
+
+  if (userId) {
+    params.set("userId", userId);
+  }
+
+  const query = params.toString();
+  const result = await requestJson<ProblemSetProgress>(
+    `/api/v1/problem-sets/${encodeURIComponent(problemSetId)}/progress${
+      query ? `?${query}` : ""
+    }`,
+    "문제 진행 상태를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    init,
+  );
+
+  return result.data ?? null;
+}
+
+export async function getCodeSubmission(
+  submissionId: number,
+  init: NextRequestInit = {},
+) {
+  const result = await requestJson<ProblemCodeSubmission>(
+    `/api/v1/code-submissions/${encodeURIComponent(String(submissionId))}`,
+    "제출 코드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    init,
+  );
+
+  return result.data ?? null;
+}
+
+export async function getProblemSetDetailWithProgress(
+  problemSetId: string,
+  userId: string,
+  init: NextRequestInit = {},
+) {
+  const [detail, progress] = await Promise.all([
+    getProblemSetDetail(problemSetId, userId, init),
+    getProblemSetProgress(problemSetId, userId, init).catch(() => null),
+  ]);
+  const mergedDetail = mergeProblemSetProgress(detail, progress);
+  const latestSubmissionEntries = await Promise.all(
+    mergedDetail.problems.map(async (problem) => {
+      if (!problem.latestSubmissionId) {
+        return [problem.problemId, null] as const;
+      }
+
+      const submission = await getCodeSubmission(
+        problem.latestSubmissionId,
+        init,
+      ).catch(() => null);
+
+      return [problem.problemId, submission] as const;
+    }),
+  );
+  const latestSubmissionMap = new Map(latestSubmissionEntries);
+
+  return {
+    ...mergedDetail,
+    problems: mergedDetail.problems.map((problem) => {
+      const latestSubmission = latestSubmissionMap.get(problem.problemId) ?? null;
+
+      return {
+        ...problem,
+        latestSubmission,
+        submittedCode: latestSubmission?.submittedCode ?? problem.submittedCode,
+      };
+    }),
+  };
+}
+
 export async function getProblemSetResult(
   problemSetId: string,
   init: NextRequestInit = {},
@@ -594,6 +673,20 @@ export async function getProblemHints(problemId: number) {
   return [...(result.data ?? [])].sort(
     (current, next) => current.hintOrder - next.hintOrder,
   );
+}
+
+export async function viewProblemExplanation(problemId: number) {
+  const result = await requestJson<ExplanationViewResult>(
+    `/api/v1/problems/${encodeURIComponent(
+      String(problemId),
+    )}/explanation-view`,
+    "해설을 조회하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    {
+      method: "POST",
+    },
+  );
+
+  return result.data ?? null;
 }
 
 export async function submitProblem(
@@ -759,7 +852,47 @@ function normalizeProblemSetDetail(response: unknown): ProblemSetDetail {
       explanation: problem.explanation ?? problem.solution,
       status: (problem.status ?? "UNSOLVED") as ProblemStatus,
       latestSubmissionId: problem.latestSubmissionId ?? null,
+      submittedCode: problem.submittedCode ?? null,
+      latestSubmission: problem.latestSubmission ?? null,
     })),
+  };
+}
+
+function mergeProblemSetProgress(
+  detail: ProblemSetDetail,
+  progress: ProblemSetProgress | null,
+): ProblemSetDetail {
+  if (!progress) {
+    return detail;
+  }
+
+  const progressMap = new Map(
+    progress.problems.map((problem) => [problem.problemId, problem]),
+  );
+
+  return {
+    ...detail,
+    currentProblemId: progress.currentProblemId ?? detail.currentProblemId,
+    currentProblemNumber:
+      progress.currentProblemNumber ?? detail.currentProblemNumber,
+    totalProblemCount: progress.totalProblemCount ?? detail.totalProblemCount,
+    solvedProblemCount: progress.solvedProblemCount ?? detail.solvedProblemCount,
+    problems: detail.problems.map((problem) => {
+      const progressProblem = progressMap.get(problem.problemId);
+
+      if (!progressProblem) {
+        return problem;
+      }
+
+      return {
+        ...problem,
+        problemNumber: progressProblem.problemNumber ?? problem.problemNumber,
+        title: progressProblem.title ?? problem.title,
+        status: progressProblem.status,
+        latestSubmissionId:
+          progressProblem.latestSubmissionId ?? problem.latestSubmissionId,
+      };
+    }),
   };
 }
 

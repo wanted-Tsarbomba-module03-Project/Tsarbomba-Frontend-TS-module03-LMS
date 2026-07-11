@@ -9,7 +9,7 @@ import Image from "next/image";
 import CategoryNav from "@/components/layout/CategoryNav";
 import Sidebar from "@/components/layout/Sidebar";
 import { mobileSidebarClasses } from "@/components/layout/mobileSidebarClasses";
-import { OneButtonModal, WarningModal } from "@/components/common";
+import { OneButtonModal, TwoButtonModal, WarningModal } from "@/components/common";
 import { ApiClientError, handleClientError } from "@/lib/errorHandling";
 
 // 강좌 전용: 입장/제출
@@ -23,6 +23,7 @@ import {
   getProblemHints,
   runProblem,
   sendProblemChatMessage,
+  viewProblemExplanation,
 } from "@/features/problems/actions";
 import type {
   ChatMessage,
@@ -72,6 +73,12 @@ const saveDrafts = (lpsId: string, drafts: Record<number, string>) => {
   }
 };
 
+const isExplanationViewedStatus = (status?: ProblemStatus) =>
+  status === "EXPLANATION_VIEWED";
+
+const isCorrectLikeStatus = (status?: ProblemStatus) =>
+  status === "CORRECT" || isExplanationViewedStatus(status);
+
 function getInitialProblemIndex(problemSet: ProblemSetDetail) {
   return Math.max(
     problemSet.problems.findIndex((problem) =>
@@ -103,10 +110,11 @@ function getInitialProblemState(problemSet: ProblemSetDetail, lpsId: string) {
       (problem) => problem.status ?? "UNSOLVED",
     ),
     hintEnabled: problemSet.problems.map(
-      (problem) => problem.status === "WRONG" || problem.status === "CORRECT",
+      (problem) =>
+        problem.status === "WRONG" || isCorrectLikeStatus(problem.status),
     ),
     solutionEnabled: problemSet.problems.map(
-      (problem) => problem.status === "CORRECT",
+      (problem) => isCorrectLikeStatus(problem.status),
     ),
     hints: problemSet.problems.map(() => [] as ProblemHint[]),
     userCodes: problemSet.problems.map((problem) => codeFor(problem)),
@@ -158,6 +166,9 @@ export default function CourseProblemDetailClient({
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [emptySubmitModalOpen, setEmptySubmitModalOpen] = useState(false);
+  const [explanationViewConfirmOpen, setExplanationViewConfirmOpen] =
+    useState(false);
+  const [isViewingExplanation, setIsViewingExplanation] = useState(false);
   // 마지막 문제까지 모두 정답 시 강의 완료 + 강좌 페이지 이동 안내.
   const [lectureCompleteModalOpen, setLectureCompleteModalOpen] =
     useState(false);
@@ -211,6 +222,9 @@ export default function CourseProblemDetailClient({
 
   const currentProblem = problemSet.problems[currentIndex];
   const currentHints = hints[currentIndex] ?? [];
+  const isCurrentProblemCorrect = isCorrectLikeStatus(
+    problemStates[currentIndex],
+  );
 
   // 데이터셋(CSV) 다운로드 — 문제세트 단위 (문제풀이방과 동일). 서버가 서명 URL 발급.
   const handleDatasetDownload = async () => {
@@ -266,7 +280,7 @@ export default function CourseProblemDetailClient({
     isCurrent: boolean,
   ) => {
     if (isCurrent) return "bg-[#1a237e] text-white";
-    if (state === "CORRECT")
+    if (isCorrectLikeStatus(state))
       return "border border-[#1a237e] text-[#1a237e] bg-white";
     if (state === "WRONG")
       return "border border-[#fb2c36] text-[#fb2c36] bg-white";
@@ -325,6 +339,19 @@ export default function CourseProblemDetailClient({
   };
 
   const handleTabChange = (tab: ProblemResultTab) => {
+    if (
+      tab === "solution" &&
+      isCorrectLikeStatus(problemStates[currentIndex])
+    ) {
+      setActiveTab("solution");
+      return;
+    }
+
+    if (tab === "solution" && !solutionEnabled[currentIndex]) {
+      setExplanationViewConfirmOpen(true);
+      return;
+    }
+
     setActiveTab(tab);
 
     if (
@@ -333,6 +360,78 @@ export default function CourseProblemDetailClient({
       !hints[currentIndex]?.length
     ) {
       void fetchHints(currentProblem.problemId, currentIndex);
+    }
+  };
+
+  const handleExplanationViewConfirm = async () => {
+    if (!currentProblem?.problemId || isViewingExplanation) {
+      return;
+    }
+
+    setIsViewingExplanation(true);
+
+    try {
+      const result = await viewProblemExplanation(currentProblem.problemId);
+
+      if (!result) {
+        return;
+      }
+
+      const currentProblemState = problemStates[currentIndex];
+      const nextCurrentProblemState =
+        currentProblemState === "CORRECT" ? "CORRECT" : "EXPLANATION_VIEWED";
+      const nextProblemStates = problemStates.map((state, index) => {
+        const problemId = problemSet.problems[index]?.problemId;
+
+        if (index === currentIndex) {
+          return nextCurrentProblemState;
+        }
+
+        if (
+          result.nextProblemId &&
+          problemId === result.nextProblemId &&
+          state === "LOCKED"
+        ) {
+          return "UNSOLVED";
+        }
+
+        return state;
+      });
+
+      setProblemStates(nextProblemStates);
+      setExecutionResult(null);
+      setSubmissionResult({
+        isCorrect: true,
+        explanation: result.explanation ?? currentProblem.explanation,
+        nextProblemId: result.nextProblemId ?? undefined,
+      });
+      setHintEnabled((prev) => updateArrayItem(prev, currentIndex, true));
+      setSolutionEnabled((prev) => updateArrayItem(prev, currentIndex, true));
+
+      if (!hints[currentIndex]?.length) {
+        await fetchHints(currentProblem.problemId, currentIndex);
+      }
+
+      setExplanationViewConfirmOpen(false);
+      setActiveTab("solution");
+
+      const isCompleted =
+        result.problemSetCompleted ??
+        nextProblemStates.every((state) => isCorrectLikeStatus(state));
+
+      if (isCompleted) {
+        setLectureCompleteModalOpen(true);
+      }
+    } catch (error) {
+      handleClientError(error, {
+        router,
+        fallbackTitle: "해설 조회 실패",
+        fallbackMessage: "해설을 조회하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        showModal: (title, content) =>
+          setAlertModal({ open: true, title, content }),
+      });
+    } finally {
+      setIsViewingExplanation(false);
     }
   };
 
@@ -364,7 +463,9 @@ export default function CourseProblemDetailClient({
   };
 
   const handleSubmit = async () => {
-    if (!currentProblem?.problemId || isSubmitting) return;
+    if (!currentProblem?.problemId || isSubmitting || isCurrentProblemCorrect) {
+      return;
+    }
     if (!code.trim()) {
       setEmptySubmitModalOpen(true);
       return;
@@ -413,7 +514,9 @@ export default function CourseProblemDetailClient({
         }
 
         // 모든 문제 정답이면 강의 완료 모달로, 아니면 일반 정답 모달.
-        const allCorrect = updatedStates.every((s) => s === "CORRECT");
+        const allCorrect = updatedStates.every((state) =>
+          isCorrectLikeStatus(state),
+        );
         if (allCorrect) {
           setLectureCompleteModalOpen(true);
         } else {
@@ -582,12 +685,20 @@ export default function CourseProblemDetailClient({
                   title="CSV 다운로드"
                   type="button"
                 >
-                  <Image
-                    alt=""
-                    height={18}
-                    src="/assets/img/download-Icon.svg"
-                    width={18}
-                  />
+                  <span
+                    aria-hidden="true"
+                    className={styles.datasetDownloadIcon}
+                  >
+                    <Image
+                      alt=""
+                      height={18}
+                      src="/assets/img/download-Icon.svg"
+                      width={18}
+                    />
+                  </span>
+                  <span className={styles.datasetDownloadText}>
+                    CSV파일 다운로드
+                  </span>
                 </button>
               </div>
               <div className={styles.problemContent}>
@@ -641,11 +752,11 @@ export default function CourseProblemDetailClient({
                 </button>
                 <button
                   className={activeTab === "solution" ? styles.activeTab : ""}
-                  disabled={!solutionEnabled[currentIndex]}
+                  disabled={isViewingExplanation}
                   onClick={() => handleTabChange("solution")}
                   type="button"
                 >
-                  해설보기
+                  {isViewingExplanation ? "해설 조회 중" : "해설보기"}
                 </button>
               </div>
 
@@ -660,7 +771,7 @@ export default function CourseProblemDetailClient({
               <div className={styles.submitWrap}>
                 <button
                   className={styles.submitButton}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isCurrentProblemCorrect}
                   onClick={handleSubmit}
                   type="button"
                 >
@@ -702,6 +813,21 @@ export default function CourseProblemDetailClient({
         modalContent="실행하거나 제출할 코드를 입력해 주세요."
         modalTitle="내용을 입력해 주세요"
         onClose={() => setEmptySubmitModalOpen(false)}
+      />
+      <TwoButtonModal
+        cancelDisabled={isViewingExplanation}
+        confirmDisabled={isViewingExplanation}
+        isOpen={explanationViewConfirmOpen}
+        modalContent={
+          "해설을 확인하면\n이후 해설과 힌트를 확인할 수 있습니다."
+        }
+        modalTitle="해설을 확인하시겠습니까?"
+        onClose={() => {
+          if (!isViewingExplanation) {
+            setExplanationViewConfirmOpen(false);
+          }
+        }}
+        onConfirm={handleExplanationViewConfirm}
       />
       <OneButtonModal
         isOpen={alertModal.open}

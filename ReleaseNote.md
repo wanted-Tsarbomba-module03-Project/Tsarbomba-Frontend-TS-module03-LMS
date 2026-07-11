@@ -1,3 +1,24 @@
+# v1.6.5 (2026-07-11)
+
+### 회원 문제풀이 상세 및 강좌 문제풀이방 개선
+
+- **Added**
+  - 문제풀이 상세 재진입 시 `/api/v1/problem-sets/{problemSetId}/progress` 진행 상태 조회를 병합하도록 추가
+  - `latestSubmissionId`가 있는 문제는 `/api/v1/code-submissions/{submissionId}`로 제출 코드를 조회해 Monaco 입력창에 표시하도록 추가
+  - 문제 해설 조회 API(`/api/v1/problems/{problemId}/explanation-view`) 연동 및 `EXPLANATION_VIEWED` 상태 처리 추가
+  - 해설보기 전 안내 모달을 추가하고, 확인 후 해설/힌트를 확인할 수 있도록 처리
+  - 강좌에서 접근하는 문제풀이방에도 `EXPLANATION_VIEWED` 상태, 해설 조회 모달, 해설 조회 API 호출 흐름을 동일하게 적용
+- **Changed**
+  - `ANSWER_VIEWED` 명칭은 사용하지 않고 백엔드 응답 상태명과 동일한 `EXPLANATION_VIEWED`로 통일
+  - 이어풀기 진입 문제는 진행 상태 응답의 `currentProblemId`를 우선 사용하고, 이미 푼 문제는 `startCode` 대신 최근 제출 코드를 우선 표시하도록 변경
+  - `EXPLANATION_VIEWED` 상태를 `CORRECT`와 동일하게 제출 차단 및 힌트/해설 활성화 기준에 포함
+  - 이미 `CORRECT` 또는 `EXPLANATION_VIEWED` 상태인 문제는 해설보기 클릭 시 안내 모달 없이 해설 조회 API를 바로 호출하도록 조정
+  - 일반 문제풀이방 해설 확인 모달 문구를 `이후 해설과 힌트를 확인할 수 있습니다.`로 변경
+  - 강좌 문제풀이방 해설 확인 모달에서는 포인트 관련 안내 문구를 제거
+  - 범용 챗봇(`/chat`)의 연결 문제 이동 버튼이 문제세트가 아닌 연결된 소문제로 바로 진입하도록 `problemId` 쿼리 이동을 적용
+  - 문제풀이 상세에서 `problemId` 쿼리가 있으면 `currentProblemId`보다 우선해 해당 소문제를 초기 선택하도록 변경
+  - CSV 다운로드 버튼 hover 시 아이콘이 부드럽게 사라지고 `CSV파일 다운로드` 텍스트가 중앙에 표시되도록 개선
+
 # v1.6.4 (2026-07-10)
 
 ### 회원가입 필수 약관 동의 추가
