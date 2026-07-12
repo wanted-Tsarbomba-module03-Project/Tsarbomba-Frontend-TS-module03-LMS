@@ -47,3 +47,39 @@ export const adminMasterClasses = {
   permissionInactive:
     "inline-flex h-8 min-w-[76px] cursor-pointer items-center justify-center rounded-base border border-text-red bg-bg-box px-3 text-description font-semibold text-text-red transition hover:bg-text-red hover:text-text-white disabled:cursor-not-allowed disabled:opacity-60",
 } as const;
+
+export const adminCategoryClasses = {
+  container: "box-border p-6 text-text-primary max-md:p-4",
+  header:
+    "mb-5 flex items-center justify-between gap-4 max-md:flex-col max-md:items-stretch",
+  title: "m-0 text-2xl font-bold",
+  createButton:
+    "inline-flex h-10 min-w-[92px] cursor-pointer items-center justify-center rounded-[10px] border-0 bg-button-blue-bg px-4 text-body font-semibold text-text-white transition hover:not-disabled:bg-button-blue-hover-bg disabled:cursor-not-allowed disabled:bg-[#6b7280] disabled:text-text-white",
+  actionGroup: "flex items-center justify-center gap-2",
+  editButton:
+    "inline-flex h-8 min-w-[60px] cursor-pointer items-center justify-center rounded-base border border-button-blue-bg bg-button-blue-bg px-3 text-description font-semibold text-text-white transition hover:not-disabled:bg-button-blue-hover-bg disabled:cursor-not-allowed disabled:bg-[#6b7280] disabled:border-[#6b7280] disabled:text-text-white",
+  deleteButton:
+    "inline-flex h-8 min-w-[60px] cursor-pointer items-center justify-center rounded-base border border-text-red bg-bg-box px-3 text-description font-semibold text-text-red transition hover:not-disabled:bg-text-red hover:not-disabled:text-text-white disabled:cursor-not-allowed disabled:border-[#9ca3af] disabled:bg-[#e5e7eb] disabled:text-[#6b7280]",
+  cancelButton:
+    "inline-flex h-8 min-w-[60px] cursor-pointer items-center justify-center rounded-base border border-[#d1d5db] bg-bg-box px-3 text-description font-semibold text-[#374151] transition hover:not-disabled:bg-[#e5e7eb] disabled:cursor-not-allowed disabled:opacity-60",
+  nameInput:
+    "box-border h-9 w-full rounded-[10px] border border-[#d1d5db] bg-bg-box px-3 text-description text-text-primary outline-none transition focus:border-button-blue-bg focus:ring-2 focus:ring-button-blue-bg/20 disabled:cursor-not-allowed disabled:bg-[#f3f4f6]",
+  statusActive:
+    "inline-flex h-8 min-w-[64px] items-center justify-center rounded-full bg-[#e0f2fe] px-3 text-description font-semibold text-[#075985]",
+  statusInactive:
+    "inline-flex h-8 min-w-[64px] items-center justify-center rounded-full bg-[#f3f4f6] px-3 text-description font-semibold text-[#6b7280]",
+  inactiveRow: "[&_td]:bg-[#fafafa] [&_td]:text-[#6b7280]",
+  modalOverlay:
+    "fixed inset-0 z-[999] flex h-dvh w-dvw items-center justify-center bg-[rgba(16,24,40,0.45)] px-4 py-6",
+  modalContainer:
+    "box-border flex w-[min(420px,100%)] flex-col gap-3 rounded-2xl bg-bg-box p-6 shadow-xl",
+  modalTitle: "m-0 text-xl font-semibold text-[#101828]",
+  modalLabel: "text-description font-semibold text-[#364153]",
+  modalInput:
+    "box-border h-11 w-full rounded-[10px] border border-[#d1d5db] bg-bg-box px-3 text-body text-text-primary outline-none transition focus:border-button-blue-bg focus:ring-2 focus:ring-button-blue-bg/20",
+  modalActions: "mt-4 flex justify-end gap-3 max-[520px]:flex-col",
+  modalPrimaryButton:
+    "h-11 min-w-[96px] cursor-pointer rounded-[10px] border-0 bg-button-blue-bg px-4 text-body font-semibold text-text-white transition hover:not-disabled:bg-button-blue-hover-bg disabled:cursor-not-allowed disabled:bg-[#6b7280]",
+  modalCancelButton:
+    "h-11 min-w-[96px] cursor-pointer rounded-[10px] border-0 bg-bg-navbar px-4 text-body font-semibold text-[#364153] transition hover:bg-[#e5e7eb]",
+} as const;
