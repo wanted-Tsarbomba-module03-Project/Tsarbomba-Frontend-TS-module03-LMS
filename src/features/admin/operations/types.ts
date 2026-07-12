@@ -140,6 +140,14 @@ export interface AdminPermissionUpdateResponse extends AdminAccountSummary {
   updatedPermission?: AdminPermissionUpdateRequest;
 }
 
+export type AdminProblemCategoryStatus = "ACTIVE" | "INACTIVE";
+
+export interface AdminProblemCategory {
+  categoryId: number;
+  categoryName: string;
+  status: AdminProblemCategoryStatus;
+}
+
 export interface UserCourseProgressResponse {
   enrollmentId?: number;
   studentId?: number;
