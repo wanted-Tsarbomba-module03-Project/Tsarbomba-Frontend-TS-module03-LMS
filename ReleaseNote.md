@@ -1,3 +1,18 @@
+# v1.6.8 (2026-07-13)
+
+### 문제풀이 코드 편집기 CodeMirror 6 전환 및 편집 UX 개선
+
+- **Changed**
+  - 문제풀이/강좌 문제풀이 코드 입력창을 Monaco Editor에서 CodeMirror 6 기반 편집기로 전환
+  - 기존 코드 값 제어(`code`/`onCodeChange`), Python 문법 하이라이팅, 다크/라이트 테마 토글, 줄바꿈, 4칸 Tab 들여쓰기 동작 유지
+  - Monaco 의존성(`@monaco-editor/react`, `monaco-editor`)을 제거하고 CodeMirror 핵심 패키지(`@codemirror/*`) 의존성으로 교체
+  - CodeMirror 코어를 동적 import 청크로 분리하고 코드 편집기 로딩/에러 fallback UI 유지
+  - Tab/Shift-Tab 들여쓰기 처리를 직접 구현 대신 `@codemirror/commands`의 `indentMore`/`indentLess`로 전환
+- **Fixed**
+  - 코드 편집기 줄 번호와 실제 입력 줄 위치가 어긋나던 문제 보정
+  - 코드 편집기 내부 스크롤을 적용하고, 스크롤 적용 후 테마 토글 버튼이 코드 영역과 겹치지 않도록 위치 조정
+  - 라이트/다크 모드에서 현재 줄 및 gutter 하이라이트 대비를 강화해 입력 위치 가시성 개선
+
 # v1.6.7 (2026-07-13)
 
 ### 비로그인 홈 가이드 페이지 추가 및 강좌 수정 강의 순서 오류 수정

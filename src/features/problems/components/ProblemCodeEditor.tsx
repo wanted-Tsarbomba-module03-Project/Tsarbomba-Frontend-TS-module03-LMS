@@ -1,12 +1,13 @@
 "use client";
 
-import { Component, useState } from "react";
+import { Component } from "react";
 import type { ErrorInfo, ReactNode } from "react";
 import dynamic from "next/dynamic";
 
 import { problemDetailClasses } from "../problemDetailStyles";
+import type { ProblemCodeMirrorCoreProps } from "./ProblemCodeMirrorCore";
 
-const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
+const ProblemCodeMirrorCore = dynamic(() => import("./ProblemCodeMirrorCore"), {
   loading: () => (
     <div className={problemDetailClasses.codeEditorLoading}>
       코드 편집기를 불러오는 중입니다.
@@ -15,34 +16,26 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
 });
 
-interface ProblemCodeEditorProps {
-  ariaLabel?: string;
-  code: string;
-  onCodeChange: (nextCode: string) => void;
-}
-
-type EditorTheme = "dark" | "light";
-
-interface MonacoErrorBoundaryProps {
+interface CodeEditorErrorBoundaryProps {
   children: ReactNode;
 }
 
-interface MonacoErrorBoundaryState {
+interface CodeEditorErrorBoundaryState {
   hasError: boolean;
 }
 
-class MonacoErrorBoundary extends Component<
-  MonacoErrorBoundaryProps,
-  MonacoErrorBoundaryState
+class CodeEditorErrorBoundary extends Component<
+  CodeEditorErrorBoundaryProps,
+  CodeEditorErrorBoundaryState
 > {
-  state: MonacoErrorBoundaryState = { hasError: false };
+  state: CodeEditorErrorBoundaryState = { hasError: false };
 
-  static getDerivedStateFromError(): MonacoErrorBoundaryState {
+  static getDerivedStateFromError(): CodeEditorErrorBoundaryState {
     return { hasError: true };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Monaco editor load failed:", error, errorInfo);
+    console.error("CodeMirror editor load failed:", error, errorInfo);
   }
 
   render() {
@@ -59,67 +52,10 @@ class MonacoErrorBoundary extends Component<
   }
 }
 
-export default function ProblemCodeEditor({
-  ariaLabel = "답안 코드 입력",
-  code,
-  onCodeChange,
-}: ProblemCodeEditorProps) {
-  const [editorTheme, setEditorTheme] = useState<EditorTheme>("dark");
-  const isDarkTheme = editorTheme === "dark";
-
+export default function ProblemCodeEditor(props: ProblemCodeMirrorCoreProps) {
   return (
-    <div
-      className={`${problemDetailClasses.codeEditor} ${
-        isDarkTheme
-          ? problemDetailClasses.codeEditorDark
-          : problemDetailClasses.codeEditorLight
-      }`}
-    >
-      <button
-        aria-label={
-          isDarkTheme
-            ? "코드 편집기를 라이트 모드로 전환"
-            : "코드 편집기를 다크 모드로 전환"
-        }
-        aria-pressed={isDarkTheme}
-        className={problemDetailClasses.codeEditorThemeToggle}
-        onClick={() => setEditorTheme(isDarkTheme ? "light" : "dark")}
-        type="button"
-      >
-        {isDarkTheme ? "라이트" : "다크"}
-      </button>
-      <MonacoErrorBoundary>
-        <MonacoEditor
-          defaultLanguage="python"
-          height="100%"
-          onChange={(value) => onCodeChange(value ?? "")}
-          options={{
-            ariaLabel,
-            automaticLayout: true,
-            fontFamily:
-              "var(--font-geist-mono), Consolas, 'Liberation Mono', monospace",
-            fontSize: 14,
-            lineHeight: 22,
-            minimap: { enabled: false },
-            padding: { top: 44, bottom: 12 },
-            parameterHints: { enabled: false },
-            quickSuggestions: false,
-            renderLineHighlight: "all",
-            scrollBeyondLastLine: false,
-            snippetSuggestions: "none",
-            suggestOnTriggerCharacters: false,
-            wordBasedSuggestions: "off",
-            detectIndentation: false,
-            insertSpaces: true,
-            tabFocusMode: false,
-            tabSize: 4,
-            useTabStops: true,
-            wordWrap: "on",
-          }}
-          theme={isDarkTheme ? "vs-dark" : "light"}
-          value={code}
-        />
-      </MonacoErrorBoundary>
-    </div>
+    <CodeEditorErrorBoundary>
+      <ProblemCodeMirrorCore {...props} />
+    </CodeEditorErrorBoundary>
   );
 }
