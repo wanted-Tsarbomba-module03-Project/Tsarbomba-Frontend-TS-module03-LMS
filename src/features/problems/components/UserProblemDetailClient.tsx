@@ -190,6 +190,21 @@ function getInitialProblemState(
   };
 }
 
+function getInitialLoadedExplanationIds(
+  problemSet: ProblemSetDetail,
+  submissionResults: Array<SubmissionResult | null>,
+) {
+  return new Set(
+    problemSet.problems
+      .filter(
+        (problem, index) =>
+          Boolean(problem.explanation) ||
+          Boolean(submissionResults[index]?.explanation),
+      )
+      .map((problem) => problem.problemId),
+  );
+}
+
 function normalizeId(value?: number | string | null) {
   return value == null ? "" : String(value);
 }
@@ -283,6 +298,13 @@ export default function UserProblemDetailClient({
   const [explanationViewConfirmOpen, setExplanationViewConfirmOpen] =
     useState(false);
   const [isViewingExplanation, setIsViewingExplanation] = useState(false);
+  const [loadedExplanationProblemIds, setLoadedExplanationProblemIds] =
+    useState<Set<number>>(() =>
+      getInitialLoadedExplanationIds(
+        initialProblemSet,
+        initialState.submissionResults,
+      ),
+    );
   const [pendingRecommendedCourseId, setPendingRecommendedCourseId] =
     useState<number | null>(null);
   const [alertModal, setAlertModal] = useState({
@@ -484,6 +506,9 @@ export default function UserProblemDetailClient({
         setSubmissionResults(nextState.submissionResults);
         setSubmissionResult(nextState.submissionResults[nextState.currentIndex]);
         setCode(nextState.code);
+        setLoadedExplanationProblemIds(
+          getInitialLoadedExplanationIds(data, nextState.submissionResults),
+        );
       } catch (error) {
         if (!isMounted) {
           return;
@@ -708,7 +733,15 @@ export default function UserProblemDetailClient({
       tab === "solution" &&
       isCorrectLikeStatus(problemStates[currentIndex])
     ) {
-      setActiveTab("solution");
+      if (
+        currentProblem?.problemId &&
+        loadedExplanationProblemIds.has(currentProblem.problemId)
+      ) {
+        setActiveTab("solution");
+        return;
+      }
+
+      void handleExplanationViewConfirm();
       return;
     }
 
@@ -741,6 +774,12 @@ export default function UserProblemDetailClient({
       if (!result) {
         return;
       }
+
+      setLoadedExplanationProblemIds((prev) => {
+        const next = new Set(prev);
+        next.add(result.problemId);
+        return next;
+      });
 
       const currentProblemState = problemStates[currentIndex];
       const nextCurrentProblemState =
