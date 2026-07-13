@@ -126,7 +126,7 @@ jobs:
 
           # 제목은 AI에게 맡기지 않고 고정 포맷으로 조립 (KST 기준 날짜)
           DATE=$(TZ='Asia/Seoul' date +'%Y-%m-%d')
-          TITLE="백엔드팀 패치노트🦖 | $DATE"   # 프론트 레포는 "프론트팀 패치노트🎨 | $DATE"
+          TITLE="프론트팀 패치노트🎨 | $DATE"
 
           printf '%s\n\n%s' "$TITLE" "$BULLETS" \
             | python3 -c "import sys; print(sys.stdin.read()[:1900])" > summary.txt

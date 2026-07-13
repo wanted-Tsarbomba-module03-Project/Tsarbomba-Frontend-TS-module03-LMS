@@ -31,6 +31,9 @@ const subscribeToUserRole = (callback: () => void) => {
 
 const getStoredUserRole = () => localStorage.getItem("userRole") || "";
 const getServerUserRole = () => "";
+const getStoredLogin = () =>
+  localStorage.getItem("userNickname") ? "1" : "";
+const getServerLogin = () => "";
 const subscribeToHydration = () => () => {};
 const getHydratedSnapshot = () => true;
 const getServerHydratedSnapshot = () => false;
@@ -53,6 +56,12 @@ export default function RootLayout({
     subscribeToHydration,
     getHydratedSnapshot,
     getServerHydratedSnapshot,
+  );
+  // 로그인 여부(localStorage 닉네임 기준) — 비로그인 홈에선 카테고리 바를 숨긴다.
+  const isLoggedIn = !!useSyncExternalStore(
+    subscribeToUserRole,
+    getStoredLogin,
+    getServerLogin,
   );
 
   useEffect(() => {
@@ -124,11 +133,15 @@ export default function RootLayout({
         <div className="flex flex-col min-h-screen w-full bg-white">
           <Header />
 
-          {!isAdminPath && !isMypagePath && !isProblemPath && !isChatPath && (
-            <Suspense fallback={null}>
-              <CategoryNav />
-            </Suspense>
-          )}
+          {isLoggedIn &&
+            !isAdminPath &&
+            !isMypagePath &&
+            !isProblemPath &&
+            !isChatPath && (
+              <Suspense fallback={null}>
+                <CategoryNav />
+              </Suspense>
+            )}
 
           {isFlexBodySection ? (
             <div className="flex flex-1 w-full max-w-300 mx-auto relative box-border gap-5 max-[1024px]:px-5">
