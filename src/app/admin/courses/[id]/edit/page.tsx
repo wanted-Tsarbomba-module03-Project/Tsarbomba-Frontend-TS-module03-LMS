@@ -337,13 +337,14 @@ export default function CourseEditPage() {
 
       const lectureIdMap: Record<string, number> = {};
 
-      for (let i = 0; i < lectures.length; i++) {
-        const item = lectures[i];
+      const buildLectureBody = (
+        item: (typeof lectures)[number],
+        order: number,
+      ) => {
         const isVideo = item.type === "video";
         const v = isVideo ? (item as VideoLecture) : null;
         const pl = !isVideo ? (item as ProblemLecture) : null;
-
-        const body = {
+        return {
           title: isVideo
             ? v!.title
             : pl!.problemSetId !== null
@@ -352,9 +353,35 @@ export default function CourseEditPage() {
               : "문제 강의",
           description: isVideo ? v!.description : null,
           videoUrl: isVideo ? v!.videoUrl.trim() || null : null,
-          lectureOrder: i + 1,
+          lectureOrder: order,
           problemCategoryId: Number(selectedProblemCategoryId),
         };
+      };
+
+      // 0) 삭제된 강의 먼저 제거 → 해당 순서 슬롯을 비운다.
+      for (const lid of deletedLectureIds) {
+        await deleteLecture(lid);
+      }
+
+      // 1) 기존 강의를 임시 순서(큰 값)로 밀어 1..N 순서를 모두 비운다.
+      //    BE 가 강좌 내 강의 순서를 유니크로 강제하므로, 중간 삽입 시
+      //    아직 안 밀린 기존 강의와 순서가 겹쳐 LECTURE_ORDER_DUPLICATED(409)가 나던 것을 방지.
+      const TEMP_ORDER_BASE = 100000;
+      for (let i = 0; i < lectures.length; i++) {
+        const item = lectures[i];
+        if (!item.lectureId) continue;
+        await updateLecture(
+          item.lectureId,
+          buildLectureBody(item, TEMP_ORDER_BASE + i),
+        );
+      }
+
+      // 2) 최종 순서로 생성/수정 (목표 순서가 모두 비어 있어 충돌 없음).
+      for (let i = 0; i < lectures.length; i++) {
+        const item = lectures[i];
+        const isVideo = item.type === "video";
+        const v = isVideo ? (item as VideoLecture) : null;
+        const body = buildLectureBody(item, i + 1);
 
         if (item.lectureId) {
           await updateLecture(item.lectureId, body);
@@ -369,10 +396,6 @@ export default function CourseEditPage() {
             await uploadLectureMaterial(lectureIdMap[item.id], file);
           }
         }
-      }
-
-      for (const lid of deletedLectureIds) {
-        await deleteLecture(lid);
       }
 
       // DB 에 이미 있던 연결은 재전송 생략 → 중복 INSERT 방지.

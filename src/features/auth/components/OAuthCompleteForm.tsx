@@ -12,6 +12,7 @@ import LoadingIndicator from "@/components/common/LoadingIndicator";
 import TermsAgreement, {
   type TermsAgreementValue,
 } from "@/features/auth/components/TermsAgreement";
+import { formatPhoneNumber } from "@/features/auth/formatPhone";
 
 const PHONE_REGEX = /^01[0-9]-\d{3,4}-\d{4}$/;
 
@@ -269,7 +270,7 @@ export default function OAuthCompleteForm() {
               placeholder="010-1234-5678"
               value={phone}
               onChange={(e) => {
-                setPhone(e.target.value);
+                setPhone(formatPhoneNumber(e.target.value));
                 if (phoneErr) setPhoneErr("");
               }}
               onBlur={(e) => validatePhoneOnBlur(e.target.value)}
