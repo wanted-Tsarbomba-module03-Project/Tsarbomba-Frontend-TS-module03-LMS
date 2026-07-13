@@ -195,8 +195,8 @@ function HeaderInner({ isSimple }: HeaderProps) {
           </span>
         </Link>
 
-        {/* 검색바는 홈(강좌 목록)에서만 노출 */}
-        {pathname === "/" && (
+        {/* 검색바는 로그인 상태의 홈(강좌 목록)에서만 노출 — 비로그인 가이드 페이지에선 숨김 */}
+        {pathname === "/" && isLoggedIn && (
           <div className="flex-1 min-w-0 max-w-md mx-8 hidden sm:block">
             <Searchbar
               defaultValue={courseKeyword}

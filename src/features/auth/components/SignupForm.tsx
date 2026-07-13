@@ -13,6 +13,7 @@ import OneButtonModal from "@/components/common/OneButtonModal";
 import TermsAgreement, {
   type TermsAgreementValue,
 } from "@/features/auth/components/TermsAgreement";
+import { formatPhoneNumber } from "@/features/auth/formatPhone";
 
 export default function SignupForm() {
   const router = useRouter();
@@ -531,8 +532,9 @@ export default function SignupForm() {
               value={phone}
               onBlur={(e) => validatePhoneOnBlur(e.target.value)}
               onChange={(e) => {
-                setPhone(e.target.value);
-                if (e.target.value) setPhoneErr("");
+                const formatted = formatPhoneNumber(e.target.value);
+                setPhone(formatted);
+                if (formatted) setPhoneErr("");
               }}
             />
             {phoneErr && <p className="auth-error">{phoneErr}</p>}
