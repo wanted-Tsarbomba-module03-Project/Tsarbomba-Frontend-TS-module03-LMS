@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { indentLess, indentMore } from "@codemirror/commands";
 import { pythonLanguage } from "@codemirror/lang-python";
 import { oneDark } from "@codemirror/theme-one-dark";
 import {
@@ -10,7 +11,6 @@ import {
 } from "@codemirror/language";
 import {
   Compartment,
-  EditorSelection,
   EditorState,
   type Extension,
 } from "@codemirror/state";
@@ -18,7 +18,6 @@ import {
   drawSelection,
   dropCursor,
   EditorView,
-  type Command,
   type ViewUpdate,
   highlightActiveLine,
   highlightActiveLineGutter,
@@ -117,82 +116,6 @@ function getThemeExtension(isDarkTheme: boolean): Extension {
   return isDarkTheme ? darkThemeExtension : lightThemeExtension;
 }
 
-const insertSpacesForTab: Command = ({ state, dispatch }) => {
-  if (state.readOnly) {
-    return false;
-  }
-
-  const transaction = state.changeByRange((range) => ({
-    changes: {
-      from: range.from,
-      insert: EDITOR_INDENT,
-      to: range.to,
-    },
-    range: EditorSelection.cursor(range.from + EDITOR_TAB_SIZE),
-  }));
-
-  dispatch(
-    state.update(transaction, {
-      scrollIntoView: true,
-      userEvent: "input.indent",
-    }),
-  );
-
-  return true;
-};
-
-const deleteSpacesForShiftTab: Command = ({ state, dispatch }) => {
-  if (state.readOnly) {
-    return false;
-  }
-
-  const visitedLines = new Set<number>();
-  const changes: Array<{ from: number; to: number }> = [];
-
-  for (const range of state.selection.ranges) {
-    const fromLine = state.doc.lineAt(range.from);
-    const toLine = state.doc.lineAt(range.to);
-
-    for (
-      let lineNumber = fromLine.number;
-      lineNumber <= toLine.number;
-      lineNumber += 1
-    ) {
-      if (visitedLines.has(lineNumber)) {
-        continue;
-      }
-
-      visitedLines.add(lineNumber);
-
-      const line = state.doc.line(lineNumber);
-      const leadingSpaces = line.text.match(/^ {1,4}/)?.[0].length ?? 0;
-      const deleteCount =
-        leadingSpaces > 0 ? leadingSpaces : line.text.startsWith("\t") ? 1 : 0;
-
-      if (deleteCount > 0) {
-        changes.push({
-          from: line.from,
-          to: line.from + deleteCount,
-        });
-      }
-    }
-  }
-
-  if (changes.length === 0) {
-    return true;
-  }
-
-  dispatch(
-    state.update({
-      changes,
-      scrollIntoView: true,
-      userEvent: "delete.dedent",
-    }),
-  );
-
-  return true;
-};
-
 export default function ProblemCodeMirrorCore({
   ariaLabel = "답안 코드 입력",
   code,
@@ -233,8 +156,8 @@ export default function ProblemCodeMirrorCore({
         EditorState.tabSize.of(EDITOR_TAB_SIZE),
         indentUnit.of(EDITOR_INDENT),
         keymap.of([
-          { key: "Tab", run: insertSpacesForTab },
-          { key: "Shift-Tab", run: deleteSpacesForShiftTab },
+          { key: "Tab", run: indentMore },
+          { key: "Shift-Tab", run: indentLess },
         ]),
         EditorView.contentAttributes.of({
           "aria-label": ariaLabel,
