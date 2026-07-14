@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getGoogleAuthUrl, login } from "@/features/auth/actions";
 import type { LoginResponseData } from "@/features/auth/types";
 import OneButtonModal from "@/components/common/OneButtonModal";
+import PasswordInput from "@/components/common/PasswordInput";
 
 // 구글 콜백 실패 시 BE 가 /auth/login?error=CODE 로 리다이렉트 → 코드별 안내 문구.
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
@@ -160,9 +161,8 @@ export default function LoginForm() {
             <label htmlFor="login-password" className="auth-label">
               비밀번호
             </label>
-            <input
+            <PasswordInput
               id="login-password"
-              type="password"
               aria-invalid={!!errorMsg && !password}
               aria-describedby={errorMsg ? "login-error" : undefined}
               className={`w-full auth-input ${

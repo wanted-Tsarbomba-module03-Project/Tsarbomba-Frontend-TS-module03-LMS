@@ -21,7 +21,7 @@ function CourseItem({ course }: CourseItemProps) {
       href={`/courses/${courseId}`}
     >
       {/* 강좌 썸네일 */}
-      <div className="relative h-48 w-full bg-bg-navbar">
+      <div className="relative h-48 w-full bg-bg-navbar md:h-36 lg:h-36">
         <Image
           src={resolvedThumbnailUrl || "/assets/img/bluebomb-Icon.svg"}
         alt={title || "강좌 이미지"}

@@ -136,14 +136,6 @@ function CategoryNavInner({
             </button>
           ))}
         </div>
-
-        <div className="shrink-0">
-          <select className="h-10.5 px-4 rounded-lg border border-[#e8e8e8] bg-white text-base font-normal text-[#1f2937] focus:outline-none focus:border-[#1a237e] transition-colors cursor-pointer box-border">
-            <option>전체 정렬</option>
-            <option>최신순</option>
-            <option>인기순</option>
-          </select>
-        </div>
       </div>
     </nav>
   );

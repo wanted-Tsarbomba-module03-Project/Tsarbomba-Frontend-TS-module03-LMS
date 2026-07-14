@@ -5,6 +5,7 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
+import ChatMarkdown from "@/components/common/ChatMarkdown";
 import { problemChatClasses } from "@/features/chat/styles";
 import { isUserMessage, resizeChatInput } from "@/features/chat/utils";
 
@@ -455,7 +456,11 @@ export default function ProblemChatPanel({
                     : problemChatClasses.assistantMessage
                 } ${message.error ? problemChatClasses.errorMessage : ""}`}
               >
-                {message.content}
+                {!isUserMessage(message) && !message.error ? (
+                  <ChatMarkdown content={message.content} />
+                ) : (
+                  message.content
+                )}
               </div>
             </div>
           );

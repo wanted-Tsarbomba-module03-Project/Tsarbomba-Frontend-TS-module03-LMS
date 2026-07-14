@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { OneButtonModal } from "@/components/common";
+import PasswordInput from "@/components/common/PasswordInput";
 import { changeMyPassword } from "../actions";
 import { PW_PLACEHOLDER, PW_REGEX, toUserMessage } from "../validation";
 import { fieldBase, fieldLabel } from "./styles";
@@ -71,9 +72,8 @@ export default function PasswordChangePanel({ email }: { email: string }) {
           <label htmlFor={newPwId} className={fieldLabel}>
             새 비밀번호 입력
           </label>
-          <input
+          <PasswordInput
             id={newPwId}
-            type="password"
             className={`${fieldBase} ${pwErr ? "border-text-red" : ""}`}
             value={newPw}
             onChange={(e) => {
@@ -94,9 +94,8 @@ export default function PasswordChangePanel({ email }: { email: string }) {
           <label htmlFor={newPwConfirmId} className={fieldLabel}>
             새 비밀번호 입력 확인
           </label>
-          <input
+          <PasswordInput
             id={newPwConfirmId}
-            type="password"
             className={`${fieldBase} ${pwMismatch ? "border-text-red" : ""}`}
             value={newPwConfirm}
             onChange={(e) => setNewPwConfirm(e.target.value)}

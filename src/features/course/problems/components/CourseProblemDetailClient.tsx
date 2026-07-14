@@ -122,6 +122,14 @@ function getInitialProblemState(problemSet: ProblemSetDetail, lpsId: string) {
   };
 }
 
+function getInitialLoadedExplanationIds(problemSet: ProblemSetDetail) {
+  return new Set(
+    problemSet.problems
+      .filter((problem) => Boolean(problem.explanation))
+      .map((problem) => problem.problemId),
+  );
+}
+
 export default function CourseProblemDetailClient({
   courseId,
   lectureProblemSetId,
@@ -141,7 +149,8 @@ export default function CourseProblemDetailClient({
     handlePanelResizeStart,
   } = useResizableProblemPanel();
 
-  const [problemSet] = useState<ProblemSetDetail>(initialProblemSet);
+  const [problemSet, setProblemSet] =
+    useState<ProblemSetDetail>(initialProblemSet);
   const [currentIndex, setCurrentIndex] = useState(initialState.currentIndex);
   const [code, setCode] = useState(initialState.code);
   const [userCodes, setUserCodes] = useState<string[]>(initialState.userCodes);
@@ -169,6 +178,10 @@ export default function CourseProblemDetailClient({
   const [explanationViewConfirmOpen, setExplanationViewConfirmOpen] =
     useState(false);
   const [isViewingExplanation, setIsViewingExplanation] = useState(false);
+  const [loadedExplanationProblemIds, setLoadedExplanationProblemIds] =
+    useState<Set<number>>(() =>
+      getInitialLoadedExplanationIds(initialProblemSet),
+    );
   // 마지막 문제까지 모두 정답 시 강의 완료 + 강좌 페이지 이동 안내.
   const [lectureCompleteModalOpen, setLectureCompleteModalOpen] =
     useState(false);
@@ -343,7 +356,15 @@ export default function CourseProblemDetailClient({
       tab === "solution" &&
       isCorrectLikeStatus(problemStates[currentIndex])
     ) {
-      setActiveTab("solution");
+      if (
+        currentProblem?.problemId &&
+        loadedExplanationProblemIds.has(currentProblem.problemId)
+      ) {
+        setActiveTab("solution");
+        return;
+      }
+
+      void handleExplanationViewConfirm({ showCompletionModal: false });
       return;
     }
 
@@ -363,7 +384,9 @@ export default function CourseProblemDetailClient({
     }
   };
 
-  const handleExplanationViewConfirm = async () => {
+  const handleExplanationViewConfirm = async ({
+    showCompletionModal = true,
+  }: { showCompletionModal?: boolean } = {}) => {
     if (!currentProblem?.problemId || isViewingExplanation) {
       return;
     }
@@ -376,6 +399,12 @@ export default function CourseProblemDetailClient({
       if (!result) {
         return;
       }
+
+      setLoadedExplanationProblemIds((prev) => {
+        const next = new Set(prev);
+        next.add(result.problemId);
+        return next;
+      });
 
       const currentProblemState = problemStates[currentIndex];
       const nextCurrentProblemState =
@@ -399,6 +428,19 @@ export default function CourseProblemDetailClient({
       });
 
       setProblemStates(nextProblemStates);
+      setProblemSet((prev) => ({
+        ...prev,
+        isCompleted: result.problemSetCompleted ?? prev.isCompleted,
+        problems: prev.problems.map((problem) =>
+          problem.problemId === result.problemId
+            ? {
+                ...problem,
+                explanation: result.explanation ?? problem.explanation,
+                status: nextCurrentProblemState,
+              }
+            : problem,
+        ),
+      }));
       setExecutionResult(null);
       setSubmissionResult({
         isCorrect: true,
@@ -419,7 +461,7 @@ export default function CourseProblemDetailClient({
         result.problemSetCompleted ??
         nextProblemStates.every((state) => isCorrectLikeStatus(state));
 
-      if (isCompleted) {
+      if (showCompletionModal && isCompleted) {
         setLectureCompleteModalOpen(true);
       }
     } catch (error) {
