@@ -183,7 +183,7 @@ export default function UserProblemListClient({
       {
         key: "title",
         label: PROBLEM_LIST_COLUMN_LABELS[1],
-        cellClassName: listCellClasses.twoLine,
+        cellClassName: listCellClasses.twoLineKeepAll,
       },
       {
         key: "description",
