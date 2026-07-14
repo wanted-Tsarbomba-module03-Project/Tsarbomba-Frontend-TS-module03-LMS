@@ -413,11 +413,15 @@ export default function YoutubeProgressPlayer({
     // 새로고침/탭 종료/백그라운드 전환 직전 동기 저장(keepalive) — 위치만 갱신.
     // 비동기 이탈 저장은 페이지가 먼저 파괴되면 유실돼 이어보기가 뒤로 가므로,
     // 이 flush 로 마지막 위치를 확실히 남긴다. (watchedDeltaSec: 0 → 완료 오판 방지)
-    const flushProgressOnHide = () => {
+    const flushProgress = (dying: boolean) => {
       const player = playerRef.current;
       if (!player || typeof player.getCurrentTime !== "function") return;
       // 완료 강의는 재진입 시 0 부터 재생하므로 위치 저장 불필요
       if (completedRef.current) return;
+      // 페이지가 살아있는 visibilitychange(hidden)에선 진행 중 저장과 겹쳐 위치가
+      // 역전되지 않도록 직렬화 가드(savingRef)를 확인·선점한다. pagehide 는 페이지가
+      // 파괴되며 진행 중이던 비-keepalive 요청이 취소되므로 가드 없이 항상 전송한다.
+      if (!dying && savingRef.current) return;
       const durationSec = Math.floor(player.getDuration());
       const currentPos = Math.floor(player.getCurrentTime());
       const lastPositionSec = Math.min(
@@ -425,6 +429,7 @@ export default function YoutubeProgressPlayer({
         Math.floor(lastSafePosRef.current),
       );
       if (lastPositionSec <= 0) return;
+      if (!dying) savingRef.current = true;
       void recordLectureProgress(
         lectureId,
         {
@@ -433,12 +438,19 @@ export default function YoutubeProgressPlayer({
           watchedDeltaSec: 0,
         },
         { keepalive: true },
-      );
+      )
+        .catch(() => {
+          /* 이탈/전환 직전 저장 실패는 다음 저장에서 복구 (rejection 무시) */
+        })
+        .finally(() => {
+          if (!dying) savingRef.current = false;
+        });
     };
+    const handlePageHide = () => flushProgress(true);
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") flushProgressOnHide();
+      if (document.visibilityState === "hidden") flushProgress(false);
     };
-    window.addEventListener("pagehide", flushProgressOnHide);
+    window.addEventListener("pagehide", handlePageHide);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     void init();
@@ -446,7 +458,7 @@ export default function YoutubeProgressPlayer({
     return () => {
       mounted = false;
       playingRef.current = false;
-      window.removeEventListener("pagehide", flushProgressOnHide);
+      window.removeEventListener("pagehide", handlePageHide);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       stopWatchTimer();
       stopAutoSaveTimer();

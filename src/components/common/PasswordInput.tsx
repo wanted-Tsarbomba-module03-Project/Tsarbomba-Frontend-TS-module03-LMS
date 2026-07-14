@@ -27,7 +27,6 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
         />
         <button
           type="button"
-          tabIndex={-1}
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? "비밀번호 숨기기" : "비밀번호 표시"}
           aria-pressed={visible}
