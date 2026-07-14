@@ -1,3 +1,8 @@
+import type {
+  ChatMessage as BaseChatMessage,
+  FeedbackRating as BaseFeedbackRating,
+} from "@/features/chat/types";
+
 export type ProblemDifficulty = "EASY" | "MEDIUM" | "HARD";
 
 export type ProblemCategoryId = string;
@@ -315,12 +320,9 @@ export interface ExplanationViewResult {
   pointGranted?: boolean;
 }
 
-export interface ChatMessage {
-  role: "USER" | "ASSISTANT";
-  content: string;
-  error?: boolean;
-  clientId?: string;
-}
+export type FeedbackRating = BaseFeedbackRating;
+
+export type ChatMessage = BaseChatMessage;
 
 export interface ChatResponse {
   answer: string;

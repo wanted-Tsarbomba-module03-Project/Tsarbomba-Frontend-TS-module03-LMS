@@ -18,6 +18,7 @@ import { createChatTypewriter } from "@/features/chat/typewriter";
 import { handleClientError } from "@/lib/errorHandling";
 
 import {
+  deleteProblemMessageFeedback,
   getProblemDatasetDownloadUrl,
   getProblemChatMessages,
   getProblemChatRooms,
@@ -26,6 +27,7 @@ import {
   getProblemSetDetailWithProgress,
   getProblemSetResult,
   runProblem,
+  setProblemMessageFeedback,
   submitProblem,
   updateProblemChatRoomTitle,
   viewProblemExplanation,
@@ -34,6 +36,7 @@ import { problemDetailClasses } from "../problemDetailStyles";
 import type {
   ChatMessage,
   ExecutionResult,
+  FeedbackRating,
   ProblemHint,
   ProblemResultTab,
   RecommendedCourse,
@@ -322,6 +325,9 @@ export default function UserProblemDetailClient({
   const [chatRoomTitleConfirmOpen, setChatRoomTitleConfirmOpen] = useState(false);
   const [chatRoomTitleUpdating, setChatRoomTitleUpdating] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [feedbackPendingIds, setFeedbackPendingIds] = useState<Set<number>>(
+    () => new Set(),
+  );
   const [chatInput, setChatInput] = useState("");
   const [chatSending, setChatSending] = useState(false);
   const [showChatResponsePending, setShowChatResponsePending] = useState(false);
@@ -1095,6 +1101,71 @@ export default function UserProblemDetailClient({
     }
   };
 
+  const refreshProblemChatMessages = useCallback(async (roomId: number) => {
+    const refreshed = await getProblemChatMessages(roomId);
+    if (activeChatRoomIdRef.current === roomId) {
+      setChatMessages(refreshed);
+    }
+  }, []);
+
+  const handleChatFeedback = useCallback(
+    async (messageId: number, nextRating: FeedbackRating) => {
+      if (feedbackPendingIds.has(messageId)) {
+        return false;
+      }
+
+      const currentFeedback =
+        chatMessages.find((message) => message.messageId === messageId)
+          ?.feedback ?? null;
+      const isCancel = currentFeedback === nextRating;
+
+      setFeedbackPendingIds((prev) => new Set(prev).add(messageId));
+
+      setChatMessages((prev) =>
+        prev.map((message) =>
+          message.messageId === messageId
+            ? { ...message, feedback: isCancel ? null : nextRating }
+            : message,
+        ),
+      );
+
+      try {
+        if (isCancel) {
+          await deleteProblemMessageFeedback(messageId);
+        } else {
+          await setProblemMessageFeedback(messageId, nextRating);
+        }
+
+        return true;
+      } catch (error) {
+        setChatMessages((prev) =>
+          prev.map((message) =>
+            message.messageId === messageId
+              ? { ...message, feedback: currentFeedback }
+              : message,
+          ),
+        );
+        handleClientError(error, {
+          router,
+          fallbackTitle: "평가 저장 실패",
+          fallbackMessage:
+            "메시지 평가를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+          showModal: (title, content) =>
+            setAlertModal({ open: true, title, content }),
+        });
+
+        return false;
+      } finally {
+        setFeedbackPendingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(messageId);
+          return next;
+        });
+      }
+    },
+    [chatMessages, feedbackPendingIds, router],
+  );
+
   const sendChat = async () => {
     if (
       !chatInput.trim() ||
@@ -1201,6 +1272,22 @@ export default function UserProblemDetailClient({
             setShowChatResponsePending(false);
             typewriter.stop();
             setLastAssistant(error.message, true);
+          },
+          onDone: () => {
+            const refreshRoomId = newRoomId ?? activeChatRoomIdRef.current;
+
+            if (refreshRoomId) {
+              void refreshProblemChatMessages(refreshRoomId).catch((error) => {
+                handleClientError(error, {
+                  router,
+                  fallbackTitle: "메시지 동기화 실패",
+                  fallbackMessage:
+                    "최신 메시지를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+                  showModal: (title, content) =>
+                    setAlertModal({ open: true, title, content }),
+                });
+              });
+            }
           },
         },
         controller.signal,
@@ -1372,6 +1459,7 @@ export default function UserProblemDetailClient({
               chatInput={chatInput}
               chatMessages={chatMessages}
               chatOpen={chatOpen}
+              feedbackPendingIds={feedbackPendingIds}
               chatRoomTitleEditing={chatRoomTitleEditing}
               chatRoomTitleInput={chatRoomTitleInput}
               chatRoomTitle={chatRoomTitle}
@@ -1383,6 +1471,7 @@ export default function UserProblemDetailClient({
               onChatRoomTitleEdit={startChatRoomTitleEdit}
               onChatRoomTitleSubmit={requestChatRoomTitleUpdate}
               onClose={() => setChatOpen(false)}
+              onFeedback={handleChatFeedback}
               onSendChat={sendChat}
             />
           )}
