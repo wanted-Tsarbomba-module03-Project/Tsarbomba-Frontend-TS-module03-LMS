@@ -562,6 +562,21 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
 
     try {
       await deleteChatRoom(activeRoomId);
+      chatStreamAbortRef.current?.abort();
+      chatStreamAbortRef.current = null;
+      activeRoomIdRef.current = undefined;
+      skipNextRoomLoadRef.current = null;
+      setCurrentRoomId(undefined);
+      setMessages([]);
+      setMessagesLoading(false);
+      setInputValue("");
+      setSending(false);
+      setShowResponsePending(false);
+      setFeedbackPendingIds(new Set());
+      setChatTitle(DEFAULT_CHAT_TITLE);
+      setTitleInputValue("");
+      setEditingTitle(false);
+      setLinkedProblemState(null);
       window.dispatchEvent(new Event("chatRoomUpdated"));
       setDeleteModalOpen(false);
       router.replace("/chat");
