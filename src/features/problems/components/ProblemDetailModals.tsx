@@ -71,7 +71,9 @@ export default function ProblemDetailModals({
       />
       <OneButtonModal
         isOpen={problemCompleteModalOpen}
-        modalContent="모든 문제 풀이를 완료했습니다. 확인을 누르면 문제풀이 목록으로 이동합니다."
+        modalContent={
+          "모든 문제 풀이를 완료했습니다.\n확인을 누르면 문제풀이 목록으로 이동합니다."
+        }
         modalTitle="축하합니다!"
         onClose={onProblemCompleteConfirm}
       />
@@ -102,7 +104,7 @@ export default function ProblemDetailModals({
         cancelDisabled={chatRoomTitleUpdating}
         confirmDisabled={chatRoomTitleUpdating || !chatRoomTitleInput.trim()}
         isOpen={chatRoomTitleConfirmOpen}
-        modalContent={`채팅방 이름을 "${chatRoomTitleInput.trim()}"(으)로 변경합니다.`}
+        modalContent={`채팅방 이름을\n"${chatRoomTitleInput.trim()}"(으)로 변경합니다.`}
         modalTitle="채팅방 이름을 수정하시겠습니까?"
         onClose={onChatRoomTitleConfirmClose}
         onConfirm={onChatRoomTitleConfirm}

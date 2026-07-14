@@ -10,6 +10,7 @@ import {
   TwoButtonModal,
   WarningModal,
 } from "@/components/common";
+import ChatMarkdown from "@/components/common/ChatMarkdown";
 import { getProblemSetDetail } from "@/features/problems/actions";
 import { handleClientError } from "@/lib/errorHandling";
 
@@ -655,7 +656,11 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
                       : chatClasses.assistantMessage
                   } ${message.error ? chatClasses.errorMessage : ""}`}
                 >
-                  {message.content}
+                  {message.role === "ASSISTANT" && !message.error ? (
+                    <ChatMarkdown content={message.content} />
+                  ) : (
+                    message.content
+                  )}
                 </div>
               </div>
             );
