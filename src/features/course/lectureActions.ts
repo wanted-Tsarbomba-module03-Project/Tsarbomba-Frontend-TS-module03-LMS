@@ -67,10 +67,16 @@ export interface LectureProgressPayload {
 export const recordLectureProgress = async (
   lectureId: number | string,
   body: LectureProgressPayload,
+  // keepalive: 새로고침/탭 종료 직전에도 요청이 완료되도록 (이탈 저장 유실 방지)
+  options?: { keepalive?: boolean },
 ): Promise<void> => {
   await request(
     `/api/v1/lectures/${lectureId}/progress`,
-    { method: "PATCH", body: JSON.stringify(body) },
+    {
+      method: "PATCH",
+      body: JSON.stringify(body),
+      keepalive: options?.keepalive,
+    },
     "강의 진행률 저장에 실패했습니다.",
   );
 };
