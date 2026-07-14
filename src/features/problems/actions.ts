@@ -14,6 +14,7 @@ import type {
   ChatRoomTitleUpdate,
   ExecutionResult,
   ExplanationViewResult,
+  FeedbackRating,
   ProblemHint,
   ProblemInfo,
   ProblemCodeSubmission,
@@ -779,6 +780,37 @@ export async function sendProblemChatMessage(
     {
       method: "POST",
       body: JSON.stringify({ userMessage }),
+    },
+  );
+
+  return result.data;
+}
+
+export async function setProblemMessageFeedback(
+  messageId: number,
+  rating: FeedbackRating,
+) {
+  const result = await requestJson<{
+    messageId: number;
+    rating: FeedbackRating;
+  }>(
+    `/api/v1/chat/messages/${messageId}/feedback`,
+    "평가를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    {
+      method: "PUT",
+      body: JSON.stringify({ rating }),
+    },
+  );
+
+  return result.data;
+}
+
+export async function deleteProblemMessageFeedback(messageId: number) {
+  const result = await requestJson<unknown>(
+    `/api/v1/chat/messages/${messageId}/feedback`,
+    "평가를 취소하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    {
+      method: "DELETE",
     },
   );
 

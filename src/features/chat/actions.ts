@@ -4,6 +4,7 @@ import type {
   ChatResponse,
   ChatRoom,
   ChatRoomTitleUpdate,
+  FeedbackRating,
 } from "./types";
 
 export async function getChatRooms(signal?: AbortSignal) {
@@ -52,6 +53,37 @@ export async function sendChatMessage(roomId: string, userMessage: string) {
     {
       method: "POST",
       body: JSON.stringify({ userMessage }),
+    },
+  );
+
+  return result.data;
+}
+
+export async function setMessageFeedback(
+  messageId: number,
+  rating: FeedbackRating,
+) {
+  const result = await requestChatJson<{
+    messageId: number;
+    rating: FeedbackRating;
+  }>(
+    `/api/v1/chat/messages/${messageId}/feedback`,
+    "평가를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    {
+      method: "PUT",
+      body: JSON.stringify({ rating }),
+    },
+  );
+
+  return result.data;
+}
+
+export async function deleteMessageFeedback(messageId: number) {
+  const result = await requestChatJson<unknown>(
+    `/api/v1/chat/messages/${messageId}/feedback`,
+    "평가를 취소하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    {
+      method: "DELETE",
     },
   );
 
