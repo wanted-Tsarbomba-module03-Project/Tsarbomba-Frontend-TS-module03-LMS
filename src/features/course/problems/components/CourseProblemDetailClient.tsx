@@ -1,7 +1,7 @@
 "use client";
 
-// 강좌(강의) 문제풀이 — 기존 문제풀이 UI를 그대로 재사용하되,
-// 데이터는 lecture-problem-sets 계열 URL(강좌 전용 actions)로 처리한다.
+// 강좌(강의) 문제?�????기존 문제?�??UI�?그�?�??�사?�하??
+// ?�이?�는 lecture-problem-sets 계열 URL(강좌 ?�용 actions)�?처리?�다.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -14,11 +14,11 @@ import { streamChat } from "@/features/chat/stream";
 import { createChatTypewriter } from "@/features/chat/typewriter";
 import { ApiClientError, handleClientError } from "@/lib/errorHandling";
 
-// 강좌 전용: 입장/제출
+// 강좌 ?�용: ?�장/?�출
 import { submitLectureProblem } from "../actions";
 import { getCourseLectures } from "@/features/course/lectureActions";
 import { getCourseProblemSets } from "@/features/course/problemSetActions";
-// 공통 재사용: 실행/힌트/챗봇
+// 공통 ?�사?? ?�행/?�트/챗봇
 import {
   deleteProblemMessageFeedback,
   getProblemDatasetDownloadUrl,
@@ -43,7 +43,7 @@ import ProblemCodeEditor from "@/features/problems/components/ProblemCodeEditor"
 import ProblemResultPanel from "@/features/problems/components/ProblemResultPanel";
 import { useResizableProblemPanel } from "@/features/problems/hooks/useResizableProblemPanel";
 
-// 스타일은 문제풀이 화면과 동일하게 공유하되, 클라이언트 컴포넌트 의존 없이 스타일 파일만 참조함
+// ?��??��? 문제?�???�면�??�일?�게 공유?�되, ?�라?�언??컴포?�트 ?�존 ?�이 ?��????�일�?참조??
 import { problemDetailClasses as styles } from "@/features/problems/problemDetailStyles";
 
 interface CourseProblemDetailClientProps {
@@ -59,7 +59,7 @@ function createClientMessageId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 }
 
-// 문제세트별 작성 중 답안 임시 저장 (localStorage). 정답 처리되면 클리어.
+// 문제?�트�??�성 �??�안 ?�시 ?�??(localStorage). ?�답 처리?�면 ?�리??
 const draftKey = (lpsId: string) => `lps-draft-${lpsId}`;
 
 const loadDrafts = (lpsId: string): Record<number, string> => {
@@ -77,7 +77,7 @@ const saveDrafts = (lpsId: string, drafts: Record<number, string>) => {
   try {
     localStorage.setItem(draftKey(lpsId), JSON.stringify(drafts));
   } catch {
-    /* quota 초과 등 무시 */
+    /* quota 초과 ??무시 */
   }
 };
 
@@ -102,7 +102,7 @@ function getInitialProblemState(problemSet: ProblemSetDetail, lpsId: string) {
   const initialIndex = getInitialProblemIndex(problemSet);
   const drafts = loadDrafts(lpsId);
 
-  // 저장된 작성 중 답안이 있으면 startCode 대신 그것을 사용 (정답 처리되면 클리어됨).
+  // ?�?�된 ?�성 �??�안???�으�?startCode ?�??그것???�용 (?�답 처리?�면 ?�리?�됨).
   const codeFor = (problem: {
     problemId?: number;
     startCode?: string | null;
@@ -151,7 +151,7 @@ export default function CourseProblemDetailClient({
     [initialProblemSet, lectureProblemSetId],
   );
 
-  // 좌우 패널 드래그 리사이즈 (문제풀이방과 동일)
+  // 좌우 ?�널 ?�래�?리사?�즈 (문제?�?�방�??�일)
   const {
     contentAreaRef,
     isPanelSplitAvailable,
@@ -192,7 +192,7 @@ export default function CourseProblemDetailClient({
     useState<Set<number>>(() =>
       getInitialLoadedExplanationIds(initialProblemSet),
     );
-  // 마지막 문제까지 모두 정답 시 강의 완료 + 강좌 페이지 이동 안내.
+  // 마�?�?문제까�? 모두 ?�답 ??강의 ?�료 + 강좌 ?�이지 ?�동 ?�내.
   const [lectureCompleteModalOpen, setLectureCompleteModalOpen] =
     useState(false);
   const [alertModal, setAlertModal] = useState({
@@ -212,7 +212,7 @@ export default function CourseProblemDetailClient({
   const [chatSending, setChatSending] = useState(false);
   const [showChatResponsePending, setShowChatResponsePending] = useState(false);
 
-  // 이 문제 풀이가 속한 강의 + 다음 강의 정보 — 나가기/완료 시 정확한 lecture 페이지로 이동.
+  // ??문제 ?�?��? ?�한 강의 + ?�음 강의 ?�보 ???��?�??�료 ???�확??lecture ?�이지�??�동.
   const [currentLectureId, setCurrentLectureId] = useState<number | null>(null);
   const [nextLectureId, setNextLectureId] = useState<number | null>(null);
 
@@ -243,13 +243,13 @@ export default function CourseProblemDetailClient({
           setNextLectureId(lectures[idx + 1].lectureId);
         }
       } catch {
-        /* 실패해도 fallback 라우팅 동작 */
+        /* ?�패?�도 fallback ?�우???�작 */
       }
     };
     void loadNavTargets();
   }, [courseId, lectureProblemSetId]);
 
-  // 나가기/완료 모달의 라우팅 — 알 수 있으면 lecture 페이지, 아니면 강좌 페이지로 fallback.
+  // ?��?�??�료 모달???�우?????????�으�?lecture ?�이지, ?�니�?강좌 ?�이지�?fallback.
   const exitToLecturePath = currentLectureId
     ? `/courses/${courseId}/lectures/${currentLectureId}`
     : `/courses/${courseId}`;
@@ -263,11 +263,11 @@ export default function CourseProblemDetailClient({
     problemStates[currentIndex],
   );
 
-  // 데이터셋(CSV) 다운로드 — 문제세트 단위 (문제풀이방과 동일). 서버가 서명 URL 발급.
+  // ?�이?�셋(CSV) ?�운로드 ??문제?�트 ?�위 (문제?�?�방�??�일). ?�버가 ?�명 URL 발급.
   const handleDatasetDownload = async () => {
     if (isDatasetDownloading) return;
-    // 데이터셋은 문제세트 단위 — problemSetId(선택값) 없으면 정규화된 id 사용.
-    // lectureProblemSetId(강의-문제세트 연결 ID)로 fallback 하면 안 됨.
+    // ?�이?�셋?� 문제?�트 ?�위 ??problemSetId(?�택�? ?�으�??�규?�된 id ?�용.
+    // lectureProblemSetId(강의-문제?�트 ?�결 ID)�?fallback ?�면 ????
     const datasetKey = String(problemSet.problemSetId ?? problemSet.id);
     setIsDatasetDownloading(true);
     try {
@@ -275,8 +275,8 @@ export default function CourseProblemDetailClient({
       if (!dataset?.downloadUrl) {
         setAlertModal({
           open: true,
-          title: "CSV 다운로드 실패",
-          content: "다운로드할 데이터셋을 찾지 못했습니다.",
+          title: "CSV ?�운로드 ?�패",
+          content: "?�운로드???�이?�셋??찾�? 못했?�니??",
         });
         return;
       }
@@ -284,8 +284,8 @@ export default function CourseProblemDetailClient({
       if (!["http:", "https:"].includes(parsedUrl.protocol)) {
         setAlertModal({
           open: true,
-          title: "CSV 다운로드 실패",
-          content: "유효하지 않은 다운로드 주소입니다.",
+          title: "CSV ?�운로드 ?�패",
+          content: "?�효?��? ?��? ?�운로드 주소?�니??",
         });
         return;
       }
@@ -297,11 +297,9 @@ export default function CourseProblemDetailClient({
       link.click();
       link.remove();
     } catch (error) {
-      handleClientError(error, {
-        router,
-        fallbackTitle: "CSV 다운로드 실패",
+        fallbackTitle: "CSV ?�운로드 ?�패",
         fallbackMessage:
-          "CSV 다운로드 URL을 발급받지 못했습니다. 잠시 후 다시 시도해 주세요.",
+          "CSV ?�운로드 URL??발급받�? 못했?�니?? ?�시 ???�시 ?�도??주세??",
         showModal: (title, content) =>
           setAlertModal({ open: true, title, content }),
       });
@@ -351,7 +349,7 @@ export default function CourseProblemDetailClient({
   const handleCodeChange = (nextCode: string) => {
     setCode(nextCode);
     setUserCodes((prev) => updateArrayItem(prev, currentIndex, nextCode));
-    // 작성 중 답안 localStorage 에 저장 — 페이지 이탈 후 재진입 시 복원.
+    // ?�성 �??�안 localStorage ???�?????�이지 ?�탈 ???�진????복원.
     const problemId = currentProblem?.problemId;
     if (problemId != null) {
       const drafts = loadDrafts(lectureProblemSetId);
@@ -366,139 +364,6 @@ export default function CourseProblemDetailClient({
       setHints((prev) => updateArrayItem(prev, index, hintList));
       return hintList;
     } catch (error) {
-      handleClientError(error, {
-        router,
-        fallbackTitle: "힌트 조회 실패",
-        fallbackMessage:
-          "힌트를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        showModal: (title, content) =>
-          setAlertModal({ open: true, title, content }),
-      });
-      return [];
-    }
-  };
-
-  const handleTabChange = (tab: ProblemResultTab) => {
-    if (
-      tab === "solution" &&
-      isCorrectLikeStatus(problemStates[currentIndex])
-    ) {
-      if (
-        currentProblem?.problemId &&
-        loadedExplanationProblemIds.has(currentProblem.problemId)
-      ) {
-        setActiveTab("solution");
-        return;
-      }
-
-      void handleExplanationViewConfirm({ showCompletionModal: false });
-      return;
-    }
-
-    if (tab === "solution" && !solutionEnabled[currentIndex]) {
-      setExplanationViewConfirmOpen(true);
-      return;
-    }
-
-    setActiveTab(tab);
-
-    if (
-      tab === "hint" &&
-      currentProblem?.problemId &&
-      !hints[currentIndex]?.length
-    ) {
-      void fetchHints(currentProblem.problemId, currentIndex);
-    }
-  };
-
-  const handleExplanationViewConfirm = async ({
-    showCompletionModal = true,
-  }: { showCompletionModal?: boolean } = {}) => {
-    if (!currentProblem?.problemId || isViewingExplanation) {
-      return;
-    }
-
-    setIsViewingExplanation(true);
-
-    try {
-      const result = await viewProblemExplanation(currentProblem.problemId);
-
-      if (!result) {
-        return;
-      }
-
-      setLoadedExplanationProblemIds((prev) => {
-        const next = new Set(prev);
-        next.add(result.problemId);
-        return next;
-      });
-
-      const currentProblemState = problemStates[currentIndex];
-      const nextCurrentProblemState =
-        currentProblemState === "CORRECT" ? "CORRECT" : "EXPLANATION_VIEWED";
-      const nextProblemStates = problemStates.map((state, index) => {
-        const problemId = problemSet.problems[index]?.problemId;
-
-        if (index === currentIndex) {
-          return nextCurrentProblemState;
-        }
-
-        if (
-          result.nextProblemId &&
-          problemId === result.nextProblemId &&
-          state === "LOCKED"
-        ) {
-          return "UNSOLVED";
-        }
-
-        return state;
-      });
-
-      setProblemStates(nextProblemStates);
-      setProblemSet((prev) => ({
-        ...prev,
-        isCompleted: result.problemSetCompleted ?? prev.isCompleted,
-        problems: prev.problems.map((problem) =>
-          problem.problemId === result.problemId
-            ? {
-                ...problem,
-                explanation: result.explanation ?? problem.explanation,
-                status: nextCurrentProblemState,
-              }
-            : problem,
-        ),
-      }));
-      setExecutionResult(null);
-      setSubmissionResult({
-        isCorrect: true,
-        explanation: result.explanation ?? currentProblem.explanation,
-        nextProblemId: result.nextProblemId ?? undefined,
-      });
-      setHintEnabled((prev) => updateArrayItem(prev, currentIndex, true));
-      setSolutionEnabled((prev) => updateArrayItem(prev, currentIndex, true));
-
-      if (!hints[currentIndex]?.length) {
-        await fetchHints(currentProblem.problemId, currentIndex);
-      }
-
-      setExplanationViewConfirmOpen(false);
-      setActiveTab("solution");
-
-      const isCompleted =
-        result.problemSetCompleted ??
-        nextProblemStates.every((state) => isCorrectLikeStatus(state));
-
-      if (showCompletionModal && isCompleted) {
-        setLectureCompleteModalOpen(true);
-      }
-    } catch (error) {
-      handleClientError(error, {
-        router,
-        fallbackTitle: "해설 조회 실패",
-        fallbackMessage: "해설을 조회하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        showModal: (title, content) =>
-          setAlertModal({ open: true, title, content }),
-      });
     } finally {
       setIsViewingExplanation(false);
     }
@@ -518,14 +383,6 @@ export default function CourseProblemDetailClient({
       setExecutionResult(result);
       setActiveTab("result");
     } catch (error) {
-      handleClientError(error, {
-        router,
-        fallbackTitle: "코드 실행 실패",
-        fallbackMessage:
-          "코드를 실행하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        showModal: (title, content) =>
-          setAlertModal({ open: true, title, content }),
-      });
     } finally {
       setIsRunning(false);
     }
@@ -542,7 +399,7 @@ export default function CourseProblemDetailClient({
 
     setIsSubmitting(true);
     try {
-      // 강좌 전용 제출 URL 사용
+      // 강좌 ?�용 ?�출 URL ?�용
       const result = await submitLectureProblem(
         lectureProblemSetId,
         currentProblem.problemId,
@@ -554,7 +411,7 @@ export default function CourseProblemDetailClient({
       setActiveTab("result");
 
       if (result.isCorrect) {
-        // 정답 처리된 문제의 draft 는 더 이상 보관할 필요 없음.
+        // ?�답 처리??문제??draft ?????�상 보�????�요 ?�음.
         const solvedProblemId = currentProblem.problemId;
         if (solvedProblemId != null) {
           const drafts = loadDrafts(lectureProblemSetId);
@@ -582,7 +439,7 @@ export default function CourseProblemDetailClient({
           await fetchHints(currentProblem.problemId, currentIndex);
         }
 
-        // 모든 문제 정답이면 강의 완료 모달로, 아니면 일반 정답 모달.
+        // 모든 문제 ?�답?�면 강의 ?�료 모달�? ?�니�??�반 ?�답 모달.
         const allCorrect = updatedStates.every((state) =>
           isCorrectLikeStatus(state),
         );
@@ -605,8 +462,8 @@ export default function CourseProblemDetailClient({
         window.setTimeout(() => setShowHintToast(false), 2000);
       }
     } catch (error) {
-      // 이미 완료한 문제세트 재제출(LRN-009) — 에러가 아니라 완료로 보고 다음 강의로 안내
-      // BE 오류 계약(ApiClientError)일 때만 처리해 임의 Error 로 실제 실패가 숨겨지지 않게 함
+      // ?��? ?�료??문제?�트 ?�제�?LRN-009) ???�러가 ?�니???�료�?보고 ?�음 강의�??�내
+      // BE ?�류 계약(ApiClientError)???�만 처리???�의 Error �??�제 ?�패가 ?�겨지지 ?�게 ??
       if (
         error instanceof ApiClientError &&
         (error.code === "LRN-009" || /already completed/i.test(error.message))
@@ -614,14 +471,6 @@ export default function CourseProblemDetailClient({
         setLectureCompleteModalOpen(true);
         return;
       }
-      handleClientError(error, {
-        router,
-        fallbackTitle: "답안 제출 실패",
-        fallbackMessage:
-          "답안을 제출하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        showModal: (title, content) =>
-          setAlertModal({ open: true, title, content }),
-      });
     } finally {
       setIsSubmitting(false);
     }
@@ -671,154 +520,6 @@ export default function CourseProblemDetailClient({
               : message,
           ),
         );
-        handleClientError(error, {
-          router,
-          fallbackTitle: "평가 저장 실패",
-          fallbackMessage:
-            "메시지 평가를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-          showModal: (title, content) =>
-            setAlertModal({ open: true, title, content }),
-        });
-
-        return false;
-      } finally {
-        setFeedbackPendingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(messageId);
-          return next;
-        });
-      }
-    },
-    [chatMessages, feedbackPendingIds, router],
-  );
-
-  const sendChat = async () => {
-    if (
-      !chatInput.trim() ||
-      chatSending ||
-      !problemSet.id ||
-      !currentProblem?.problemId
-    ) {
-      return;
-    }
-
-    const userMessage = chatInput;
-    const targetRoomId = chatRoomId;
-    const targetProblemId = currentProblem.problemId;
-    const targetProblemSetId = problemSet.problemSetId ?? problemSet.id;
-    const controller = new AbortController();
-    let newRoomId: number | undefined;
-    let streamErrorReceived = false;
-    const userMessageId = createClientMessageId();
-    const assistantMessageId = createClientMessageId();
-
-    setChatMessages((prev) => [
-      ...prev,
-      { role: "USER", content: userMessage, clientId: userMessageId },
-      { role: "ASSISTANT", content: "", clientId: assistantMessageId },
-    ]);
-    setChatInput("");
-    setChatSending(true);
-    setShowChatResponsePending(true);
-    chatStreamAbortRef.current?.abort();
-    chatStreamAbortRef.current = controller;
-
-    const setLastAssistant = (content: string, error = false) => {
-      setChatMessages((prev) => {
-        const next = [...prev];
-        const messageIndex = next.findIndex(
-          (message) => message.clientId === assistantMessageId,
-        );
-
-        if (messageIndex < 0) {
-          return prev;
-        }
-
-        next[messageIndex] = {
-          ...next[messageIndex],
-          content,
-          error,
-        };
-
-        return next;
-      });
-    };
-    const typewriter = createChatTypewriter({
-      onUpdate: setLastAssistant,
-      signal: controller.signal,
-    });
-
-    try {
-      const path = targetRoomId
-        ? `/api/v1/chat/${targetRoomId}/messages`
-        : "/api/v1/chat/messages";
-
-      await streamChat(
-        path,
-        targetRoomId
-          ? { userMessage }
-          : {
-              userMessage,
-              problemSetId: targetProblemSetId,
-              problemId: targetProblemId,
-            },
-        {
-          onToken: (token) => {
-            setShowChatResponsePending(false);
-            typewriter.push(token);
-          },
-          onRoom: (roomId) => {
-            newRoomId = roomId;
-            activeChatRoomIdRef.current = roomId;
-            setChatRoomId(roomId);
-          },
-          onError: (error) => {
-            streamErrorReceived = true;
-            setShowChatResponsePending(false);
-            typewriter.stop();
-            setLastAssistant(error.message, true);
-          },
-          onDone: () => {
-            const refreshRoomId = newRoomId ?? activeChatRoomIdRef.current;
-
-            if (refreshRoomId) {
-              void refreshProblemChatMessages(refreshRoomId).catch(() => {
-                // 동기화 실패 시 스트리밍으로 받은 응답을 유지한다.
-              });
-            }
-          },
-        },
-        controller.signal,
-      );
-
-      await typewriter.flush();
-
-      if (streamErrorReceived) {
-        return;
-      }
-
-      window.dispatchEvent(new Event("chatRoomUpdated"));
-    } catch (error) {
-      if (controller.signal.aborted) {
-        typewriter.stop();
-        return;
-      }
-
-      typewriter.stop();
-      setLastAssistant(
-        "AI 답변을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        true,
-      );
-      setShowChatResponsePending(false);
-
-      handleClientError(error, {
-        router,
-        fallbackTitle: "메시지 전송 실패",
-        fallbackMessage:
-          "메시지를 전송하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        showModal: (title, content) =>
-          setAlertModal({ open: true, title, content }),
-      });
     } finally {
       if (chatStreamAbortRef.current === controller) {
         chatStreamAbortRef.current = null;
@@ -862,7 +563,7 @@ export default function CourseProblemDetailClient({
 
           {!chatOpen && (
             <button
-              aria-label={mobileSidebarOpen ? "문제 목록 닫기" : "문제 목록 열기"}
+              aria-label={mobileSidebarOpen ? "문제 목록 ?�기" : "문제 목록 ?�기"}
               aria-pressed={mobileSidebarOpen}
               className={styles.mobileSidebarToggle}
               onClick={() => setMobileSidebarOpen((prev) => !prev)}
@@ -880,7 +581,7 @@ export default function CourseProblemDetailClient({
 
           {mobileSidebarOpen && !chatOpen && (
             <button
-              aria-label="문제 목록 닫기"
+              aria-label="문제 목록 ?�기"
               className={mobileSidebarClasses.backdrop}
               onClick={() => setMobileSidebarOpen(false)}
               type="button"
@@ -897,13 +598,13 @@ export default function CourseProblemDetailClient({
               style={isPanelSplitAvailable ? problemPanelStyle : undefined}
             >
               <div className={styles.problemHeader}>
-                <h2>문제 내용</h2>
+                <h2>문제 ?�용</h2>
                 <button
-                  aria-label="CSV 다운로드"
+                  aria-label="CSV ?�운로드"
                   className={styles.datasetDownloadButton}
                   disabled={isDatasetDownloading}
                   onClick={handleDatasetDownload}
-                  title="CSV 다운로드"
+                  title="CSV ?�운로드"
                   type="button"
                 >
                   <span
@@ -918,7 +619,7 @@ export default function CourseProblemDetailClient({
                     />
                   </span>
                   <span className={styles.datasetDownloadText}>
-                    CSV파일 다운로드
+                    CSV?�일 ?�운로드
                   </span>
                 </button>
               </div>
@@ -929,7 +630,7 @@ export default function CourseProblemDetailClient({
 
             {isPanelSplitAvailable && (
               <button
-                aria-label="문제 내용과 문제풀이 영역 너비 조절"
+                aria-label="문제 ?�용�?문제?�???�역 ?�비 조절"
                 aria-orientation="vertical"
                 className={styles.resizeHandle}
                 onPointerDown={handlePanelResizeStart}
@@ -946,10 +647,10 @@ export default function CourseProblemDetailClient({
               }`}
             >
               <div className={styles.editorSection}>
-                <h2>문제풀이 영역</h2>
+                <h2>문제?�???�역</h2>
                 {showHintToast && (
                   <div className={styles.hintToast}>
-                    힌트를 확인할 수 있습니다.
+                    ?�트�??�인?????�습?�다.
                   </div>
                 )}
                 <ProblemCodeEditor code={code} onCodeChange={handleCodeChange} />
@@ -961,7 +662,7 @@ export default function CourseProblemDetailClient({
                   onClick={() => handleTabChange("result")}
                   type="button"
                 >
-                  실행결과
+                  ?�행결과
                 </button>
                 <button
                   className={activeTab === "hint" ? styles.activeTab : ""}
@@ -969,7 +670,7 @@ export default function CourseProblemDetailClient({
                   onClick={() => handleTabChange("hint")}
                   type="button"
                 >
-                  힌트
+                  ?�트
                 </button>
                 <button
                   className={activeTab === "solution" ? styles.activeTab : ""}
@@ -977,7 +678,7 @@ export default function CourseProblemDetailClient({
                   onClick={() => handleTabChange("solution")}
                   type="button"
                 >
-                  {isViewingExplanation ? "해설 조회 중" : "해설보기"}
+                  {isViewingExplanation ? "?�설 조회 �? : "?�설보기"}
                 </button>
               </div>
 
@@ -996,7 +697,7 @@ export default function CourseProblemDetailClient({
                   onClick={handleSubmit}
                   type="button"
                 >
-                  {isSubmitting ? "제출 중" : "제출하기"}
+                  {isSubmitting ? "?�출 �? : "?�출?�기"}
                 </button>
               </div>
             </section>
@@ -1019,14 +720,14 @@ export default function CourseProblemDetailClient({
 
       <OneButtonModal
         isOpen={successModalOpen}
-        modalContent="해당 문제의 해설을 확인할 수 있습니다."
-        modalTitle="정답입니다"
+        modalContent="?�당 문제???�설???�인?????�습?�다."
+        modalTitle="?�답?�니??
         onClose={() => setSuccessModalOpen(false)}
       />
       <OneButtonModal
         isOpen={lectureCompleteModalOpen}
-        modalContent="모든 문제를 풀었습니다! 다음 강의로 이동합니다."
-        modalTitle="강의 완료"
+        modalContent="모든 문제�??�?�습?�다! ?�음 강의�??�동?�니??"
+        modalTitle="강의 ?�료"
         onClose={() => {
           setLectureCompleteModalOpen(false);
           router.push(nextLecturePath);
@@ -1034,8 +735,8 @@ export default function CourseProblemDetailClient({
       />
       <OneButtonModal
         isOpen={emptySubmitModalOpen}
-        modalContent="실행하거나 제출할 코드를 입력해 주세요."
-        modalTitle="내용을 입력해 주세요"
+        modalContent="?�행?�거???�출??코드�??�력??주세??"
+        modalTitle="?�용???�력??주세??
         onClose={() => setEmptySubmitModalOpen(false)}
       />
       <TwoButtonModal
@@ -1043,9 +744,9 @@ export default function CourseProblemDetailClient({
         confirmDisabled={isViewingExplanation}
         isOpen={explanationViewConfirmOpen}
         modalContent={
-          "해설을 확인하면\n이후 해설과 힌트를 확인할 수 있습니다."
+          "?�설???�인?�면\n?�후 ?�설�??�트�??�인?????�습?�다."
         }
-        modalTitle="해설을 확인하시겠습니까?"
+        modalTitle="?�설???�인?�시겠습?�까?"
         onClose={() => {
           if (!isViewingExplanation) {
             setExplanationViewConfirmOpen(false);
@@ -1061,8 +762,8 @@ export default function CourseProblemDetailClient({
       />
       <WarningModal
         isOpen={warningModalOpen}
-        modalContent="작성한 내용은 저장되지 않습니다."
-        modalTitle="정말 나가시겠습니까?"
+        modalContent="?�성???�용?� ?�?�되지 ?�습?�다."
+        modalTitle="?�말 ?��??�겠?�니�?"
         onClose={() => setWarningModalOpen(false)}
         onConfirm={() => router.push(exitToLecturePath)}
       />

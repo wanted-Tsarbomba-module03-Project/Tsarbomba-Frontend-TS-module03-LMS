@@ -494,8 +494,12 @@ export default function UserProblemDetailClient({
         }
 
         const [data, result] = await Promise.all([
-          getProblemSetDetailWithProgress(problemSetId, userId),
-          getProblemSetResult(problemSetId).catch(() => null),
+          getProblemSetDetailWithProgress(problemSetId, userId, {
+            cache: "no-store",
+          }),
+          getProblemSetResult(problemSetId, { cache: "no-store" }).catch(
+            () => null,
+          ),
         ]);
         const nextState = getInitialProblemState(data, result, targetProblemId);
 

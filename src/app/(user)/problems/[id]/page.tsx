@@ -9,6 +9,9 @@ import {
 import UserProblemDetailClient from "@/features/problems/components/UserProblemDetailClient";
 import { createBreadcrumbJsonLd, createPageMetadata } from "@/lib/seo";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 interface ProblemDetailPageProps {
   params: Promise<{
     id: string;

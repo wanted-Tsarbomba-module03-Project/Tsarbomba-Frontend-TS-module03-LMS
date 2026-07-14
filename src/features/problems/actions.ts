@@ -93,6 +93,13 @@ const CREATE_PATH = "/api/v1/problems/with-dataset";
 const DEFAULT_FALLBACK_MESSAGE =
   "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
 
+function withNoStore(init: NextRequestInit = {}): NextRequestInit {
+  return {
+    ...init,
+    cache: "no-store",
+  };
+}
+
 export function createProblemRequestBody(
   problemInfo: ProblemInfo,
   problems: SubProblem[],
@@ -539,9 +546,10 @@ export async function getProblemSetDetailWithProgress(
   userId: string,
   init: NextRequestInit = {},
 ) {
+  const noStoreInit = withNoStore(init);
   const [detail, progress] = await Promise.all([
-    getProblemSetDetail(problemSetId, userId, init),
-    getProblemSetProgress(problemSetId, userId, init).catch(() => null),
+    getProblemSetDetail(problemSetId, userId, noStoreInit),
+    getProblemSetProgress(problemSetId, userId, noStoreInit).catch(() => null),
   ]);
   const mergedDetail = mergeProblemSetProgress(detail, progress);
   const latestSubmissionEntries = await Promise.all(
@@ -552,7 +560,7 @@ export async function getProblemSetDetailWithProgress(
 
       const submission = await getCodeSubmission(
         problem.latestSubmissionId,
-        init,
+        noStoreInit,
       ).catch(() => null);
 
       return [problem.problemId, submission] as const;
@@ -882,12 +890,30 @@ function normalizeProblemSetDetail(response: unknown): ProblemSetDetail {
       startCode: problem.startCode ?? "",
       answer: problem.answer,
       explanation: problem.explanation ?? problem.solution,
-      status: (problem.status ?? "UNSOLVED") as ProblemStatus,
+      status: normalizeProblemStatus(problem.status),
       latestSubmissionId: problem.latestSubmissionId ?? null,
       submittedCode: problem.submittedCode ?? null,
       latestSubmission: problem.latestSubmission ?? null,
     })),
   };
+}
+
+function normalizeProblemStatus(status?: string | null): ProblemStatus {
+  if (status === "ANSWER_VIEWED") {
+    return "EXPLANATION_VIEWED";
+  }
+
+  if (
+    status === "LOCKED" ||
+    status === "UNSOLVED" ||
+    status === "CORRECT" ||
+    status === "WRONG" ||
+    status === "EXPLANATION_VIEWED"
+  ) {
+    return status;
+  }
+
+  return "UNSOLVED";
 }
 
 function mergeProblemSetProgress(
@@ -920,7 +946,7 @@ function mergeProblemSetProgress(
         ...problem,
         problemNumber: progressProblem.problemNumber ?? problem.problemNumber,
         title: progressProblem.title ?? problem.title,
-        status: progressProblem.status,
+        status: normalizeProblemStatus(progressProblem.status),
         latestSubmissionId:
           progressProblem.latestSubmissionId ?? problem.latestSubmissionId,
       };
