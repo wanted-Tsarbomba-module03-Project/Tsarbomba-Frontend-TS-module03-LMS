@@ -95,6 +95,8 @@ export default function RootLayout({
     /^\/courses\/[^/]+\/problems\//.test(pathname);
   const isChatPath =
     pathname.startsWith("/chat") || pathname.startsWith("/user/chat");
+  // 홈(강좌 목록): 카테고리바 바로 아래라 위쪽 여백을 줄인다.
+  const isHome = pathname === "/";
 
   const canAccessCurrentAdmin =
     canAccessAdmin && (!isMasterAdminPath || userRole === "MASTER");
@@ -194,7 +196,11 @@ export default function RootLayout({
           ) : (
             <main
               className={`flex-1 w-full max-w-300 mx-auto box-border ${
-                isProblemPath ? "py-0" : "px-5 py-10"
+                isProblemPath
+                  ? "py-0"
+                  : isHome
+                    ? "px-5 pt-3 pb-10"
+                    : "px-5 py-10"
               }`}
             >
               {children}

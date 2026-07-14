@@ -200,7 +200,7 @@ export default function OAuthCompleteForm() {
 
   return (
     <div className="w-full flex flex-col items-center justify-start bg-white px-4 pb-16">
-      <div className="w-100 p-[30px_40px] bg-white border border-border-light rounded-base text-center box-border shadow-sm">
+      <div className="w-full max-w-100 p-[24px_20px] sm:p-[30px_40px] bg-white border border-border-light rounded-base text-center box-border shadow-sm">
         <h1 className="text-2xl font-bold text-text-primary mb-2">
           추가 정보 입력
         </h1>

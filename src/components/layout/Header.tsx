@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -55,6 +55,22 @@ function HeaderInner({ isSimple }: HeaderProps) {
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  // 드롭다운 열려 있을 때 바깥을 누르면 닫기 (터치·마우스 모두 커버)
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(e.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [isDropdownOpen]);
 
   const syncHeaderStatus = () => {
     const status = getHeaderStatus();
@@ -261,12 +277,13 @@ function HeaderInner({ isSimple }: HeaderProps) {
             </button>
           ) : (
             /* 로그인 완료 후 프로필 영역 */
-            <div
-              className="relative w-fit"
-              onMouseEnter={() => setIsDropdownOpen(true)}
-              onMouseLeave={() => setIsDropdownOpen(false)}
-            >
+            <div className="relative w-fit" ref={profileRef}>
               <button
+                type="button"
+                aria-label={`${nickname} 메뉴`}
+                aria-expanded={isDropdownOpen}
+                aria-haspopup="menu"
+                onClick={() => setIsDropdownOpen((v) => !v)}
                 className={`group inline-flex items-center gap-1.5 rounded-md text-sm font-medium h-9 px-4 py-2 border transition-all cursor-pointer whitespace-nowrap ${
                   isDropdownOpen
                     ? "bg-[#1a237e] text-white border-[#1a237e]"
@@ -299,7 +316,10 @@ function HeaderInner({ isSimple }: HeaderProps) {
                     </>
                   )}
                 </div>
-                <span className="hidden sm:inline">{nickname}</span>
+                {/* 좁은 화면: 뱃지만 / 데스크톱(sm↑): 닉네임까지, 길면 말줄임 */}
+                <span className="hidden sm:block max-w-32 truncate">
+                  {nickname}
+                </span>
               </button>
 
               {/* 프로필 드롭다운 */}

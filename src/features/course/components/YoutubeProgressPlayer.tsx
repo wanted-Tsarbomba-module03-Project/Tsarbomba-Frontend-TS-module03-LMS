@@ -114,7 +114,7 @@ export default function YoutubeProgressPlayer({
   const endSaveTriggeredRef = useRef(false);
 
   // 재생 중 주기 저장 간격 — 위치 이어보기용 (완료는 영상 끝 도달 시에만)
-  const AUTO_SAVE_INTERVAL_MS = 10_000;
+  const AUTO_SAVE_INTERVAL_MS = 5_000;
   // 재생 중 BE 누적 상한 비율 — 완료 기준(90%) 직전까지만 보고해 끝까지 봐야 완료되게 함
   const PLAYING_CAP_RATIO = 0.89;
 
@@ -276,7 +276,25 @@ export default function YoutubeProgressPlayer({
       if (watchedDeltaSec <= 0) {
         watchedDeltaRef.current = 0;
         // 종료인데 이미 채워진 상태면 갱신만 트리거 (완료 모달 노출용)
-        if (ended) onProgressSavedRef.current?.();
+        if (ended) {
+          onProgressSavedRef.current?.();
+          return;
+        }
+        // 89% 누적 상한에 도달한 뒤에도 이어보기 위치는 계속 저장해야 한다. (원인 1)
+        // watchedDeltaSec: 0 은 BE 가 허용하며 watchedSec 를 늘리지 않으므로
+        // 완료(90%)로 오판되지 않는다. lastPositionSec 만 최신 위치로 갱신.
+        if (durationSec > 0) {
+          try {
+            await recordLectureProgress(lectureId, {
+              lastPositionSec,
+              durationSec,
+              watchedDeltaSec: 0,
+            });
+            onProgressSavedRef.current?.();
+          } catch {
+            /* 위치 저장 실패 → 다음 저장에서 재시도 */
+          }
+        }
         return;
       }
 
@@ -350,17 +368,33 @@ export default function YoutubeProgressPlayer({
               playingRef.current = false;
               stopWatchTimer();
               stopAutoSaveTimer();
-              // seek 로 끝까지 땡긴 경우(안전 지점이 끝보다 한참 뒤)는 완료 막고 되돌림 —
-              // 실제로 끝까지 본 경우(lastSafePos 가 끝 근처)만 100% 마감.
+              // 자연 종료 vs 재생바 드래그 종료 구분. (원인 2)
+              // lastSafePos 는 1초 타이머라 자연 종료 시 실제보다 1~2초 뒤처질 수 있어
+              // ENDED 시점의 실제 위치(endedPos)도 함께 본다. 단 endedPos 는 드래그로
+              // 끝까지 간 경우에도 끝값이므로, "안전 지점과 3초 이내로 가까울 때만" 인정 →
+              // 부정 완료(안 본 구간 건너뛰고 끝으로 드래그)는 여전히 차단.
               const endedPlayer = playerRef.current;
               const endedDuration = endedPlayer?.getDuration() ?? 0;
+              const endedPos = Math.floor(endedPlayer?.getCurrentTime() ?? 0);
+              const watchedEnd = Math.max(
+                lastSafePosRef.current,
+                endedPos <= lastSafePosRef.current + 3 ? endedPos : 0,
+              );
+              // 실제 시청 끝 지점이 영상 끝(±3초)에 못 미치면 = 끝까지 안 봄 → 되돌림.
               if (
                 !completedRef.current &&
                 endedDuration > 0 &&
-                lastSafePosRef.current < endedDuration - 2
+                watchedEnd < endedDuration - 3
               ) {
                 endedPlayer?.seekTo(lastSafePosRef.current, true);
                 return;
+              }
+              // 자연 종료 → 안전 지점을 실제 종료 위치까지 끌어올리고 100% 마감.
+              if (endedDuration > 0) {
+                lastSafePosRef.current = Math.max(
+                  lastSafePosRef.current,
+                  watchedEnd,
+                );
               }
               void saveProgress(true); // 끝까지 봄 → 100% 강제 마감
               return;
@@ -376,11 +410,56 @@ export default function YoutubeProgressPlayer({
       });
     };
 
+    // 새로고침/탭 종료/백그라운드 전환 직전 동기 저장(keepalive) — 위치만 갱신.
+    // 비동기 이탈 저장은 페이지가 먼저 파괴되면 유실돼 이어보기가 뒤로 가므로,
+    // 이 flush 로 마지막 위치를 확실히 남긴다. (watchedDeltaSec: 0 → 완료 오판 방지)
+    const flushProgress = (dying: boolean) => {
+      const player = playerRef.current;
+      if (!player || typeof player.getCurrentTime !== "function") return;
+      // 완료 강의는 재진입 시 0 부터 재생하므로 위치 저장 불필요
+      if (completedRef.current) return;
+      // 페이지가 살아있는 visibilitychange(hidden)에선 진행 중 저장과 겹쳐 위치가
+      // 역전되지 않도록 직렬화 가드(savingRef)를 확인·선점한다. pagehide 는 페이지가
+      // 파괴되며 진행 중이던 비-keepalive 요청이 취소되므로 가드 없이 항상 전송한다.
+      if (!dying && savingRef.current) return;
+      const durationSec = Math.floor(player.getDuration());
+      const currentPos = Math.floor(player.getCurrentTime());
+      const lastPositionSec = Math.min(
+        currentPos,
+        Math.floor(lastSafePosRef.current),
+      );
+      if (lastPositionSec <= 0) return;
+      if (!dying) savingRef.current = true;
+      void recordLectureProgress(
+        lectureId,
+        {
+          lastPositionSec,
+          durationSec: durationSec > 0 ? durationSec : undefined,
+          watchedDeltaSec: 0,
+        },
+        { keepalive: true },
+      )
+        .catch(() => {
+          /* 이탈/전환 직전 저장 실패는 다음 저장에서 복구 (rejection 무시) */
+        })
+        .finally(() => {
+          if (!dying) savingRef.current = false;
+        });
+    };
+    const handlePageHide = () => flushProgress(true);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") flushProgress(false);
+    };
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     void init();
 
     return () => {
       mounted = false;
       playingRef.current = false;
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       stopWatchTimer();
       stopAutoSaveTimer();
       void saveProgress();
