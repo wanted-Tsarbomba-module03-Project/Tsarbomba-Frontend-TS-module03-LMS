@@ -2,7 +2,7 @@
 
 // 강좌(강의) 문제풀이 — 기존 문제풀이 UI를 그대로 재사용하되,
 // 데이터는 lecture-problem-sets 계열 URL(강좌 전용 actions)로 처리한다.
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -19,15 +19,19 @@ import { getCourseProblemSets } from "@/features/course/problemSetActions";
 // 공통 재사용: 실행/힌트/챗봇
 import {
   createProblemChatMessage,
+  deleteProblemMessageFeedback,
   getProblemDatasetDownloadUrl,
+  getProblemChatMessages,
   getProblemHints,
   runProblem,
   sendProblemChatMessage,
+  setProblemMessageFeedback,
   viewProblemExplanation,
 } from "@/features/problems/actions";
 import type {
   ChatMessage,
   ExecutionResult,
+  FeedbackRating,
   ProblemHint,
   ProblemResultTab,
   ProblemSetDetail,
@@ -600,6 +604,57 @@ export default function CourseProblemDetailClient({
     }
   };
 
+  const refreshProblemChatMessages = useCallback(async (roomId: number) => {
+    const refreshed = await getProblemChatMessages(roomId);
+    setChatMessages(refreshed);
+  }, []);
+
+  const handleChatFeedback = useCallback(
+    async (messageId: number, nextRating: FeedbackRating) => {
+      const currentFeedback =
+        chatMessages.find((message) => message.messageId === messageId)
+          ?.feedback ?? null;
+      const isCancel = currentFeedback === nextRating;
+
+      setChatMessages((prev) =>
+        prev.map((message) =>
+          message.messageId === messageId
+            ? { ...message, feedback: isCancel ? null : nextRating }
+            : message,
+        ),
+      );
+
+      try {
+        if (isCancel) {
+          await deleteProblemMessageFeedback(messageId);
+        } else {
+          await setProblemMessageFeedback(messageId, nextRating);
+        }
+
+        return true;
+      } catch (error) {
+        setChatMessages((prev) =>
+          prev.map((message) =>
+            message.messageId === messageId
+              ? { ...message, feedback: currentFeedback }
+              : message,
+          ),
+        );
+        handleClientError(error, {
+          router,
+          fallbackTitle: "평가 저장 실패",
+          fallbackMessage:
+            "메시지 평가를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+          showModal: (title, content) =>
+            setAlertModal({ open: true, title, content }),
+        });
+
+        return false;
+      }
+    },
+    [chatMessages, router],
+  );
+
   const sendChat = async () => {
     if (
       !chatInput.trim() ||
@@ -626,6 +681,7 @@ export default function CourseProblemDetailClient({
             problemSet.id,
             currentProblem.problemId,
           );
+      const nextRoomId = chatRoomId ?? response?.roomId ?? null;
 
       setChatMessages((prev) => [
         ...prev,
@@ -640,6 +696,14 @@ export default function CourseProblemDetailClient({
       }
 
       window.dispatchEvent(new Event("chatRoomUpdated"));
+
+      if (nextRoomId) {
+        try {
+          await refreshProblemChatMessages(nextRoomId);
+        } catch {
+          // 서버 메시지 동기화 실패 시에는 방금 받은 임시 응답을 유지한다.
+        }
+      }
     } catch {
       setChatMessages((prev) => [
         ...prev,
@@ -830,6 +894,7 @@ export default function CourseProblemDetailClient({
             chatSending={chatSending}
             onChatInputChange={setChatInput}
             onClose={() => setChatOpen(false)}
+            onFeedback={handleChatFeedback}
             onSendChat={sendChat}
           />
         </div>

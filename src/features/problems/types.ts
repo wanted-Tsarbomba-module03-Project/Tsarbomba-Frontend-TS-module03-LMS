@@ -315,9 +315,14 @@ export interface ExplanationViewResult {
   pointGranted?: boolean;
 }
 
+export type FeedbackRating = "UP" | "DOWN";
+
 export interface ChatMessage {
-  role: "USER" | "ASSISTANT";
+  messageId?: number;
+  role: "USER" | "ASSISTANT" | "AI";
   content: string;
+  createdAt?: string;
+  feedback?: FeedbackRating | null;
   error?: boolean;
   clientId?: string;
 }

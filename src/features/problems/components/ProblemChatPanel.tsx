@@ -5,11 +5,15 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
+import {
+  ChatCopyButton,
+  ChatFeedbackActions,
+} from "@/components/common/ChatMessageActions";
 import ChatMarkdown from "@/components/common/ChatMarkdown";
 import { problemChatClasses } from "@/features/chat/styles";
 import { isUserMessage, resizeChatInput } from "@/features/chat/utils";
 
-import type { ChatMessage } from "../types";
+import type { ChatMessage, FeedbackRating } from "../types";
 
 interface ProblemChatPanelProps {
   chatInput: string;
@@ -27,6 +31,10 @@ interface ProblemChatPanelProps {
   onChatRoomTitleEdit?: () => void;
   onChatRoomTitleSubmit?: () => void;
   onClose: () => void;
+  onFeedback?: (
+    messageId: number,
+    rating: FeedbackRating,
+  ) => boolean | Promise<boolean>;
   onSendChat: () => void;
 }
 
@@ -63,6 +71,7 @@ export default function ProblemChatPanel({
   onChatRoomTitleEdit,
   onChatRoomTitleSubmit,
   onClose,
+  onFeedback,
   onSendChat,
 }: ProblemChatPanelProps) {
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
@@ -79,6 +88,7 @@ export default function ProblemChatPanel({
   const dragPointerOffsetRef = useRef<DragPosition | null>(null);
   const dragListenersRef = useRef<DragListeners | null>(null);
   const [dragPosition, setDragPosition] = useState<DragPosition | null>(null);
+  const [chatToastMessage, setChatToastMessage] = useState("");
   const isChatDisabled = chatSending || !chatOpen;
 
   useEffect(() => {
@@ -335,6 +345,11 @@ export default function ProblemChatPanel({
     };
   }, [dragPosition]);
 
+  const showChatToast = useCallback((message: string) => {
+    setChatToastMessage(message);
+    window.setTimeout(() => setChatToastMessage(""), 1800);
+  }, []);
+
   return (
     <aside
       aria-hidden={!chatOpen}
@@ -440,27 +455,53 @@ export default function ProblemChatPanel({
             return null;
           }
 
+          const isUser = isUserMessage(message);
+          const isAssistant = !isUser && !message.error;
+
           return (
             <div
               className={`${problemChatClasses.chatMessageWrap} ${
-                isUserMessage(message)
+                isUser
                   ? problemChatClasses.userMessageWrap
                   : problemChatClasses.assistantMessageWrap
               }`}
               key={message.clientId ?? `${message.role}-${index}`}
             >
-              <div
-                className={`${problemChatClasses.chatMessage} ${
-                  isUserMessage(message)
-                    ? problemChatClasses.userMessage
-                    : problemChatClasses.assistantMessage
-                } ${message.error ? problemChatClasses.errorMessage : ""}`}
-              >
-                {!isUserMessage(message) && !message.error ? (
-                  <ChatMarkdown content={message.content} />
-                ) : (
-                  message.content
-                )}
+              <div className="group/message flex max-w-[94%] min-w-0 flex-col">
+                <div
+                  className={`${problemChatClasses.chatMessage} max-w-none! ${
+                    isUser
+                      ? problemChatClasses.userMessage
+                      : problemChatClasses.assistantMessage
+                  } ${message.error ? problemChatClasses.errorMessage : ""}`}
+                >
+                  {isAssistant ? (
+                    <ChatMarkdown content={message.content} />
+                  ) : (
+                    message.content
+                  )}
+                </div>
+                <div
+                  className={`mt-1.5 flex items-center gap-2 ${
+                    isAssistant ? "justify-start" : "justify-end"
+                  }`}
+                >
+                  {isAssistant ? (
+                    <ChatFeedbackActions
+                      feedback={message.feedback}
+                      messageId={message.messageId}
+                      onFeedback={onFeedback}
+                      onFeedbackComplete={showChatToast}
+                    />
+                  ) : (
+                    <span aria-hidden="true" />
+                  )}
+                  <ChatCopyButton
+                    content={message.content}
+                    className="opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100"
+                    onCopied={() => showChatToast("메시지를 복사했습니다.")}
+                  />
+                </div>
               </div>
             </div>
           );
@@ -488,6 +529,16 @@ export default function ProblemChatPanel({
         )}
         <div ref={scrollAnchorRef} />
       </div>
+
+      {chatToastMessage && (
+        <div
+          aria-live="polite"
+          className="absolute bottom-20 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-base bg-button-blue-bg px-[18px] py-3 text-body font-semibold text-text-white shadow-lg"
+          role="status"
+        >
+          {chatToastMessage}
+        </div>
+      )}
 
       <div className={problemChatClasses.chatInputWrap}>
         <textarea

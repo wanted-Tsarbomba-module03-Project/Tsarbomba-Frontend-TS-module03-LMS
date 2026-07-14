@@ -18,6 +18,7 @@ import { createChatTypewriter } from "@/features/chat/typewriter";
 import { handleClientError } from "@/lib/errorHandling";
 
 import {
+  deleteProblemMessageFeedback,
   getProblemDatasetDownloadUrl,
   getProblemChatMessages,
   getProblemChatRooms,
@@ -26,6 +27,7 @@ import {
   getProblemSetDetailWithProgress,
   getProblemSetResult,
   runProblem,
+  setProblemMessageFeedback,
   submitProblem,
   updateProblemChatRoomTitle,
   viewProblemExplanation,
@@ -34,6 +36,7 @@ import { problemDetailClasses } from "../problemDetailStyles";
 import type {
   ChatMessage,
   ExecutionResult,
+  FeedbackRating,
   ProblemHint,
   ProblemResultTab,
   RecommendedCourse,
@@ -1095,6 +1098,57 @@ export default function UserProblemDetailClient({
     }
   };
 
+  const refreshProblemChatMessages = useCallback(async (roomId: number) => {
+    const refreshed = await getProblemChatMessages(roomId);
+    setChatMessages(refreshed);
+  }, []);
+
+  const handleChatFeedback = useCallback(
+    async (messageId: number, nextRating: FeedbackRating) => {
+      const currentFeedback =
+        chatMessages.find((message) => message.messageId === messageId)
+          ?.feedback ?? null;
+      const isCancel = currentFeedback === nextRating;
+
+      setChatMessages((prev) =>
+        prev.map((message) =>
+          message.messageId === messageId
+            ? { ...message, feedback: isCancel ? null : nextRating }
+            : message,
+        ),
+      );
+
+      try {
+        if (isCancel) {
+          await deleteProblemMessageFeedback(messageId);
+        } else {
+          await setProblemMessageFeedback(messageId, nextRating);
+        }
+
+        return true;
+      } catch (error) {
+        setChatMessages((prev) =>
+          prev.map((message) =>
+            message.messageId === messageId
+              ? { ...message, feedback: currentFeedback }
+              : message,
+          ),
+        );
+        handleClientError(error, {
+          router,
+          fallbackTitle: "평가 저장 실패",
+          fallbackMessage:
+            "메시지 평가를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+          showModal: (title, content) =>
+            setAlertModal({ open: true, title, content }),
+        });
+
+        return false;
+      }
+    },
+    [chatMessages, router],
+  );
+
   const sendChat = async () => {
     if (
       !chatInput.trim() ||
@@ -1201,6 +1255,13 @@ export default function UserProblemDetailClient({
             setShowChatResponsePending(false);
             typewriter.stop();
             setLastAssistant(error.message, true);
+          },
+          onDone: () => {
+            const refreshRoomId = newRoomId ?? activeChatRoomIdRef.current;
+
+            if (refreshRoomId) {
+              void refreshProblemChatMessages(refreshRoomId);
+            }
           },
         },
         controller.signal,
@@ -1383,6 +1444,7 @@ export default function UserProblemDetailClient({
               onChatRoomTitleEdit={startChatRoomTitleEdit}
               onChatRoomTitleSubmit={requestChatRoomTitleUpdate}
               onClose={() => setChatOpen(false)}
+              onFeedback={handleChatFeedback}
               onSendChat={sendChat}
             />
           )}

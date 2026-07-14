@@ -10,20 +10,26 @@ import {
   TwoButtonModal,
   WarningModal,
 } from "@/components/common";
+import {
+  ChatCopyButton,
+  ChatFeedbackActions,
+} from "@/components/common/ChatMessageActions";
 import ChatMarkdown from "@/components/common/ChatMarkdown";
 import { getProblemSetDetail } from "@/features/problems/actions";
 import { handleClientError } from "@/lib/errorHandling";
 
 import {
   deleteChatRoom,
+  deleteMessageFeedback,
   getChatMessages,
   getChatRooms,
+  setMessageFeedback,
   updateChatRoomTitle,
 } from "../actions";
 import { streamChat } from "../stream";
 import { chatClasses } from "../styles";
 import { createChatTypewriter } from "../typewriter";
-import type { ChatMessage } from "../types";
+import type { ChatMessage, FeedbackRating } from "../types";
 import {
   createMessage,
   DEFAULT_CHAT_TITLE,
@@ -89,6 +95,7 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
   const [inputValue, setInputValue] = useState("");
   const [sending, setSending] = useState(false);
   const [showResponsePending, setShowResponsePending] = useState(false);
+  const [chatToastMessage, setChatToastMessage] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [updatingTitle, setUpdatingTitle] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -292,6 +299,59 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
     setMessages((prev) => [...prev, message]);
   }, []);
 
+  const showChatToast = useCallback((message: string) => {
+    setChatToastMessage(message);
+    window.setTimeout(() => setChatToastMessage(""), 1800);
+  }, []);
+
+  const refreshMessages = useCallback(async (roomId: string) => {
+    const refreshed = await getChatMessages(roomId);
+    setMessages(refreshed);
+  }, []);
+
+  const handleFeedback = useCallback(
+    async (messageId: number, nextRating: FeedbackRating) => {
+      const currentFeedback =
+        messages.find((message) => message.messageId === messageId)?.feedback ??
+        null;
+      const isCancel = currentFeedback === nextRating;
+
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.messageId === messageId
+            ? { ...message, feedback: isCancel ? null : nextRating }
+            : message,
+        ),
+      );
+
+      try {
+        if (isCancel) {
+          await deleteMessageFeedback(messageId);
+        } else {
+          await setMessageFeedback(messageId, nextRating);
+        }
+        return true;
+      } catch (error) {
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.messageId === messageId
+              ? { ...message, feedback: currentFeedback }
+              : message,
+          ),
+        );
+        handleClientError(error, {
+          router,
+          fallbackTitle: "평가 저장 실패",
+          fallbackMessage:
+            "메시지 평가를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+          showModal: (title, content) => setModal({ open: true, title, content }),
+        });
+        return false;
+      }
+    },
+    [messages, router],
+  );
+
   const sendMessage = useCallback(async () => {
     if (!inputValue.trim() || sending) {
       return;
@@ -356,6 +416,13 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
           },
           onRoom: (roomId) => {
             newRoomId = roomId;
+          },
+          onDone: () => {
+            const refreshRoomId = newRoomId ?? activeRoomIdRef.current;
+
+            if (refreshRoomId) {
+              void refreshMessages(String(refreshRoomId));
+            }
           },
           onError: (error) => {
             streamErrorReceived = true;
@@ -424,6 +491,7 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
     activeRoomId,
     appendMessage,
     inputValue,
+    refreshMessages,
     refreshChatRoomMeta,
     router,
     sending,
@@ -640,27 +708,53 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
               return null;
             }
 
+            const isUser = message.role === "USER";
+            const isAssistant = !isUser && !message.error;
+
             return (
               <div
                 className={`${chatClasses.messageWrapper} ${
-                  message.role === "USER"
+                  isUser
                     ? chatClasses.userWrapper
                     : chatClasses.assistantWrapper
                 }`}
                 key={message.clientId ?? `${message.role}-${index}`}
               >
-                <div
-                  className={`${chatClasses.message} ${
-                    message.role === "USER"
-                      ? chatClasses.userMessage
-                      : chatClasses.assistantMessage
-                  } ${message.error ? chatClasses.errorMessage : ""}`}
-                >
-                  {message.role === "ASSISTANT" && !message.error ? (
-                    <ChatMarkdown content={message.content} />
-                  ) : (
-                    message.content
-                  )}
+                <div className="group/message flex max-w-[78%] min-w-0 flex-col max-md:max-w-[94%]">
+                  <div
+                    className={`${chatClasses.message} max-w-none! ${
+                      isUser
+                        ? chatClasses.userMessage
+                        : chatClasses.assistantMessage
+                    } ${message.error ? chatClasses.errorMessage : ""}`}
+                  >
+                    {isAssistant ? (
+                      <ChatMarkdown content={message.content} />
+                    ) : (
+                      message.content
+                    )}
+                  </div>
+                  <div
+                    className={`mt-1.5 flex items-center gap-2 ${
+                      isAssistant ? "justify-start" : "justify-end"
+                    }`}
+                  >
+                    {isAssistant ? (
+                      <ChatFeedbackActions
+                        feedback={message.feedback}
+                        messageId={message.messageId}
+                        onFeedback={handleFeedback}
+                        onFeedbackComplete={showChatToast}
+                      />
+                    ) : (
+                      <span aria-hidden="true" />
+                    )}
+                    <ChatCopyButton
+                      content={message.content}
+                      className="opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100"
+                      onCopied={() => showChatToast("메시지를 복사했습니다.")}
+                    />
+                  </div>
                 </div>
               </div>
             );
@@ -688,6 +782,16 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
 
         <div ref={messagesEndRef} />
       </div>
+
+      {chatToastMessage && (
+        <div
+          aria-live="polite"
+          className="absolute bottom-24 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-base bg-button-blue-bg px-[18px] py-3 text-body font-semibold text-text-white shadow-lg"
+          role="status"
+        >
+          {chatToastMessage}
+        </div>
+      )}
 
       <div className={chatClasses.inputAreaBase}>
         <div className={chatClasses.inputRow}>
