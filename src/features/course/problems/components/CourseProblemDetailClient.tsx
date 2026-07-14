@@ -2,7 +2,7 @@
 
 // 강좌(강의) 문제풀이 — 기존 문제풀이 UI를 그대로 재사용하되,
 // 데이터는 lecture-problem-sets 계열 URL(강좌 전용 actions)로 처리한다.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -140,6 +140,7 @@ export default function CourseProblemDetailClient({
   initialProblemSet,
 }: CourseProblemDetailClientProps) {
   const router = useRouter();
+  const activeChatRoomIdRef = useRef<number | null>(null);
   const initialState = useMemo(
     () => getInitialProblemState(initialProblemSet, lectureProblemSetId),
     [initialProblemSet, lectureProblemSetId],
@@ -199,12 +200,19 @@ export default function CourseProblemDetailClient({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [chatRoomId, setChatRoomId] = useState<number | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [feedbackPendingIds, setFeedbackPendingIds] = useState<Set<number>>(
+    () => new Set(),
+  );
   const [chatInput, setChatInput] = useState("");
   const [chatSending, setChatSending] = useState(false);
 
   // 이 문제 풀이가 속한 강의 + 다음 강의 정보 — 나가기/완료 시 정확한 lecture 페이지로 이동.
   const [currentLectureId, setCurrentLectureId] = useState<number | null>(null);
   const [nextLectureId, setNextLectureId] = useState<number | null>(null);
+
+  useEffect(() => {
+    activeChatRoomIdRef.current = chatRoomId;
+  }, [chatRoomId]);
 
   useEffect(() => {
     const loadNavTargets = async () => {
@@ -606,15 +614,23 @@ export default function CourseProblemDetailClient({
 
   const refreshProblemChatMessages = useCallback(async (roomId: number) => {
     const refreshed = await getProblemChatMessages(roomId);
-    setChatMessages(refreshed);
+    if (activeChatRoomIdRef.current === roomId) {
+      setChatMessages(refreshed);
+    }
   }, []);
 
   const handleChatFeedback = useCallback(
     async (messageId: number, nextRating: FeedbackRating) => {
+      if (feedbackPendingIds.has(messageId)) {
+        return false;
+      }
+
       const currentFeedback =
         chatMessages.find((message) => message.messageId === messageId)
           ?.feedback ?? null;
       const isCancel = currentFeedback === nextRating;
+
+      setFeedbackPendingIds((prev) => new Set(prev).add(messageId));
 
       setChatMessages((prev) =>
         prev.map((message) =>
@@ -650,9 +666,15 @@ export default function CourseProblemDetailClient({
         });
 
         return false;
+      } finally {
+        setFeedbackPendingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(messageId);
+          return next;
+        });
       }
     },
-    [chatMessages, router],
+    [chatMessages, feedbackPendingIds, router],
   );
 
   const sendChat = async () => {
@@ -692,6 +714,7 @@ export default function CourseProblemDetailClient({
       ]);
 
       if (!chatRoomId && response?.roomId) {
+        activeChatRoomIdRef.current = response.roomId;
         setChatRoomId(response.roomId);
       }
 
@@ -891,6 +914,7 @@ export default function CourseProblemDetailClient({
             chatInput={chatInput}
             chatMessages={chatMessages}
             chatOpen={chatOpen}
+            feedbackPendingIds={feedbackPendingIds}
             chatSending={chatSending}
             onChatInputChange={setChatInput}
             onClose={() => setChatOpen(false)}

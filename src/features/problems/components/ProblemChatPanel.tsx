@@ -19,6 +19,7 @@ interface ProblemChatPanelProps {
   chatInput: string;
   chatMessages: ChatMessage[];
   chatOpen: boolean;
+  feedbackPendingIds?: Set<number>;
   chatRoomTitleEditing?: boolean;
   chatRoomTitleInput?: string;
   chatRoomTitle?: string | null;
@@ -59,6 +60,7 @@ export default function ProblemChatPanel({
   chatInput,
   chatMessages,
   chatOpen,
+  feedbackPendingIds,
   chatRoomTitleEditing = false,
   chatRoomTitleInput = "",
   chatRoomTitle,
@@ -87,6 +89,7 @@ export default function ProblemChatPanel({
   );
   const dragPointerOffsetRef = useRef<DragPosition | null>(null);
   const dragListenersRef = useRef<DragListeners | null>(null);
+  const chatToastTimerRef = useRef<number | null>(null);
   const [dragPosition, setDragPosition] = useState<DragPosition | null>(null);
   const [chatToastMessage, setChatToastMessage] = useState("");
   const isChatDisabled = chatSending || !chatOpen;
@@ -94,6 +97,14 @@ export default function ProblemChatPanel({
   useEffect(() => {
     resizeChatInput(chatInputRef.current);
   }, [chatInput]);
+
+  useEffect(() => {
+    return () => {
+      if (chatToastTimerRef.current) {
+        clearTimeout(chatToastTimerRef.current);
+      }
+    };
+  }, []);
 
   const getClampedDragPosition = useCallback(
     (clientX: number, clientY: number): DragPosition | null => {
@@ -346,8 +357,15 @@ export default function ProblemChatPanel({
   }, [dragPosition]);
 
   const showChatToast = useCallback((message: string) => {
+    if (chatToastTimerRef.current) {
+      clearTimeout(chatToastTimerRef.current);
+    }
+
     setChatToastMessage(message);
-    window.setTimeout(() => setChatToastMessage(""), 1800);
+    chatToastTimerRef.current = window.setTimeout(() => {
+      setChatToastMessage("");
+      chatToastTimerRef.current = null;
+    }, 1800);
   }, []);
 
   return (
@@ -488,6 +506,10 @@ export default function ProblemChatPanel({
                 >
                   {isAssistant ? (
                     <ChatFeedbackActions
+                      disabled={
+                        message.messageId != null &&
+                        feedbackPendingIds?.has(message.messageId)
+                      }
                       feedback={message.feedback}
                       messageId={message.messageId}
                       onFeedback={onFeedback}
@@ -499,6 +521,9 @@ export default function ProblemChatPanel({
                   <ChatCopyButton
                     content={message.content}
                     className="opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100"
+                    onCopyFailed={() =>
+                      showChatToast("메시지를 복사하지 못했습니다.")
+                    }
                     onCopied={() => showChatToast("메시지를 복사했습니다.")}
                   />
                 </div>

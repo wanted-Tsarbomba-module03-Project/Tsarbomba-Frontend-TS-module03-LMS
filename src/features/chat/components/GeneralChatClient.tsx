@@ -88,6 +88,7 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
   const chatStreamAbortRef = useRef<AbortController | null>(null);
   const skipNextRoomLoadRef = useRef<string | null>(null);
   const activeRoomIdRef = useRef<string | undefined>(roomId);
+  const chatToastTimerRef = useRef<number | null>(null);
 
   const [currentRoomId, setCurrentRoomId] = useState(roomId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -96,6 +97,9 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
   const [sending, setSending] = useState(false);
   const [showResponsePending, setShowResponsePending] = useState(false);
   const [chatToastMessage, setChatToastMessage] = useState("");
+  const [feedbackPendingIds, setFeedbackPendingIds] = useState<Set<number>>(
+    () => new Set(),
+  );
   const [deleting, setDeleting] = useState(false);
   const [updatingTitle, setUpdatingTitle] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -122,6 +126,14 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
   useEffect(() => {
     activeRoomIdRef.current = activeRoomId;
   }, [activeRoomId]);
+
+  useEffect(() => {
+    return () => {
+      if (chatToastTimerRef.current) {
+        clearTimeout(chatToastTimerRef.current);
+      }
+    };
+  }, []);
 
   const updateShouldFollowScroll = useCallback(() => {
     const container = messageContainerRef.current;
@@ -300,21 +312,40 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
   }, []);
 
   const showChatToast = useCallback((message: string) => {
+    if (chatToastTimerRef.current) {
+      clearTimeout(chatToastTimerRef.current);
+    }
+
     setChatToastMessage(message);
-    window.setTimeout(() => setChatToastMessage(""), 1800);
+    chatToastTimerRef.current = window.setTimeout(() => {
+      setChatToastMessage("");
+      chatToastTimerRef.current = null;
+    }, 1800);
   }, []);
 
-  const refreshMessages = useCallback(async (roomId: string) => {
-    const refreshed = await getChatMessages(roomId);
-    setMessages(refreshed);
-  }, []);
+  const refreshMessages = useCallback(
+    async (roomId: string, expectedActiveRoomId = roomId) => {
+      const refreshed = await getChatMessages(roomId);
+
+      if (activeRoomIdRef.current === expectedActiveRoomId) {
+        setMessages(refreshed);
+      }
+    },
+    [],
+  );
 
   const handleFeedback = useCallback(
     async (messageId: number, nextRating: FeedbackRating) => {
+      if (feedbackPendingIds.has(messageId)) {
+        return false;
+      }
+
       const currentFeedback =
         messages.find((message) => message.messageId === messageId)?.feedback ??
         null;
       const isCancel = currentFeedback === nextRating;
+
+      setFeedbackPendingIds((prev) => new Set(prev).add(messageId));
 
       setMessages((prev) =>
         prev.map((message) =>
@@ -347,9 +378,15 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
           showModal: (title, content) => setModal({ open: true, title, content }),
         });
         return false;
+      } finally {
+        setFeedbackPendingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(messageId);
+          return next;
+        });
       }
     },
-    [messages, router],
+    [feedbackPendingIds, messages, router],
   );
 
   const sendMessage = useCallback(async () => {
@@ -421,7 +458,19 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
             const refreshRoomId = newRoomId ?? activeRoomIdRef.current;
 
             if (refreshRoomId) {
-              void refreshMessages(String(refreshRoomId));
+              void refreshMessages(
+                String(refreshRoomId),
+                newRoomId ? roomIdAtRequestStart : String(refreshRoomId),
+              ).catch((error) => {
+                handleClientError(error, {
+                  router,
+                  fallbackTitle: "메시지 동기화 실패",
+                  fallbackMessage:
+                    "최신 메시지를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+                  showModal: (title, content) =>
+                    setModal({ open: true, title, content }),
+                });
+              });
             }
           },
           onError: (error) => {
@@ -741,6 +790,10 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
                   >
                     {isAssistant ? (
                       <ChatFeedbackActions
+                        disabled={
+                          message.messageId != null &&
+                          feedbackPendingIds.has(message.messageId)
+                        }
                         feedback={message.feedback}
                         messageId={message.messageId}
                         onFeedback={handleFeedback}
@@ -752,6 +805,9 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
                     <ChatCopyButton
                       content={message.content}
                       className="opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100"
+                      onCopyFailed={() =>
+                        showChatToast("메시지를 복사하지 못했습니다.")
+                      }
                       onCopied={() => showChatToast("메시지를 복사했습니다.")}
                     />
                   </div>

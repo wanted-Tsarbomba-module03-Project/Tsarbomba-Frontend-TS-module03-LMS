@@ -8,9 +8,11 @@ interface ChatCopyButtonProps {
   className?: string;
   content: string;
   onCopied?: () => void;
+  onCopyFailed?: () => void;
 }
 
 interface ChatFeedbackActionsProps {
+  disabled?: boolean;
   feedback?: ChatFeedbackRating | null;
   messageId?: number;
   onFeedback?: (
@@ -27,11 +29,11 @@ const activeFeedbackClass =
   "scale-105 border-[#1a237e]! bg-[#dbeafe]! shadow-[0_0_0_2px_rgba(26,35,126,0.28),0_4px_10px_rgba(26,35,126,0.18)]";
 
 async function copyMessage(content: string) {
-  if (!content) {
+  if (!content || !navigator.clipboard?.writeText) {
     return false;
   }
 
-  await navigator.clipboard?.writeText(content);
+  await navigator.clipboard.writeText(content);
   return true;
 }
 
@@ -39,6 +41,7 @@ export function ChatCopyButton({
   className = "",
   content,
   onCopied,
+  onCopyFailed,
 }: ChatCopyButtonProps) {
   return (
     <button
@@ -50,9 +53,14 @@ export function ChatCopyButton({
           .then((copied) => {
             if (copied) {
               onCopied?.();
+              return;
             }
+
+            onCopyFailed?.();
           })
-          .catch(() => undefined);
+          .catch(() => {
+            onCopyFailed?.();
+          });
       }}
       type="button"
     >
@@ -62,6 +70,7 @@ export function ChatCopyButton({
 }
 
 export function ChatFeedbackActions({
+  disabled = false,
   feedback,
   messageId,
   onFeedback,
@@ -99,6 +108,7 @@ export function ChatFeedbackActions({
         className={`${actionButtonClass} ${
           feedback === "UP" ? activeFeedbackClass : ""
         }`}
+        disabled={disabled}
         onClick={() => handleFeedbackClick("UP")}
         type="button"
       >
@@ -110,6 +120,7 @@ export function ChatFeedbackActions({
         className={`${actionButtonClass} ${
           feedback === "DOWN" ? activeFeedbackClass : ""
         }`}
+        disabled={disabled}
         onClick={() => handleFeedbackClick("DOWN")}
         type="button"
       >

@@ -325,6 +325,9 @@ export default function UserProblemDetailClient({
   const [chatRoomTitleConfirmOpen, setChatRoomTitleConfirmOpen] = useState(false);
   const [chatRoomTitleUpdating, setChatRoomTitleUpdating] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [feedbackPendingIds, setFeedbackPendingIds] = useState<Set<number>>(
+    () => new Set(),
+  );
   const [chatInput, setChatInput] = useState("");
   const [chatSending, setChatSending] = useState(false);
   const [showChatResponsePending, setShowChatResponsePending] = useState(false);
@@ -1100,15 +1103,23 @@ export default function UserProblemDetailClient({
 
   const refreshProblemChatMessages = useCallback(async (roomId: number) => {
     const refreshed = await getProblemChatMessages(roomId);
-    setChatMessages(refreshed);
+    if (activeChatRoomIdRef.current === roomId) {
+      setChatMessages(refreshed);
+    }
   }, []);
 
   const handleChatFeedback = useCallback(
     async (messageId: number, nextRating: FeedbackRating) => {
+      if (feedbackPendingIds.has(messageId)) {
+        return false;
+      }
+
       const currentFeedback =
         chatMessages.find((message) => message.messageId === messageId)
           ?.feedback ?? null;
       const isCancel = currentFeedback === nextRating;
+
+      setFeedbackPendingIds((prev) => new Set(prev).add(messageId));
 
       setChatMessages((prev) =>
         prev.map((message) =>
@@ -1144,9 +1155,15 @@ export default function UserProblemDetailClient({
         });
 
         return false;
+      } finally {
+        setFeedbackPendingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(messageId);
+          return next;
+        });
       }
     },
-    [chatMessages, router],
+    [chatMessages, feedbackPendingIds, router],
   );
 
   const sendChat = async () => {
@@ -1260,7 +1277,16 @@ export default function UserProblemDetailClient({
             const refreshRoomId = newRoomId ?? activeChatRoomIdRef.current;
 
             if (refreshRoomId) {
-              void refreshProblemChatMessages(refreshRoomId);
+              void refreshProblemChatMessages(refreshRoomId).catch((error) => {
+                handleClientError(error, {
+                  router,
+                  fallbackTitle: "메시지 동기화 실패",
+                  fallbackMessage:
+                    "최신 메시지를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+                  showModal: (title, content) =>
+                    setAlertModal({ open: true, title, content }),
+                });
+              });
             }
           },
         },
@@ -1433,6 +1459,7 @@ export default function UserProblemDetailClient({
               chatInput={chatInput}
               chatMessages={chatMessages}
               chatOpen={chatOpen}
+              feedbackPendingIds={feedbackPendingIds}
               chatRoomTitleEditing={chatRoomTitleEditing}
               chatRoomTitleInput={chatRoomTitleInput}
               chatRoomTitle={chatRoomTitle}
