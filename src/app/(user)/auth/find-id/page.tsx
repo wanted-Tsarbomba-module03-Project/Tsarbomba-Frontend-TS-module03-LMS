@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { findEmail } from "@/features/auth/actions";
+import { formatPhoneNumber } from "@/features/auth/formatPhone";
 
 const PHONE_REGEX = /^01[0-9]-\d{3,4}-\d{4}$/;
 
@@ -84,9 +85,12 @@ export default function FindIdPage() {
                   className="auth-input w-full"
                   placeholder="010-0000-0000"
                   value={phone}
+                  inputMode="numeric"
+                  maxLength={13}
                   onChange={(e) => {
-                    setPhone(e.target.value);
-                    if (e.target.value) setErrorMsg("");
+                    const formatted = formatPhoneNumber(e.target.value);
+                    setPhone(formatted);
+                    if (formatted) setErrorMsg("");
                   }}
                 />
               </div>

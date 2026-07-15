@@ -98,6 +98,25 @@ export default function RootLayout({
   // 홈(강좌 목록): 카테고리바 바로 아래라 위쪽 여백을 줄인다.
   const isHome = pathname === "/";
 
+  // 비로그인 접근 허용 경로 — 설명(홈 랜딩) + 인증/오류 페이지만 공개.
+  // 그 외(강좌 목록·상세, 강의, 문제, 마이페이지 등)는 로그인 필요.
+  const isPublicPath =
+    isHome ||
+    isAuthPath ||
+    pathname.startsWith("/oauth2") ||
+    pathname === "/error-page";
+
+  // 강좌/강의 경로는 페이지 자체 모달 가드(로그인·수강 안내)가 처리하므로
+  // 중앙 리다이렉트에서 제외한다 — 즉시 리다이렉트가 모달을 가로채지 않도록.
+  const isCourseFlowPath = pathname.startsWith("/courses");
+
+  // 비로그인 사용자는 공개 경로 외 접근 시 로그인 페이지로 유도.
+  // (hydration 완료(isMount) 후 localStorage 기준으로 판정 → SSR 오판·깜빡임 방지)
+  useEffect(() => {
+    if (!isMount || isLoggedIn || isPublicPath || isCourseFlowPath) return;
+    router.replace("/auth/login");
+  }, [isMount, isLoggedIn, isPublicPath, isCourseFlowPath, router]);
+
   const canAccessCurrentAdmin =
     canAccessAdmin && (!isMasterAdminPath || userRole === "MASTER");
   const showAdminAuthModal = isMount && isAdminPath && !canAccessCurrentAdmin;

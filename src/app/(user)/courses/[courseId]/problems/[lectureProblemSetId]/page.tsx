@@ -8,6 +8,10 @@ import ErrorPageView from "@/components/common/ErrorPageView";
 import { ApiClientError } from "@/lib/errorHandling";
 import type { ProblemSetDetail } from "@/features/problems/types";
 
+// 진행 상태(잠금 해제 등)가 매 진입마다 최신이어야 하므로 정적 캐시를 강제로 끈다.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 interface CourseProblemPageProps {
   params: Promise<{
     courseId: string;

@@ -33,11 +33,22 @@ export async function updateAdminProblemCategory(
   );
 }
 
+// 비활성화 — DELETE 는 즉시 삭제가 아니라 비활성 처리(3개월 뒤 실제 삭제)를 의미한다.
 export async function deleteAdminProblemCategory(categoryId: number) {
   return requestAdminOperation<AdminProblemCategory>(
     `${ADMIN_PROBLEM_CATEGORY_PATH}/${categoryId}`,
     {
       method: "DELETE",
+    },
+  );
+}
+
+// 활성화 — 비활성 상태의 카테고리를 다시 활성 상태로 되돌린다.
+export async function activateAdminProblemCategory(categoryId: number) {
+  return requestAdminOperation<AdminProblemCategory>(
+    `${ADMIN_PROBLEM_CATEGORY_PATH}/${categoryId}/activate`,
+    {
+      method: "PATCH",
     },
   );
 }

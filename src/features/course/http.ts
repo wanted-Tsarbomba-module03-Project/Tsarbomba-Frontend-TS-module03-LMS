@@ -1,3 +1,5 @@
+import { ApiClientError, type BackendErrorPayload } from "@/lib/errorHandling";
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 // 상대 경로면 BASE_URL을 붙이고, blob:/data:/절대 URL은 그대로 통과.
@@ -37,7 +39,18 @@ export async function request<T>(
   const parsed = text ? JSON.parse(text) : null;
 
   if (!response.ok) {
-    throw new Error(parsed?.message || fallbackMessage);
+    // status/code 를 실은 ApiClientError 로 던져 호출부에서 403/404 등을 구분 처리할 수 있게 함
+    // (plain Error 로 던지면 err.status 가 없어 잠김/삭제 분기가 전부 404 로 빠짐)
+    const payload = (parsed ?? {}) as BackendErrorPayload;
+    throw new ApiClientError(
+      {
+        ...payload,
+        status: payload.status ?? response.status,
+        message: payload.message ?? fallbackMessage,
+        path: payload.path ?? path,
+      },
+      fallbackMessage,
+    );
   }
 
   return (parsed?.data ?? parsed) as T;
