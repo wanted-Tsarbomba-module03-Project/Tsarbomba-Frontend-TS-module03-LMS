@@ -241,10 +241,11 @@ export default function CourseDetailClient({
       await enrollCourse(courseId);
       setShowEnrollConfirm(false);
       setIsEnrolled(true);
+      // 내 강의실로 보내지 않고 강좌 페이지에 그대로 둔다 — isEnrolled=true 로 바뀌어
+      // 아래 강의 목록을 바로 눌러 학습을 시작할 수 있다.
       setResultModal({
         title: "수강 신청 완료",
-        content: "신청이 완료되었습니다. 내 강의실에서 확인하세요.",
-        redirect: "/myclassroom",
+        content: "신청이 완료되었습니다.\n아래 강의 목록에서 바로 학습을 시작하세요.",
       });
     } catch (err: unknown) {
       const raw = err instanceof Error ? err.message : "";
