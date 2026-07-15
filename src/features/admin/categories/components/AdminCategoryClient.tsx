@@ -15,6 +15,7 @@ import {
 import { handleClientError } from "@/lib/errorHandling";
 
 import {
+  activateAdminProblemCategory,
   createAdminProblemCategory,
   deleteAdminProblemCategory,
   getAdminProblemCategories,
@@ -37,7 +38,8 @@ type EditConfirmState = {
   categoryName: string;
 } | null;
 
-type DeleteConfirmState = AdminProblemCategory | null;
+// 상태 토글(비활성화/활성화) 확인 대상. 대상 카테고리의 status 로 동작을 구분한다.
+type StatusConfirmState = AdminProblemCategory | null;
 
 function getStatusLabel(status: AdminProblemCategory["status"]) {
   return status === "ACTIVE" ? "활성" : "비활성";
@@ -83,7 +85,7 @@ export default function AdminCategoryClient() {
   );
   const [editName, setEditName] = useState("");
   const [editConfirm, setEditConfirm] = useState<EditConfirmState>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState>(null);
+  const [statusConfirm, setStatusConfirm] = useState<StatusConfirmState>(null);
   const [noticeModal, setNoticeModal] = useState<NoticeModalState>({
     isOpen: false,
     title: "",
@@ -131,6 +133,11 @@ export default function AdminCategoryClient() {
   }, [router]);
 
   const startEdit = (category: AdminProblemCategory) => {
+    // 비활성 카테고리는 수정할 수 없다.
+    if (category.status === "INACTIVE") {
+      return;
+    }
+
     setEditingCategoryId(category.categoryId);
     setEditName(category.categoryName);
   };
@@ -257,34 +264,47 @@ export default function AdminCategoryClient() {
     }
   };
 
-  const handleDeleteCategory = async () => {
-    if (!deleteConfirm || processing) {
+  const handleToggleStatus = async () => {
+    if (!statusConfirm || processing) {
       return;
     }
+
+    // ACTIVE → 비활성화(DELETE), INACTIVE → 활성화(PATCH /activate)
+    const isDeactivating = statusConfirm.status === "ACTIVE";
+    const nextStatus = isDeactivating ? "INACTIVE" : "ACTIVE";
 
     setProcessing(true);
 
     try {
-      const result = await deleteAdminProblemCategory(deleteConfirm.categoryId);
-      const deletedCategory = result.data ?? {
-        ...deleteConfirm,
-        status: "INACTIVE" as const,
+      const result = isDeactivating
+        ? await deleteAdminProblemCategory(statusConfirm.categoryId)
+        : await activateAdminProblemCategory(statusConfirm.categoryId);
+      const updatedCategory = result.data ?? {
+        ...statusConfirm,
+        status: nextStatus,
       };
 
-      setCategories((prev) => upsertCategory(prev, deletedCategory));
-      setDeleteConfirm(null);
+      setCategories((prev) => upsertCategory(prev, updatedCategory));
+      setStatusConfirm(null);
       setNoticeModal({
         isOpen: true,
-        title: "카테고리 삭제 완료",
-        content: "카테고리가 비활성 처리되었습니다.",
+        title: isDeactivating
+          ? "카테고리 비활성화 완료"
+          : "카테고리 활성화 완료",
+        content: isDeactivating
+          ? "카테고리가 비활성 처리되었습니다.\n비활성화된 카테고리는 3개월 뒤 삭제됩니다."
+          : "카테고리가 다시 활성화되었습니다.",
       });
     } catch (error) {
-      setDeleteConfirm(null);
+      setStatusConfirm(null);
       handleClientError(error, {
         router,
-        fallbackTitle: "카테고리 삭제 실패",
-        fallbackMessage:
-          "카테고리를 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        fallbackTitle: isDeactivating
+          ? "카테고리 비활성화 실패"
+          : "카테고리 활성화 실패",
+        fallbackMessage: isDeactivating
+          ? "카테고리를 비활성화하지 못했습니다. 잠시 후 다시 시도해 주세요."
+          : "카테고리를 활성화하지 못했습니다. 잠시 후 다시 시도해 주세요.",
         showModal: (title, content) =>
           setNoticeModal({ isOpen: true, title, content }),
       });
@@ -378,7 +398,7 @@ export default function AdminCategoryClient() {
           <div className={adminCategoryClasses.actionGroup}>
             <button
               className={adminCategoryClasses.editButton}
-              disabled={processing}
+              disabled={processing || category.status === "INACTIVE"}
               onClick={(event) => {
                 event.stopPropagation();
                 startEdit(category);
@@ -387,17 +407,31 @@ export default function AdminCategoryClient() {
             >
               수정
             </button>
-            <button
-              className={adminCategoryClasses.deleteButton}
-              disabled={processing || category.status === "INACTIVE"}
-              onClick={(event) => {
-                event.stopPropagation();
-                setDeleteConfirm(category);
-              }}
-              type="button"
-            >
-              삭제
-            </button>
+            {category.status === "ACTIVE" ? (
+              <button
+                className={adminCategoryClasses.deactivateButton}
+                disabled={processing}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setStatusConfirm(category);
+                }}
+                type="button"
+              >
+                비활성화
+              </button>
+            ) : (
+              <button
+                className={adminCategoryClasses.activateButton}
+                disabled={processing}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setStatusConfirm(category);
+                }}
+                type="button"
+              >
+                활성화
+              </button>
+            )}
           </div>
         );
       },
@@ -409,7 +443,12 @@ export default function AdminCategoryClient() {
     <>
       <section className={adminCategoryClasses.container}>
         <div className={adminCategoryClasses.header}>
-          <h1 className={adminCategoryClasses.title}>카테고리 관리</h1>
+          <div className={adminCategoryClasses.titleGroup}>
+            <h1 className={adminCategoryClasses.title}>카테고리 관리</h1>
+            <p className={adminCategoryClasses.description}>
+              비활성화된 카테고리는 3개월 뒤에 삭제됩니다.
+            </p>
+          </div>
           <button
             className={adminCategoryClasses.createButton}
             disabled={loading || processing}
@@ -477,19 +516,37 @@ export default function AdminCategoryClient() {
       <WarningModal
         cancelDisabled={processing}
         confirmDisabled={processing}
-        isOpen={Boolean(deleteConfirm)}
+        isOpen={statusConfirm?.status === "ACTIVE"}
         modalContent={
-          deleteConfirm
-            ? `"${deleteConfirm.categoryName}" 카테고리를 삭제합니다.`
+          statusConfirm
+            ? `"${statusConfirm.categoryName}" 카테고리를 비활성화합니다.\n비활성화된 카테고리는 3개월 뒤에 삭제됩니다.`
             : ""
         }
-        modalTitle="카테고리를 삭제하시겠습니까?"
+        modalTitle="카테고리를 비활성화하시겠습니까?"
         onClose={() => {
           if (!processing) {
-            setDeleteConfirm(null);
+            setStatusConfirm(null);
           }
         }}
-        onConfirm={handleDeleteCategory}
+        onConfirm={handleToggleStatus}
+      />
+
+      <TwoButtonModal
+        cancelDisabled={processing}
+        confirmDisabled={processing}
+        isOpen={statusConfirm?.status === "INACTIVE"}
+        modalContent={
+          statusConfirm
+            ? `"${statusConfirm.categoryName}" 카테고리를 다시 활성화합니다.`
+            : ""
+        }
+        modalTitle="카테고리를 활성화하시겠습니까?"
+        onClose={() => {
+          if (!processing) {
+            setStatusConfirm(null);
+          }
+        }}
+        onConfirm={handleToggleStatus}
       />
 
       <OneButtonModal
