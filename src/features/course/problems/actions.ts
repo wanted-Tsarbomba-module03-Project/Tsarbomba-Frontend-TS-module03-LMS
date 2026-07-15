@@ -1,5 +1,6 @@
 import { ApiClientError, type BackendErrorPayload } from "@/lib/errorHandling";
 import type {
+  ExplanationViewResult,
   ProblemSetDetail,
   ProblemSetDetailProblem,
   ProblemStatus,
@@ -173,6 +174,23 @@ export async function submitLectureProblem(
     },
   );
   return result.data ?? {};
+}
+
+// 강의 문제 해설 조회 — POST /api/v1/lecture-problem-sets/{lectureProblemSetId}/problems/{problemId}/explanation-view
+// 일반 문제풀이(/problems/{problemId}/explanation-view)와 달리 강의 진행상태(LectureProgress)를
+// 실제로 완료 처리한다. 응답 형태가 동일해 ExplanationViewResult 를 그대로 재사용한다.
+export async function viewLectureProblemExplanation(
+  lectureProblemSetId: string,
+  problemId: number,
+): Promise<ExplanationViewResult | null> {
+  const result = await requestJson<ExplanationViewResult>(
+    `/api/v1/lecture-problem-sets/${lectureProblemSetId}/problems/${problemId}/explanation-view`,
+    "해설을 조회하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    {
+      method: "POST",
+    },
+  );
+  return result.data ?? null;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────

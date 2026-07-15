@@ -14,8 +14,8 @@ import { streamChat } from "@/features/chat/stream";
 import { createChatTypewriter } from "@/features/chat/typewriter";
 import { ApiClientError, handleClientError } from "@/lib/errorHandling";
 
-// 강좌 전용: 입장/제출
-import { submitLectureProblem } from "../actions";
+// 강좌 전용: 입장/제출/해설조회 (해설조회는 LectureProgress 를 완료 처리하는 강의 전용 엔드포인트)
+import { submitLectureProblem, viewLectureProblemExplanation } from "../actions";
 import { getCourseLectures } from "@/features/course/lectureActions";
 import { getCourseProblemSets } from "@/features/course/problemSetActions";
 // 공통 재사용: 실행/힌트/챗봇
@@ -26,7 +26,6 @@ import {
   getProblemHints,
   runProblem,
   setProblemMessageFeedback,
-  viewProblemExplanation,
 } from "@/features/problems/actions";
 import type {
   ChatMessage,
@@ -421,7 +420,10 @@ export default function CourseProblemDetailClient({
     setIsViewingExplanation(true);
 
     try {
-      const result = await viewProblemExplanation(currentProblem.problemId);
+      const result = await viewLectureProblemExplanation(
+        lectureProblemSetId,
+        currentProblem.problemId,
+      );
 
       if (!result) {
         return;

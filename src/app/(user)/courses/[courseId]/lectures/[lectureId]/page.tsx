@@ -77,6 +77,7 @@ export default function LectureDetailPage() {
   const [lockedNavTarget, setLockedNavTarget] = useState<LectureSummary | null>(
     null,
   );
+  const [needLoginOpen, setNeedLoginOpen] = useState(false);
   const [notEnrolledOpen, setNotEnrolledOpen] = useState(false);
   const [deletedOpen, setDeletedOpen] = useState(false);
   const [lockedAccessOpen, setLockedAccessOpen] = useState(false);
@@ -166,6 +167,15 @@ export default function LectureDetailPage() {
       try {
         // 수강 여부 먼저 확인 — 강의 데이터 fetch 전에 가드 (운영자는 스킵)
         if (!isOperator) {
+          // 비로그인 사용자는 수강신청 화면에도 접근할 수 없으므로, 수강 확인보다
+          // 로그인 여부를 먼저 검증해 로그인 페이지로 유도한다.
+          const isLoggedIn =
+            typeof window !== "undefined" &&
+            !!localStorage.getItem("userNickname");
+          if (!isLoggedIn) {
+            setNeedLoginOpen(true);
+            return;
+          }
           const enrollments = await getMyEnrollments().catch(() => []);
           const enrolled = enrollments.some(
             (e) => String(e.courseId) === String(courseId),
@@ -185,7 +195,9 @@ export default function LectureDetailPage() {
             return null;
           }
           if (status === 403) {
-            router.replace(`/courses/${courseId}`);
+            // 앞 강의 미완료로 잠긴 강의(LCT-012) — 조용한 리다이렉트는 404 플래시를
+            // 유발하므로, 안내 모달을 띄우고 확인 시 강좌 페이지로 이동시킨다.
+            setLockedAccessOpen(true);
             return null;
           }
           throw err;
@@ -197,6 +209,17 @@ export default function LectureDetailPage() {
           getCourseProblemSets(courseId).catch(() => []),
           getLectureMaterials(lectureId).catch(() => []),
         ]);
+
+        // courseId ↔ lectureId 관계 검증 — 이 강의가 해당 과정의 목록에 없으면
+        // 다른 과정의 강의를 조합한 잘못된 URL (강의 목록과 재생 영상 불일치 방지).
+        const belongsToCourse = lectureList.some(
+          (l) => String(l.lectureId) === String(lectureId),
+        );
+        if (lectureList.length > 0 && !belongsToCourse) {
+          setDeletedOpen(true);
+          return;
+        }
+
         setLecture(lectureData);
         setLectures(lectureList);
         setProblemLinks(links);
@@ -315,6 +338,17 @@ export default function LectureDetailPage() {
   }
 
   // onClose 에서 state 를 false 로 되돌리면 lecture=null 인 상태로 잠시 ErrorPageView(404) 가 노출되므로, 모달은 그대로 두고 navigation 만
+  if (needLoginOpen) {
+    return (
+      <OneButtonModal
+        isOpen={true}
+        onClose={() => router.replace("/auth/login")}
+        modalTitle="로그인이 필요합니다"
+        modalContent={"로그인 후 이용할 수 있어요.\n로그인 페이지로 이동합니다."}
+      />
+    );
+  }
+
   if (notEnrolledOpen) {
     return (
       <OneButtonModal
