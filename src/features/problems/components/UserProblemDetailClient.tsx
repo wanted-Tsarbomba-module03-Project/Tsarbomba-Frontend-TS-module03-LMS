@@ -339,6 +339,7 @@ export default function UserProblemDetailClient({
   const contentAreaRef = useRef<HTMLElement | null>(null);
   const activeChatRoomIdRef = useRef<number | null>(null);
   const chatStreamAbortRef = useRef<AbortController | null>(null);
+  const appliedTargetProblemIdRef = useRef(targetProblemId);
 
   useEffect(() => {
     activeChatRoomIdRef.current = chatRoomId;
@@ -493,8 +494,12 @@ export default function UserProblemDetailClient({
         }
 
         const [data, result] = await Promise.all([
-          getProblemSetDetailWithProgress(problemSetId, userId),
-          getProblemSetResult(problemSetId).catch(() => null),
+          getProblemSetDetailWithProgress(problemSetId, userId, {
+            cache: "no-store",
+          }),
+          getProblemSetResult(problemSetId, { cache: "no-store" }).catch(
+            () => null,
+          ),
         ]);
         const nextState = getInitialProblemState(data, result, targetProblemId);
 
@@ -538,6 +543,12 @@ export default function UserProblemDetailClient({
   }, [initialUserId, problemSetId, router, targetProblemId, userId]);
 
   useEffect(() => {
+    if (appliedTargetProblemIdRef.current === targetProblemId) {
+      return;
+    }
+
+    appliedTargetProblemIdRef.current = targetProblemId;
+
     if (!targetProblemId) {
       return;
     }

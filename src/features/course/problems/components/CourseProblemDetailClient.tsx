@@ -10,6 +10,8 @@ import CategoryNav from "@/components/layout/CategoryNav";
 import Sidebar from "@/components/layout/Sidebar";
 import { mobileSidebarClasses } from "@/components/layout/mobileSidebarClasses";
 import { OneButtonModal, TwoButtonModal, WarningModal } from "@/components/common";
+import { streamChat } from "@/features/chat/stream";
+import { createChatTypewriter } from "@/features/chat/typewriter";
 import { ApiClientError, handleClientError } from "@/lib/errorHandling";
 
 // 강좌 전용: 입장/제출
@@ -18,13 +20,11 @@ import { getCourseLectures } from "@/features/course/lectureActions";
 import { getCourseProblemSets } from "@/features/course/problemSetActions";
 // 공통 재사용: 실행/힌트/챗봇
 import {
-  createProblemChatMessage,
   deleteProblemMessageFeedback,
   getProblemDatasetDownloadUrl,
   getProblemChatMessages,
   getProblemHints,
   runProblem,
-  sendProblemChatMessage,
   setProblemMessageFeedback,
   viewProblemExplanation,
 } from "@/features/problems/actions";
@@ -54,6 +54,10 @@ interface CourseProblemDetailClientProps {
 
 const updateArrayItem = <T,>(items: T[], index: number, value: T) =>
   items.map((item, itemIndex) => (itemIndex === index ? value : item));
+
+function createClientMessageId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+}
 
 // 문제세트별 작성 중 답안 임시 저장 (localStorage). 정답 처리되면 클리어.
 const draftKey = (lpsId: string) => `lps-draft-${lpsId}`;
@@ -141,6 +145,7 @@ export default function CourseProblemDetailClient({
 }: CourseProblemDetailClientProps) {
   const router = useRouter();
   const activeChatRoomIdRef = useRef<number | null>(null);
+  const chatStreamAbortRef = useRef<AbortController | null>(null);
   const initialState = useMemo(
     () => getInitialProblemState(initialProblemSet, lectureProblemSetId),
     [initialProblemSet, lectureProblemSetId],
@@ -205,6 +210,7 @@ export default function CourseProblemDetailClient({
   );
   const [chatInput, setChatInput] = useState("");
   const [chatSending, setChatSending] = useState(false);
+  const [showChatResponsePending, setShowChatResponsePending] = useState(false);
 
   // 이 문제 풀이가 속한 강의 + 다음 강의 정보 — 나가기/완료 시 정확한 lecture 페이지로 이동.
   const [currentLectureId, setCurrentLectureId] = useState<number | null>(null);
@@ -213,6 +219,12 @@ export default function CourseProblemDetailClient({
   useEffect(() => {
     activeChatRoomIdRef.current = chatRoomId;
   }, [chatRoomId]);
+
+  useEffect(() => {
+    return () => {
+      chatStreamAbortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     const loadNavTargets = async () => {
@@ -313,10 +325,13 @@ export default function CourseProblemDetailClient({
   };
 
   const resetChat = () => {
+    chatStreamAbortRef.current?.abort();
+    chatStreamAbortRef.current = null;
     setChatRoomId(null);
     setChatMessages([]);
     setChatInput("");
     setChatSending(false);
+    setShowChatResponsePending(false);
   };
 
   const moveProblem = (index: number) => {
@@ -688,56 +703,129 @@ export default function CourseProblemDetailClient({
     }
 
     const userMessage = chatInput;
+    const targetRoomId = chatRoomId;
+    const targetProblemId = currentProblem.problemId;
+    const targetProblemSetId = problemSet.problemSetId ?? problemSet.id;
+    const controller = new AbortController();
+    let newRoomId: number | undefined;
+    let streamErrorReceived = false;
+    let syncMessagesPromise: Promise<void> | null = null;
+    const userMessageId = createClientMessageId();
+    const assistantMessageId = createClientMessageId();
+
     setChatMessages((prev) => [
       ...prev,
-      { role: "USER", content: userMessage },
+      { role: "USER", content: userMessage, clientId: userMessageId },
+      { role: "ASSISTANT", content: "", clientId: assistantMessageId },
     ]);
     setChatInput("");
     setChatSending(true);
+    setShowChatResponsePending(true);
+    chatStreamAbortRef.current?.abort();
+    chatStreamAbortRef.current = controller;
+
+    const setLastAssistant = (content: string, error = false) => {
+      setChatMessages((prev) => {
+        const next = [...prev];
+        const messageIndex = next.findIndex(
+          (message) => message.clientId === assistantMessageId,
+        );
+
+        if (messageIndex < 0) {
+          return prev;
+        }
+
+        next[messageIndex] = {
+          ...next[messageIndex],
+          content,
+          error,
+        };
+
+        return next;
+      });
+    };
+    const typewriter = createChatTypewriter({
+      onUpdate: setLastAssistant,
+      signal: controller.signal,
+    });
 
     try {
-      const response = chatRoomId
-        ? await sendProblemChatMessage(chatRoomId, userMessage)
-        : await createProblemChatMessage(
-            userMessage,
-            problemSet.id,
-            currentProblem.problemId,
-          );
-      const nextRoomId = chatRoomId ?? response?.roomId ?? null;
+      const path = targetRoomId
+        ? `/api/v1/chat/${targetRoomId}/messages`
+        : "/api/v1/chat/messages";
 
-      setChatMessages((prev) => [
-        ...prev,
+      await streamChat(
+        path,
+        targetRoomId
+          ? { userMessage }
+          : {
+              userMessage,
+              problemSetId: targetProblemSetId,
+              problemId: targetProblemId,
+            },
         {
-          role: "ASSISTANT",
-          content: response?.answer ?? "답변을 받지 못했습니다.",
-        },
-      ]);
+          onToken: (token) => {
+            setShowChatResponsePending(false);
+            typewriter.push(token);
+          },
+          onRoom: (roomId) => {
+            newRoomId = roomId;
+            activeChatRoomIdRef.current = roomId;
+            setChatRoomId(roomId);
+          },
+          onError: (error) => {
+            streamErrorReceived = true;
+            setShowChatResponsePending(false);
+            typewriter.stop();
+            setLastAssistant(error.message, true);
+          },
+          onDone: () => {
+            const refreshRoomId = newRoomId ?? activeChatRoomIdRef.current;
 
-      if (!chatRoomId && response?.roomId) {
-        activeChatRoomIdRef.current = response.roomId;
-        setChatRoomId(response.roomId);
+            if (refreshRoomId) {
+              syncMessagesPromise = refreshProblemChatMessages(
+                refreshRoomId,
+              ).catch(() => {
+                // 동기화 실패 시 스트리밍으로 받은 응답을 유지한다.
+              });
+            }
+          },
+        },
+        controller.signal,
+      );
+
+      await typewriter.flush();
+      await syncMessagesPromise;
+
+      if (streamErrorReceived) {
+        return;
       }
 
       window.dispatchEvent(new Event("chatRoomUpdated"));
-
-      if (nextRoomId) {
-        try {
-          await refreshProblemChatMessages(nextRoomId);
-        } catch {
-          // 서버 메시지 동기화 실패 시에는 방금 받은 임시 응답을 유지한다.
-        }
-      }
     } catch {
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          role: "ASSISTANT",
-          content: "AI 답변을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
-          error: true,
-        },
-      ]);
+      if (controller.signal.aborted) {
+        typewriter.stop();
+        return;
+      }
+
+      typewriter.stop();
+      setLastAssistant(
+        "AI 답변을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        true,
+      );
+      setShowChatResponsePending(false);
+
     } finally {
-      setChatSending(false);
+      if (chatStreamAbortRef.current === controller) {
+        chatStreamAbortRef.current = null;
+      }
+
+      typewriter.stop();
+
+      if (!controller.signal.aborted) {
+        setChatSending(false);
+        setShowChatResponsePending(false);
+      }
     }
   };
 
@@ -916,6 +1004,7 @@ export default function CourseProblemDetailClient({
             chatOpen={chatOpen}
             feedbackPendingIds={feedbackPendingIds}
             chatSending={chatSending}
+            showChatSendingIndicator={showChatResponsePending}
             onChatInputChange={setChatInput}
             onClose={() => setChatOpen(false)}
             onFeedback={handleChatFeedback}
