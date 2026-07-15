@@ -7,6 +7,18 @@
   - 원인은 클라이언트 Router Cache(soft navigation 캐시)로, 해설 열람 이전 진행 상태의 RSC 페이로드가 재사용되던 것 — 해설 조회·정답 제출 성공 직후 `router.refresh()`로 Router Cache를 무효화해 재진입 시 최신 진행 상태를 반영하도록 수정
   - 강좌 문제풀이 페이지(`courses/[courseId]/problems/[lectureProblemSetId]`)에도 문제풀이 페이지와 동일하게 강제 동적 렌더링(`dynamic = "force-dynamic"`, `revalidate = 0`)을 적용해 SSR 정적 캐시 방지
 
+### 관리자 카테고리 관리 비활성화/활성화 전환
+
+- **Added**
+  - 비활성 카테고리를 다시 활성화하는 `PATCH /api/v1/admin/problem-categories/{categoryId}/activate` 연동 및 `activateAdminProblemCategory` 액션 추가
+  - 카테고리 관리 화면 제목 하단에 "비활성화된 카테고리는 3개월 뒤에 삭제됩니다." 안내 문구 추가
+- **Changed**
+  - 기존 `삭제` 버튼을 `비활성화` 버튼으로 변경 (기존과 동일하게 `DELETE /api/v1/admin/problem-categories/{categoryId}` 호출, 즉시 삭제가 아닌 비활성 처리)
+  - 카테고리가 비활성 상태일 때는 같은 자리에 `활성화` 버튼을 노출해 활성화 API로 상태를 되돌리도록 개선
+  - 비활성 상태의 카테고리는 `수정` 버튼을 비활성화해 이름 수정이 불가능하도록 제한
+  - 비활성화는 경고 모달, 활성화는 확인 모달로 각각 안내하고 완료 알림 문구를 동작별로 구분
+  - 활성화/비활성화 버튼 및 안내 문구 스타일을 임의 색상 대신 전역 CSS 디자인 토큰(`button-blue`, `text-red`, `text-muted`, `bg-gray-box`, `text-secondary`)으로 통일
+
 ---
 
 # v1.6.10 (2026-07-15)
