@@ -484,6 +484,11 @@ export default function CourseProblemDetailClient({
       setExplanationViewConfirmOpen(false);
       setActiveTab("solution");
 
+      // 해설 열람으로 다음 소문제가 잠금 해제된 상태를 서버가 persist 했으므로,
+      // 클라이언트 Router Cache(soft navigation 캐시)를 무효화해 재진입 시 stale 상태
+      // (사이드바 비활성)로 되돌아가지 않게 한다. 배포 환경에서만 재현되던 문제.
+      router.refresh();
+
       const isCompleted =
         result.problemSetCompleted ??
         nextProblemStates.every((state) => isCorrectLikeStatus(state));
@@ -581,6 +586,9 @@ export default function CourseProblemDetailClient({
         if (!hints[currentIndex]?.length) {
           await fetchHints(currentProblem.problemId, currentIndex);
         }
+
+        // 정답 처리로 다음 소문제가 잠금 해제됐으므로 재진입 stale 방지를 위해 Router Cache 무효화.
+        router.refresh();
 
         // 모든 문제 정답이면 강의 완료 모달로, 아니면 일반 정답 모달.
         const allCorrect = updatedStates.every((state) =>
