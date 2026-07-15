@@ -268,7 +268,10 @@ export default function CourseDetailClient({
     if (redirect) router.push(redirect);
   };
 
-  const needsDescToggle = !!course.description && course.description.length > 90;
+  // 설명이 일정 길이 이하이면 3줄 안에 들어가므로 더보기를 띄우지 않는다.
+  // (기존 90자는 3줄에 다 들어가는 설명에도 더보기가 떠서 임계값을 상향)
+  const needsDescToggle =
+    !!course.description && course.description.length > 120;
 
   return (
     <div className="min-h-screen bg-bg-main">
