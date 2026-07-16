@@ -25,6 +25,7 @@ import {
   getProblemHints,
   getProblemRecommendedCourses,
   getProblemSetDetailWithProgress,
+  getProblemSetProgress,
   getProblemSetResult,
   runProblem,
   setProblemMessageFeedback,
@@ -79,6 +80,23 @@ const isExplanationViewedStatus = (status?: ProblemStatus) =>
 
 const isCorrectLikeStatus = (status?: ProblemStatus) =>
   status === "CORRECT" || isExplanationViewedStatus(status);
+
+// 서버 진행상태 문자열을 알려진 ProblemStatus 로만 안전하게 변환 (미확인 값은 무시).
+const KNOWN_PROBLEM_STATUSES = new Set<ProblemStatus>([
+  "LOCKED",
+  "UNSOLVED",
+  "CORRECT",
+  "WRONG",
+  "EXPLANATION_VIEWED",
+]);
+const toKnownProblemStatus = (status?: string | null): ProblemStatus | null => {
+  if (!status) return null;
+  // BE 가 ANSWER_VIEWED 로 줄 수 있어 EXPLANATION_VIEWED 로 정규화
+  const normalized = status === "ANSWER_VIEWED" ? "EXPLANATION_VIEWED" : status;
+  return KNOWN_PROBLEM_STATUSES.has(normalized as ProblemStatus)
+    ? (normalized as ProblemStatus)
+    : null;
+};
 
 function getInitialProblemIndex(
   problemSet: ProblemSetDetail,
@@ -358,6 +376,66 @@ export default function UserProblemDetailClient({
 
     return searchParams.get("userId") ?? localStorage.getItem("userId") ?? "";
   }, [searchParams]);
+
+  // 재진입 시 SSR 스냅샷/캐시가 stale 하면 해설 열람·정답으로 잠금 해제됐던 소문제가 다시
+  // LOCKED 로 보이는 문제(배포 전용) → 마운트 직후 진행상태를 재조회해 LOCKED 인 소문제만 해제한다.
+  useEffect(() => {
+    // 다른 사용자 조회(관리자)는 아래 fetchProblemSet 이 전체 재조회하므로 중복 실행 방지
+    if (userId && userId !== initialUserId) {
+      return;
+    }
+
+    let cancelled = false;
+    const syncLockStatus = async () => {
+      try {
+        const progress = await getProblemSetProgress(problemSetId, userId, {
+          cache: "no-store",
+        });
+        if (cancelled || !progress?.problems?.length) return;
+
+        const statusById = new Map<number, ProblemStatus>();
+        progress.problems.forEach((p) => {
+          if (p.problemId == null) return;
+          const status = toKnownProblemStatus(p.status);
+          if (status) statusById.set(p.problemId, status);
+        });
+        const freshOf = (index: number) => {
+          const problemId = initialProblemSet.problems[index]?.problemId;
+          return problemId != null ? statusById.get(problemId) : undefined;
+        };
+
+        // 잠긴(LOCKED) 소문제만 서버 최신값으로 해제한다. 그 외 로컬 상태(정답/오답/해설열람,
+        // 동기화 요청 도중 LOCKED→UNSOLVED 로 바뀐 다음 문제 등)는 stale 응답이 덮어쓰지 않게 보존.
+        setProblemStates((prev) =>
+          prev.map((state, index) => {
+            if (state !== "LOCKED") return state;
+            const fresh = freshOf(index);
+            return fresh && fresh !== "LOCKED" ? fresh : state;
+          }),
+        );
+        setHintEnabled((prev) =>
+          prev.map((enabled, index) => {
+            const fresh = freshOf(index);
+            if (!fresh) return enabled;
+            return enabled || fresh === "WRONG" || isCorrectLikeStatus(fresh);
+          }),
+        );
+        setSolutionEnabled((prev) =>
+          prev.map((enabled, index) => {
+            const fresh = freshOf(index);
+            if (!fresh) return enabled;
+            return enabled || isCorrectLikeStatus(fresh);
+          }),
+        );
+      } catch {
+        /* 재조회 실패 시 SSR 초기 상태 유지 */
+      }
+    };
+    void syncLockStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [problemSetId, userId, initialUserId, initialProblemSet]);
 
   const currentProblem = problemSet.problems[currentIndex];
   const currentHints = hints[currentIndex] ?? [];
