@@ -25,6 +25,7 @@ import {
   getProblemHints,
   getProblemRecommendedCourses,
   getProblemSetDetailWithProgress,
+  getProblemSetProgress,
   getProblemSetResult,
   runProblem,
   setProblemMessageFeedback,
@@ -358,6 +359,72 @@ export default function UserProblemDetailClient({
 
     return searchParams.get("userId") ?? localStorage.getItem("userId") ?? "";
   }, [searchParams]);
+
+  // 재진입 시 SSR 스냅샷/캐시가 stale 하면 해설 열람·정답으로 잠금 해제됐던 소문제가 다시
+  // LOCKED 로 보이는 문제(배포 전용) → 마운트 직후 진행상태를 클라에서 재조회해 실제 서버
+  // 상태로 잠금만 갱신한다. (정답/해설 열람으로 확정된 로컬 상태는 강등하지 않음)
+  useEffect(() => {
+    // 다른 사용자 조회(관리자)는 아래 fetchProblemSet 이 전체 재조회하므로 중복 실행 방지
+    if (userId && userId !== initialUserId) {
+      return;
+    }
+
+    let cancelled = false;
+    const syncLockStatus = async () => {
+      try {
+        const progress = await getProblemSetProgress(problemSetId, userId, {
+          cache: "no-store",
+        });
+        if (cancelled || !progress?.problems?.length) return;
+
+        const statusById = new Map<number, ProblemStatus>();
+        progress.problems.forEach((p) => {
+          if (p.problemId == null || !p.status) return;
+          // BE 가 ANSWER_VIEWED 로 줄 수 있어 EXPLANATION_VIEWED 로 정규화
+          const status = (
+            (p.status as string) === "ANSWER_VIEWED"
+              ? "EXPLANATION_VIEWED"
+              : p.status
+          ) as ProblemStatus;
+          statusById.set(p.problemId, status);
+        });
+        const freshOf = (index: number) => {
+          const problemId = initialProblemSet.problems[index]?.problemId;
+          return problemId != null ? statusById.get(problemId) : undefined;
+        };
+
+        setProblemStates((prev) =>
+          prev.map((state, index) => {
+            const fresh = freshOf(index);
+            if (!fresh) return state;
+            // 로컬이 이미 정답/해설열람이면 유지 (progress 누락 시 강등 방지)
+            if (isCorrectLikeStatus(state)) return state;
+            return fresh;
+          }),
+        );
+        setHintEnabled((prev) =>
+          prev.map((enabled, index) => {
+            const fresh = freshOf(index);
+            if (!fresh) return enabled;
+            return enabled || fresh === "WRONG" || isCorrectLikeStatus(fresh);
+          }),
+        );
+        setSolutionEnabled((prev) =>
+          prev.map((enabled, index) => {
+            const fresh = freshOf(index);
+            if (!fresh) return enabled;
+            return enabled || isCorrectLikeStatus(fresh);
+          }),
+        );
+      } catch {
+        /* 재조회 실패 시 SSR 초기 상태 유지 */
+      }
+    };
+    void syncLockStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [problemSetId, userId, initialUserId, initialProblemSet]);
 
   const currentProblem = problemSet.problems[currentIndex];
   const currentHints = hints[currentIndex] ?? [];

@@ -117,6 +117,11 @@ export default function YoutubeProgressPlayer({
   const AUTO_SAVE_INTERVAL_MS = 5_000;
   // 재생 중 BE 누적 상한 비율 — 완료 기준(90%) 직전까지만 보고해 끝까지 봐야 완료되게 함
   const PLAYING_CAP_RATIO = 0.89;
+  // 영상 끝 인정 여유(초) — getDuration()이 실제 재생 가능한 마지막 위치보다 1~2초 크게
+  // 나오는 YouTube 특성 때문에 재생 위치가 끝에 못 닿아 완료가 안 걸리는 걸 방지.
+  // 미완료 강의는 앞으로 seek 이 차단되므로 이 여유를 넓혀도 부정 완료 위험은 없다.
+  // (ENDED 자연종료 경로의 판정 여유와 동일하게 맞춤)
+  const END_MARGIN_SEC = 3;
 
   // 콜백 ref 갱신은 effect 안에서 — render 도중 ref.current 변형 금지 룰 준수.
   const onProgressSavedRef = useRef(onProgressSaved);
@@ -172,13 +177,13 @@ export default function YoutubeProgressPlayer({
           lastTickAtRef.current = now;
         }
 
-        // 재생바가 끝(±1.5초)에 닿으면 강제 완료 저장 — YT ENDED 이벤트 누락 대비.
+        // 재생바가 끝(±END_MARGIN_SEC)에 닿으면 강제 완료 저장 — YT ENDED 이벤트 누락 대비.
         const duration = player.getDuration();
         if (
           !completedRef.current &&
           !endSaveTriggeredRef.current &&
           duration > 0 &&
-          effectivePos >= duration - 1.5
+          effectivePos >= duration - END_MARGIN_SEC
         ) {
           endSaveTriggeredRef.current = true;
           void saveProgress(true);

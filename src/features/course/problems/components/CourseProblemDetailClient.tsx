@@ -15,7 +15,11 @@ import { createChatTypewriter } from "@/features/chat/typewriter";
 import { ApiClientError, handleClientError } from "@/lib/errorHandling";
 
 // 강좌 전용: 입장/제출/해설조회 (해설조회는 LectureProgress 를 완료 처리하는 강의 전용 엔드포인트)
-import { submitLectureProblem, viewLectureProblemExplanation } from "../actions";
+import {
+  getLectureProblemProgress,
+  submitLectureProblem,
+  viewLectureProblemExplanation,
+} from "../actions";
 import { getCourseLectures } from "@/features/course/lectureActions";
 import { getCourseProblemSets } from "@/features/course/problemSetActions";
 // 공통 재사용: 실행/힌트/챗봇
@@ -224,6 +228,56 @@ export default function CourseProblemDetailClient({
       chatStreamAbortRef.current?.abort();
     };
   }, []);
+
+  // 재진입 시 SSR 스냅샷/캐시가 stale 하면 해설 열람(EXPLANATION_VIEWED)·정답으로 잠금 해제됐던
+  // 소문제가 다시 LOCKED 로 보이는 문제(배포 전용) → 마운트 직후 진행상태를 클라에서 재조회해
+  // 실제 서버 상태로 강제 동기화한다. (router.refresh 무효화가 이탈 타이밍에 유실되는 경우 대비)
+  useEffect(() => {
+    let cancelled = false;
+    const syncProgress = async () => {
+      try {
+        const progress = await getLectureProblemProgress(lectureProblemSetId, {
+          cache: "no-store",
+        });
+        if (cancelled || !progress.problems?.length) return;
+
+        const statusById = new Map<number, ProblemStatus>();
+        progress.problems.forEach((p) => {
+          if (p.problemId != null && p.status) {
+            statusById.set(p.problemId, p.status);
+          }
+        });
+        const freshOf = (index: number) => {
+          const problemId = initialProblemSet.problems[index]?.problemId;
+          return problemId != null ? statusById.get(problemId) : undefined;
+        };
+
+        setProblemStates((prev) =>
+          prev.map((state, index) => freshOf(index) ?? state),
+        );
+        setHintEnabled((prev) =>
+          prev.map((enabled, index) => {
+            const fresh = freshOf(index);
+            if (!fresh) return enabled;
+            return enabled || fresh === "WRONG" || isCorrectLikeStatus(fresh);
+          }),
+        );
+        setSolutionEnabled((prev) =>
+          prev.map((enabled, index) => {
+            const fresh = freshOf(index);
+            if (!fresh) return enabled;
+            return enabled || isCorrectLikeStatus(fresh);
+          }),
+        );
+      } catch {
+        /* 재조회 실패 시 SSR 초기 상태 유지 */
+      }
+    };
+    void syncProgress();
+    return () => {
+      cancelled = true;
+    };
+  }, [lectureProblemSetId, initialProblemSet]);
 
   useEffect(() => {
     const loadNavTargets = async () => {
