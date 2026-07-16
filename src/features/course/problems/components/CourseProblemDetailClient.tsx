@@ -84,6 +84,23 @@ const saveDrafts = (lpsId: string, drafts: Record<number, string>) => {
   }
 };
 
+// 서버 진행상태 문자열을 알려진 ProblemStatus 로만 안전하게 변환 (미확인 값은 무시).
+const KNOWN_PROBLEM_STATUSES = new Set<ProblemStatus>([
+  "LOCKED",
+  "UNSOLVED",
+  "CORRECT",
+  "WRONG",
+  "EXPLANATION_VIEWED",
+]);
+const toKnownProblemStatus = (status?: string | null): ProblemStatus | null => {
+  if (!status) return null;
+  // BE 가 ANSWER_VIEWED 로 줄 수 있어 EXPLANATION_VIEWED 로 정규화
+  const normalized = status === "ANSWER_VIEWED" ? "EXPLANATION_VIEWED" : status;
+  return KNOWN_PROBLEM_STATUSES.has(normalized as ProblemStatus)
+    ? (normalized as ProblemStatus)
+    : null;
+};
+
 const isExplanationViewedStatus = (status?: ProblemStatus) =>
   status === "EXPLANATION_VIEWED";
 
@@ -229,9 +246,9 @@ export default function CourseProblemDetailClient({
     };
   }, []);
 
-  // 재진입 시 SSR 스냅샷/캐시가 stale 하면 해설 열람(EXPLANATION_VIEWED)·정답으로 잠금 해제됐던
-  // 소문제가 다시 LOCKED 로 보이는 문제(배포 전용) → 마운트 직후 진행상태를 클라에서 재조회해
-  // 실제 서버 상태로 강제 동기화한다. (router.refresh 무효화가 이탈 타이밍에 유실되는 경우 대비)
+  // 재진입 시 SSR 스냅샷/캐시가 stale 하면 해설 열람·정답으로 잠금 해제됐던 소문제가 다시
+  // LOCKED 로 보이는 문제(배포 전용) → 마운트 직후 진행상태를 재조회해 LOCKED 인 소문제만 해제한다.
+  // (router.refresh 무효화가 이탈 타이밍에 유실되는 경우 대비)
   useEffect(() => {
     let cancelled = false;
     const syncProgress = async () => {
@@ -243,17 +260,23 @@ export default function CourseProblemDetailClient({
 
         const statusById = new Map<number, ProblemStatus>();
         progress.problems.forEach((p) => {
-          if (p.problemId != null && p.status) {
-            statusById.set(p.problemId, p.status);
-          }
+          if (p.problemId == null) return;
+          const status = toKnownProblemStatus(p.status);
+          if (status) statusById.set(p.problemId, status);
         });
         const freshOf = (index: number) => {
           const problemId = initialProblemSet.problems[index]?.problemId;
           return problemId != null ? statusById.get(problemId) : undefined;
         };
 
+        // 잠긴(LOCKED) 소문제만 서버 최신값으로 해제한다. 그 외 로컬 상태는 그대로 둬서
+        // 동기화 요청 도중 발생한 제출·해설 열람 등 로컬 변경을 stale 응답이 덮어쓰지 않게 한다.
         setProblemStates((prev) =>
-          prev.map((state, index) => freshOf(index) ?? state),
+          prev.map((state, index) => {
+            if (state !== "LOCKED") return state;
+            const fresh = freshOf(index);
+            return fresh && fresh !== "LOCKED" ? fresh : state;
+          }),
         );
         setHintEnabled((prev) =>
           prev.map((enabled, index) => {

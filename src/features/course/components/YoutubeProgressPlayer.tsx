@@ -178,11 +178,13 @@ export default function YoutubeProgressPlayer({
         }
 
         // 재생바가 끝(±END_MARGIN_SEC)에 닿으면 강제 완료 저장 — YT ENDED 이벤트 누락 대비.
+        // duration > END_MARGIN_SEC 로 제한 — 3초 이하 짧은 영상에서 (duration - 여유)가
+        // 0 이하가 되어 첫 tick에 조기 완료되는 것 방지 (짧은 영상은 ENDED 경로가 처리).
         const duration = player.getDuration();
         if (
           !completedRef.current &&
           !endSaveTriggeredRef.current &&
-          duration > 0 &&
+          duration > END_MARGIN_SEC &&
           effectivePos >= duration - END_MARGIN_SEC
         ) {
           endSaveTriggeredRef.current = true;
@@ -383,13 +385,15 @@ export default function YoutubeProgressPlayer({
               const endedPos = Math.floor(endedPlayer?.getCurrentTime() ?? 0);
               const watchedEnd = Math.max(
                 lastSafePosRef.current,
-                endedPos <= lastSafePosRef.current + 3 ? endedPos : 0,
+                endedPos <= lastSafePosRef.current + END_MARGIN_SEC
+                  ? endedPos
+                  : 0,
               );
-              // 실제 시청 끝 지점이 영상 끝(±3초)에 못 미치면 = 끝까지 안 봄 → 되돌림.
+              // 실제 시청 끝 지점이 영상 끝(±END_MARGIN_SEC)에 못 미치면 = 끝까지 안 봄 → 되돌림.
               if (
                 !completedRef.current &&
                 endedDuration > 0 &&
-                watchedEnd < endedDuration - 3
+                watchedEnd < endedDuration - END_MARGIN_SEC
               ) {
                 endedPlayer?.seekTo(lastSafePosRef.current, true);
                 return;
