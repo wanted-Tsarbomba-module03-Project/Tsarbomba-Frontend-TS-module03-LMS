@@ -15,7 +15,7 @@ export const problemDetailClasses = {
   solveResizablePane: "flex-1 min-w-[400px] max-[1180px]:min-w-0",
   solveStackedPane: "min-w-0 flex-auto",
   problemBox:
-    "min-w-0 rounded-base border border-border-light bg-bg-box p-4 max-md:p-3 [&_h2]:m-0 [&_h2]:text-title-lg [&_h2]:font-bold [&_h2]:text-text-primary max-md:[&_h2]:text-title-md",
+    "relative min-w-0 rounded-base border border-border-light bg-bg-box p-4 max-md:p-3 [&_h2]:m-0 [&_h2]:text-title-lg [&_h2]:font-bold [&_h2]:text-text-primary max-md:[&_h2]:text-title-md",
   problemHeader:
     "mb-2.5 flex items-center justify-between gap-3 max-[560px]:flex-wrap",
   datasetDownloadButton:

@@ -44,6 +44,7 @@ interface SidebarProps {
     state: ProblemState | undefined,
     isCurrent: boolean,
   ) => string;
+  onToggleProblemList?: () => void;
 }
 
 function getStoredValue(key: string) {
@@ -64,6 +65,7 @@ export default function Sidebar({
   canMoveProblem,
   moveProblem,
   getProblemButtonClass,
+  onToggleProblemList,
 }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -380,36 +382,62 @@ export default function Sidebar({
     </div>
   );
 
+  const problemCount = problemSet?.problems?.length ?? 0;
+  const problemDetailMenuId = "problem-detail-problem-list";
   const problemDetailMenu = (
-    <div className="w-full flex flex-col gap-4">
-      <h3 className="text-base font-bold text-[#1f2937] px-2">
-        전체 문제 {currentIndex + 1}/{problemSet?.problems?.length ?? 0}
-      </h3>
-      <ul className="flex flex-col gap-1.5 max-h-[60vh] overflow-y-auto pr-1">
-        {problemSet?.problems?.map((problem, index) => {
-          const state = problemStates[index];
-          const locked = canMoveProblem ? !canMoveProblem(index) : false;
-          const buttonClass =
-            getProblemButtonClass?.(state, currentIndex === index) ?? "";
+    <div className="relative z-30 w-full">
+      <button
+        aria-controls={problemDetailMenuId}
+        aria-expanded={isOpen}
+        className="flex h-11 w-full items-center justify-between rounded-base border border-[#1a237e] bg-white px-4 text-left text-body font-bold text-[#1a237e] shadow-sm transition-colors hover:bg-[#eef2ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a237e] focus-visible:ring-offset-2"
+        onClick={onToggleProblemList}
+        type="button"
+      >
+        <span>
+          전체 문제 {currentIndex + 1}/{problemCount}
+        </span>
+        <span
+          aria-hidden="true"
+          className={`text-lg leading-none transition-transform ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        >
+          ˅
+        </span>
+      </button>
 
-          return (
-            <li key={problem.problemId ?? index}>
-              <button
-                className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors font-medium flex items-center justify-between cursor-pointer ${buttonClass} ${
-                  locked
-                    ? "bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed opacity-60"
-                    : ""
-                }`}
-                disabled={locked}
-                onClick={() => moveProblem?.(index)}
-                type="button"
-              >
-                <span className="truncate">{problem.title}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+      {isOpen && (
+        <div
+          className="absolute left-0 right-0 top-[calc(100%+8px)] z-40 max-h-[min(60vh,420px)] overflow-y-auto rounded-base border border-border-light bg-white p-3 shadow-[0_14px_32px_rgba(15,23,42,0.18)]"
+          id={problemDetailMenuId}
+        >
+          <ul className="flex flex-col gap-1.5">
+            {problemSet?.problems?.map((problem, index) => {
+              const state = problemStates[index];
+              const locked = canMoveProblem ? !canMoveProblem(index) : false;
+              const buttonClass =
+                getProblemButtonClass?.(state, currentIndex === index) ?? "";
+
+              return (
+                <li key={problem.problemId ?? index}>
+                  <button
+                    className={`flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-left text-sm font-medium transition-colors ${buttonClass} ${
+                      locked
+                        ? "cursor-not-allowed bg-[#f3f4f6] text-[#9ca3af] opacity-60"
+                        : ""
+                    }`}
+                    disabled={locked}
+                    onClick={() => moveProblem?.(index)}
+                    type="button"
+                  >
+                    <span className="truncate">{problem.title}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     </div>
   );
 
@@ -448,17 +476,7 @@ export default function Sidebar({
   );
 
   if (variant === "problem-detail") {
-    return (
-      <aside
-        className={`w-65 shrink-0 bg-white border border-[#e8e8e8] rounded-xl p-5 sticky top-20 transition-all duration-300 ${
-          isOpen
-            ? mobileSidebarClasses.overlayAsideOpen
-            : mobileSidebarClasses.overlayAsideClosed
-        }`}
-      >
-        {problemDetailMenu}
-      </aside>
-    );
+    return <div className="relative z-30 mb-3 w-full">{problemDetailMenu}</div>;
   }
 
   if (!isAdminPath && !isMypage && !isChatPage) {

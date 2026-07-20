@@ -8,7 +8,6 @@ import Image from "next/image";
 
 import CategoryNav from "@/components/layout/CategoryNav";
 import Sidebar from "@/components/layout/Sidebar";
-import { mobileSidebarClasses } from "@/components/layout/mobileSidebarClasses";
 import { OneButtonModal, TwoButtonModal, WarningModal } from "@/components/common";
 import { streamChat } from "@/features/chat/stream";
 import { createChatTypewriter } from "@/features/chat/typewriter";
@@ -934,44 +933,6 @@ export default function CourseProblemDetailClient({
         />
 
         <div className={styles.mainArea}>
-          <Sidebar
-            canMoveProblem={canMoveProblem}
-            currentIndex={currentIndex}
-            getProblemButtonClass={getProblemButtonClass}
-            isOpen={mobileSidebarOpen}
-            moveProblem={moveProblem}
-            problemSet={problemSet}
-            problemStates={problemStates}
-            variant="problem-detail"
-          />
-
-          {!chatOpen && (
-            <button
-              aria-label={mobileSidebarOpen ? "문제 목록 닫기" : "문제 목록 열기"}
-              aria-pressed={mobileSidebarOpen}
-              className={styles.mobileSidebarToggle}
-              onClick={() => setMobileSidebarOpen((prev) => !prev)}
-              type="button"
-            >
-              <Image
-                alt=""
-                className={styles.mobileSidebarIcon}
-                height={56}
-                src="/assets/img/sidebar.svg"
-                width={56}
-              />
-            </button>
-          )}
-
-          {mobileSidebarOpen && !chatOpen && (
-            <button
-              aria-label="문제 목록 닫기"
-              className={mobileSidebarClasses.backdrop}
-              onClick={() => setMobileSidebarOpen(false)}
-              type="button"
-            />
-          )}
-
           <section className={styles.contentArea} ref={contentAreaRef}>
             <article
               className={`${styles.problemBox} ${
@@ -981,6 +942,19 @@ export default function CourseProblemDetailClient({
               }`}
               style={isPanelSplitAvailable ? problemPanelStyle : undefined}
             >
+              <Sidebar
+                canMoveProblem={canMoveProblem}
+                currentIndex={currentIndex}
+                getProblemButtonClass={getProblemButtonClass}
+                isOpen={mobileSidebarOpen}
+                moveProblem={moveProblem}
+                onToggleProblemList={() =>
+                  setMobileSidebarOpen((prev) => !prev)
+                }
+                problemSet={problemSet}
+                problemStates={problemStates}
+                variant="problem-detail"
+              />
               <div className={styles.problemHeader}>
                 <h2>문제 내용</h2>
                 <button
