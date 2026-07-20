@@ -15,7 +15,7 @@ import {
 const MIN_PROBLEM_PANEL_WIDTH = 260;
 const MIN_SOLVE_PANEL_WIDTH = 400;
 const RESIZE_HANDLE_RESERVED_WIDTH = 32;
-const DEFAULT_PROBLEM_PANEL_PERCENT = 50;
+const DEFAULT_PROBLEM_PANEL_PERCENT = 33.3333;
 
 export function useResizableProblemPanel() {
   const [problemPanelPercent, setProblemPanelPercent] = useState(
