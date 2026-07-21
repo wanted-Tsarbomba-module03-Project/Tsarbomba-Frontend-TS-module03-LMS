@@ -273,6 +273,42 @@ export default function Sidebar({
             <li>
               <Link
                 className={
+                  pathname === "/admin/security"
+                    ? itemActiveClass
+                    : itemBaseClass
+                }
+                href="/admin/security"
+              >
+                보안 요약
+              </Link>
+            </li>
+            {userRole === "MASTER" && (
+              <li>
+                <Link
+                  className={
+                    pathname === "/admin/master"
+                      ? itemActiveClass
+                      : itemBaseClass
+                  }
+                  href="/admin/master"
+                >
+                  관리자 관리
+                </Link>
+              </li>
+            )}
+            <li>
+              <Link
+                className={
+                  pathname === "/admin/users" ? itemActiveClass : itemBaseClass
+                }
+                href="/admin/users"
+              >
+                회원 관리
+              </Link>
+            </li>
+            <li>
+              <Link
+                className={
                   pathname === "/admin/rules" ? itemActiveClass : itemBaseClass
                 }
                 href="/admin/rules"
@@ -290,30 +326,6 @@ export default function Sidebar({
                 알람 관리
               </Link>
             </li>
-            <li>
-              <Link
-                className={
-                  pathname === "/admin/users" ? itemActiveClass : itemBaseClass
-                }
-                href="/admin/users"
-              >
-                회원 관리
-              </Link>
-            </li>
-            {userRole === "MASTER" && (
-              <li>
-                <Link
-                  className={
-                    pathname === "/admin/master"
-                      ? itemActiveClass
-                      : itemBaseClass
-                  }
-                  href="/admin/master"
-                >
-                  관리자 관리
-                </Link>
-              </li>
-            )}
           </>
         )}
       </ul>

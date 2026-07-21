@@ -77,13 +77,11 @@ export default function StepUpPage() {
       window.dispatchEvent(new Event("loginSuccess"));
 
       setDoneRedirect(
-        role === "MASTER"
-          ? "/admin/master"
-          : role === "ADMIN"
-            ? "/admin/rules"
-            : role === "OPERATOR"
-              ? "/admin/courses"
-              : "/",
+        role === "MASTER" || role === "ADMIN"
+          ? "/admin/security"
+          : role === "OPERATOR"
+            ? "/admin/courses"
+            : "/",
       );
       setDoneOpen(true);
     } catch (err: unknown) {
