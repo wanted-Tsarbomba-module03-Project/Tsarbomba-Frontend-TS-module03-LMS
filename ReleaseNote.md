@@ -1,4 +1,13 @@
 # v1.6.13 (2026-07-21)
+### 강좌 완료 추천 문제세트 추천 사유 표시
+
+- **Added**
+  - 강좌 완료 후 "추가 문제" 추천 모달의 각 문제세트 항목에 AI 학습 분석 기반 **추천 사유(`recommendationReason`)** 를 강조 박스로 표시
+  - 추천 응답 타입에 `FinalProblemSetCandidate`(`score`·`reasonCode`·`recommendationReason`·`entryPath`) 추가 — 신규 API 없이 기존 `GET /api/v1/lectures/{lectureId}/final-problem-set-candidates` 응답에 필드만 확장
+- **Changed**
+  - 추천 사유 문구가 잘 보이도록 추가 문제 모달 폭 확대(`max-w-md` → `max-w-2xl`)
+  - `score`는 추천 fallback 시 `null` 가능 → null 안전 처리(화면 표시는 선택). 문제세트 클릭 시 문제 풀이 화면 이동은 기존 동작 유지
+
 ### 관리자 문의사항 관리 페이지 추가
 
 - **Added**
