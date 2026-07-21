@@ -11,7 +11,10 @@ import {
 } from "@/features/course/enrollmentActions";
 import { COURSE_PROGRESS_COLUMN_LABELS } from "@/features/course/constants";
 import { getCourseLearningProgress } from "@/features/course/progressActions";
-import { getFinalProblemSetCandidates } from "@/features/course/recommendActions";
+import {
+  getFinalProblemSetCandidates,
+  type FinalProblemSetCandidate,
+} from "@/features/course/recommendActions";
 import { resolveThumbnailUrl } from "@/features/course/http";
 import { isEnrollmentCompleted } from "@/features/course/search";
 import type {
@@ -19,7 +22,6 @@ import type {
   StudentLearningProgress,
   LectureSummary,
 } from "@/features/course/types";
-import type { ProblemSetSummary } from "@/features/problems/types";
 import OneButtonModal from "@/components/common/OneButtonModal";
 import TwoButtonModal from "@/components/common/TwoButtonModal";
 import List, { type ListColumn } from "@/components/common/List";
@@ -122,7 +124,9 @@ export default function CourseDetailClient({
 
   // 추가 문제 추천 모달
   const [showRecommend, setShowRecommend] = useState(false);
-  const [recommendData, setRecommendData] = useState<ProblemSetSummary[]>([]);
+  const [recommendData, setRecommendData] = useState<FinalProblemSetCandidate[]>(
+    [],
+  );
   const [recommendLoading, setRecommendLoading] = useState(false);
   const [recommendLoaded, setRecommendLoaded] = useState(false);
   const [recommendError, setRecommendError] = useState(false);
@@ -547,7 +551,7 @@ export default function CourseDetailClient({
             role="dialog"
             aria-modal="true"
             aria-labelledby={recommendTitleId}
-            className="bg-bg-box rounded-lg shadow-2xl w-full max-w-md max-h-screen flex flex-col"
+            className="bg-bg-box rounded-lg shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-border-light">
@@ -620,6 +624,15 @@ export default function CourseDetailClient({
                         <p className="text-xs text-text-secondary line-clamp-2">
                           {ps.description}
                         </p>
+                        {ps.recommendationReason && (
+                          <span className="mt-3 flex gap-2 rounded-md bg-[#eef2ff] px-3 py-2 text-xs leading-relaxed text-text-blue">
+                            <span aria-hidden="true">💡</span>
+                            <span>
+                              <span className="font-semibold">추천 이유 </span>
+                              {ps.recommendationReason}
+                            </span>
+                          </span>
+                        )}
                       </button>
                     </li>
                   ))}
