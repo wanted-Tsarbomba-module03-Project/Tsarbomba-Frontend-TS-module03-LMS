@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -326,6 +326,16 @@ export default function Sidebar({
                 href="/admin/alrams"
               >
                 알람 관리
+              </Link>
+            </li>
+            <li>
+              <Link
+                className={
+                  pathname === "/admin/cs" ? itemActiveClass : itemBaseClass
+                }
+                href="/admin/cs"
+              >
+                문의사항 관리
               </Link>
             </li>
           </>
