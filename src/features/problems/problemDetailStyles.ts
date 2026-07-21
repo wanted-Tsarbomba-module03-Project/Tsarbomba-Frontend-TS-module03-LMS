@@ -1,5 +1,3 @@
-import { mobileSidebarClasses } from "@/components/layout/mobileSidebarClasses";
-
 export const problemDetailClasses = {
   container: "min-h-[80vh] w-full min-w-0 bg-bg-main",
   mainArea:
@@ -15,7 +13,7 @@ export const problemDetailClasses = {
   solveResizablePane: "flex-1 min-w-[400px] max-[1180px]:min-w-0",
   solveStackedPane: "min-w-0 flex-auto",
   problemBox:
-    "min-w-0 rounded-base border border-border-light bg-bg-box p-4 max-md:p-3 [&_h2]:m-0 [&_h2]:text-title-lg [&_h2]:font-bold [&_h2]:text-text-primary max-md:[&_h2]:text-title-md",
+    "relative min-w-0 rounded-base border border-border-light bg-bg-box p-4 max-md:p-3 [&_h2]:m-0 [&_h2]:text-title-lg [&_h2]:font-bold [&_h2]:text-text-primary max-md:[&_h2]:text-title-md",
   problemHeader:
     "mb-2.5 flex items-center justify-between gap-3 max-[560px]:flex-wrap",
   datasetDownloadButton:
@@ -65,8 +63,6 @@ export const problemDetailClasses = {
   submitWrap: "mt-3 flex min-w-0 justify-end overflow-visible",
   submitButton:
     "h-11 min-w-[120px] shrink-0 cursor-pointer rounded-base border border-button-blue-bg bg-button-blue-bg px-4 text-body font-semibold text-text-white hover:not-disabled:bg-button-blue-hover-bg disabled:cursor-not-allowed disabled:opacity-60",
-  mobileSidebarToggle: mobileSidebarClasses.toggleButton,
-  mobileSidebarIcon: mobileSidebarClasses.toggleIcon,
   chatPanel:
     "pointer-events-none absolute right-0 top-3.5 z-20 flex h-[calc(100%-28px)] min-h-[560px] w-[min(420px,calc(100%-32px))] translate-x-6 flex-col rounded-base border border-border-light bg-bg-box opacity-0 shadow-[0_12px_32px_rgba(15,23,42,0.16)] transition-[opacity,transform] duration-200 ease-in-out max-md:fixed max-md:inset-x-3 max-md:bottom-3 max-md:top-[74px] max-md:h-auto max-md:min-h-0 max-md:w-auto max-[380px]:inset-x-2",
   open: "pointer-events-auto translate-x-0 opacity-100",
