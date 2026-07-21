@@ -9,12 +9,16 @@ import {
   ListSkeleton,
   OneButtonModal,
   Pagination,
+  TwoButtonModal,
   listCellClasses,
   type ListColumn,
 } from "@/components/common";
 import { handleClientError } from "@/lib/errorHandling";
 
-import { getAdminInquiries } from "../actions";
+import {
+  getAdminInquiries,
+  updateAdminInquiryClassification,
+} from "../actions";
 import {
   ADMIN_INQUIRY_PAGE_SIZE,
   adminInquiryDomainLabels,
@@ -39,6 +43,14 @@ type FilterMenuPosition = {
   minWidth: number;
   maxHeight: number;
 };
+type ClassificationField = "domain" | "severity";
+type ClassificationDraft = {
+  field: ClassificationField;
+  inquiry: AdminInquirySummary;
+  domain: AdminInquiryDomain;
+  severity: AdminInquirySeverity;
+  reason: string;
+} | null;
 
 interface FilterHeaderOption<T extends FilterValue> {
   label: string;
@@ -124,6 +136,31 @@ const inquiryListClasses = {
   titleCell: "text-left",
   badge:
     "inline-flex h-8 min-w-[58px] items-center justify-center rounded-full px-3 text-description font-semibold",
+  editableBadge:
+    "cursor-pointer border-0 transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a237e]",
+  modalForm:
+    "fixed inset-0 z-[999] flex h-dvh w-dvw items-center justify-center bg-[rgba(16,24,40,0.45)] px-4 py-6",
+  modalPanel:
+    "w-[min(520px,100%)] rounded-2xl bg-bg-box p-6 shadow-[0_18px_44px_rgba(15,23,42,0.22)]",
+  modalTitle: "m-0 text-xl font-bold text-text-primary",
+  modalDescription:
+    "mt-2 mb-0 min-h-[48px] whitespace-pre-line text-body text-text-secondary",
+  modalGrid: "mt-4 grid grid-cols-2 gap-3 max-sm:grid-cols-1",
+  modalField: "flex min-w-0 flex-col gap-2",
+  modalLabel: "text-description font-semibold text-text-primary",
+  modalSelect:
+    "h-11 rounded-base border border-border-light bg-bg-box px-3 text-body font-semibold text-text-primary outline-none focus:ring-2 focus:ring-[#1a237e]",
+  modalTextarea:
+    "mt-4 min-h-[140px] w-full resize-y rounded-base border border-border-light p-3 text-body text-text-primary outline-none focus:ring-2 focus:ring-[#1a237e]",
+  modalError:
+    "mt-2 mb-0 min-h-[18px] text-description font-semibold text-[#b91c1c]",
+  modalActions: "mt-5 flex justify-end gap-2",
+  modalButton:
+    "h-10 min-w-[88px] cursor-pointer rounded-base px-4 text-body font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
+  modalPrimary:
+    "border border-button-blue-bg bg-button-blue-bg text-text-white hover:not-disabled:bg-button-blue-hover-bg",
+  modalSecondary:
+    "border border-border-light bg-bg-navbar text-text-secondary hover:not-disabled:bg-[#e5e7eb]",
   filterButton:
     "mx-auto flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-base px-2 py-1 text-description font-semibold text-text-primary transition hover:bg-[#e5e7eb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a237e]",
   filterWrap: "relative mx-auto w-full min-w-0",
@@ -196,6 +233,123 @@ function SummaryText({ summary }: { summary: string }) {
     >
       {summary}
     </span>
+  );
+}
+
+function ClassificationReasonModal({
+  draft,
+  disabled,
+  onClose,
+  onDomainChange,
+  onReasonChange,
+  onSeverityChange,
+  onSubmit,
+}: {
+  draft: ClassificationDraft;
+  disabled: boolean;
+  onClose: () => void;
+  onDomainChange: (domain: AdminInquiryDomain) => void;
+  onReasonChange: (reason: string) => void;
+  onSeverityChange: (severity: AdminInquirySeverity) => void;
+  onSubmit: () => void;
+}) {
+  if (!draft) {
+    return null;
+  }
+
+  const reason = draft.reason;
+  const reasonInvalid = reason.trim().length === 0;
+  const editingDomain = draft.field === "domain";
+  const fieldLabel = editingDomain ? "도메인" : "심각도";
+  const unchanged = editingDomain
+    ? draft.domain === draft.inquiry.domain
+    : draft.severity === draft.inquiry.severity;
+  const errorMessage = reasonInvalid
+    ? "분류 수정 사유를 입력해 주세요."
+    : unchanged
+      ? `${fieldLabel}을(를) 변경해 주세요.`
+      : "";
+
+  return (
+    <div className={inquiryListClasses.modalForm} onClick={onClose}>
+      <div
+        className={inquiryListClasses.modalPanel}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h2 className={inquiryListClasses.modalTitle}>문의 분류 수정</h2>
+        <p className={inquiryListClasses.modalDescription}>
+          {`"${draft.inquiry.title}" 문의의 ${fieldLabel}을(를) 선택하고 수정 사유를 입력해 주세요.`}
+        </p>
+        <div className={inquiryListClasses.modalGrid}>
+          {editingDomain ? (
+            <label className={inquiryListClasses.modalField}>
+              <span className={inquiryListClasses.modalLabel}>도메인</span>
+              <select
+                className={inquiryListClasses.modalSelect}
+                disabled={disabled}
+                onChange={(event) =>
+                  onDomainChange(event.target.value as AdminInquiryDomain)
+                }
+                value={draft.domain}
+              >
+                {adminInquiryDomainOptions.map(([optionValue, optionLabel]) => (
+                  <option key={optionValue} value={optionValue}>
+                    {optionLabel}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <label className={inquiryListClasses.modalField}>
+              <span className={inquiryListClasses.modalLabel}>심각도</span>
+              <select
+                className={inquiryListClasses.modalSelect}
+                disabled={disabled}
+                onChange={(event) =>
+                  onSeverityChange(event.target.value as AdminInquirySeverity)
+                }
+                value={draft.severity}
+              >
+                {adminInquirySeverityOptions.map(
+                  ([optionValue, optionLabel]) => (
+                    <option key={optionValue} value={optionValue}>
+                      {optionLabel}
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
+          )}
+        </div>
+        <textarea
+          className={inquiryListClasses.modalTextarea}
+          disabled={disabled}
+          maxLength={300}
+          onChange={(event) => onReasonChange(event.target.value)}
+          placeholder="예: 문제 제출 결과 미노출은 강의가 아니라 문제 도메인 이슈로 봐야 함"
+          value={reason}
+        />
+        <p className={inquiryListClasses.modalError}>{errorMessage}</p>
+        <div className={inquiryListClasses.modalActions}>
+          <button
+            className={`${inquiryListClasses.modalButton} ${inquiryListClasses.modalSecondary}`}
+            disabled={disabled}
+            onClick={onClose}
+            type="button"
+          >
+            취소
+          </button>
+          <button
+            className={`${inquiryListClasses.modalButton} ${inquiryListClasses.modalPrimary}`}
+            disabled={disabled || reasonInvalid || unchanged}
+            onClick={onSubmit}
+            type="button"
+          >
+            다음
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -386,6 +540,12 @@ export default function AdminInquiriesClient() {
   const [inquiries, setInquiries] = useState<AdminInquirySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [processingClassification, setProcessingClassification] =
+    useState(false);
+  const [classificationDraft, setClassificationDraft] =
+    useState<ClassificationDraft>(null);
+  const [classificationConfirmOpen, setClassificationConfirmOpen] =
+    useState(false);
   const [noticeModal, setNoticeModal] = useState({
     isOpen: false,
     title: "",
@@ -426,6 +586,164 @@ export default function AdminInquiriesClient() {
     [],
   );
 
+  const openClassificationModal = useCallback(
+    (inquiry: AdminInquirySummary, field: ClassificationField) => {
+      if (processingClassification) {
+        return;
+      }
+
+      setClassificationDraft({
+        domain: inquiry.domain,
+        field,
+        inquiry,
+        reason: "",
+        severity: inquiry.severity,
+      });
+    },
+    [processingClassification],
+  );
+
+  const closeClassificationReason = useCallback(() => {
+    if (processingClassification) {
+      return;
+    }
+
+    setClassificationDraft(null);
+    setClassificationConfirmOpen(false);
+  }, [processingClassification]);
+
+  const handleClassificationReasonChange = useCallback((reason: string) => {
+    setClassificationDraft((currentDraft) =>
+      currentDraft ? { ...currentDraft, reason } : currentDraft,
+    );
+  }, []);
+
+  const handleClassificationDomainChange = useCallback(
+    (domain: AdminInquiryDomain) => {
+      setClassificationDraft((currentDraft) =>
+        currentDraft ? { ...currentDraft, domain } : currentDraft,
+      );
+    },
+    [],
+  );
+
+  const handleClassificationSeverityChange = useCallback(
+    (severity: AdminInquirySeverity) => {
+      setClassificationDraft((currentDraft) =>
+        currentDraft ? { ...currentDraft, severity } : currentDraft,
+      );
+    },
+    [],
+  );
+
+  const requestClassificationConfirm = useCallback(() => {
+    if (
+      !classificationDraft?.reason.trim() ||
+      (classificationDraft.field === "domain"
+        ? classificationDraft.domain === classificationDraft.inquiry.domain
+        : classificationDraft.severity === classificationDraft.inquiry.severity)
+    ) {
+      return;
+    }
+
+    setClassificationConfirmOpen(true);
+  }, [classificationDraft]);
+
+  const handleClassificationConfirm = useCallback(async () => {
+    if (!classificationDraft || processingClassification) {
+      return;
+    }
+
+    const trimmedReason = classificationDraft.reason.trim();
+
+    if (!trimmedReason) {
+      setClassificationConfirmOpen(false);
+      return;
+    }
+
+    setProcessingClassification(true);
+
+    try {
+      const result = await updateAdminInquiryClassification(
+        classificationDraft.inquiry.inquiryId,
+        {
+          domain: classificationDraft.domain,
+          reason: trimmedReason,
+          severity: classificationDraft.severity,
+        },
+      );
+      const updatedInquiry =
+        result.data ??
+        ({
+          ...classificationDraft.inquiry,
+          domain: classificationDraft.domain,
+          severity: classificationDraft.severity,
+        } satisfies AdminInquirySummary);
+
+      setInquiries((currentInquiries) =>
+        currentInquiries.map((inquiry) =>
+          inquiry.inquiryId === updatedInquiry.inquiryId
+            ? updatedInquiry
+            : inquiry,
+        ),
+      );
+      setClassificationConfirmOpen(false);
+      setClassificationDraft(null);
+      setNoticeModal({
+        isOpen: true,
+        title: "문의 분류 수정 완료",
+        content: "문의 도메인과 심각도가 수정되었습니다.",
+      });
+    } catch (error) {
+      handleClientError(error, {
+        router,
+        fallbackTitle: "문의 분류 수정 실패",
+        fallbackMessage:
+          "문의 분류를 수정하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        showModal: (title, content) =>
+          setNoticeModal({
+            isOpen: true,
+            title,
+            content,
+          }),
+      });
+    } finally {
+      setProcessingClassification(false);
+    }
+  }, [classificationDraft, processingClassification, router]);
+
+  const renderDomainCell = useCallback(
+    (inquiry: AdminInquirySummary) => (
+      <button
+        className={`${inquiryListClasses.badge} ${
+          inquiryListClasses.editableBadge
+        } ${domainColorClasses[inquiry.domain]}`}
+        disabled={processingClassification}
+        onClick={() => openClassificationModal(inquiry, "domain")}
+        type="button"
+      >
+        {adminInquiryDomainLabels[inquiry.domain] ?? inquiry.domain}
+      </button>
+    ),
+    [openClassificationModal, processingClassification],
+  );
+
+  const renderSeverityCell = useCallback(
+    (inquiry: AdminInquirySummary) => (
+      <button
+        className={`${inquiryListClasses.badge} ${
+          inquiryListClasses.editableBadge
+        } ${severityColorClasses[inquiry.severity]}`}
+        disabled={processingClassification}
+        onClick={() => openClassificationModal(inquiry, "severity")}
+        type="button"
+      >
+        {adminInquirySeverityLabels[inquiry.severity] ?? inquiry.severity}
+      </button>
+    ),
+    [openClassificationModal, processingClassification],
+  );
+
   const inquiryColumns = useMemo<ListColumn<AdminInquirySummary>[]>(
     () => [
       { key: "index", label: "번호", width: "72px" },
@@ -459,15 +777,7 @@ export default function AdminInquiriesClient() {
         title: (inquiry) =>
           adminInquiryDomainLabels[inquiry.domain] ?? inquiry.domain,
         width: "150px",
-        render: (inquiry) => (
-          <span
-            className={`${inquiryListClasses.badge} ${
-              domainColorClasses[inquiry.domain]
-            }`}
-          >
-            {adminInquiryDomainLabels[inquiry.domain] ?? inquiry.domain}
-          </span>
-        ),
+        render: renderDomainCell,
       },
       {
         key: "severity",
@@ -485,15 +795,7 @@ export default function AdminInquiriesClient() {
         title: (inquiry) =>
           adminInquirySeverityLabels[inquiry.severity] ?? inquiry.severity,
         width: "116px",
-        render: (inquiry) => (
-          <span
-            className={`${inquiryListClasses.badge} ${
-              severityColorClasses[inquiry.severity]
-            }`}
-          >
-            {adminInquirySeverityLabels[inquiry.severity] ?? inquiry.severity}
-          </span>
-        ),
+        render: renderSeverityCell,
       },
       {
         key: "status",
@@ -532,6 +834,8 @@ export default function AdminInquiriesClient() {
     [
       domain,
       domainOptions,
+      renderDomainCell,
+      renderSeverityCell,
       resetPage,
       severity,
       severityOptions,
@@ -654,6 +958,46 @@ export default function AdminInquiriesClient() {
           />
         )}
       </section>
+
+      <ClassificationReasonModal
+        disabled={processingClassification}
+        draft={classificationConfirmOpen ? null : classificationDraft}
+        onClose={closeClassificationReason}
+        onDomainChange={handleClassificationDomainChange}
+        onReasonChange={handleClassificationReasonChange}
+        onSeverityChange={handleClassificationSeverityChange}
+        onSubmit={requestClassificationConfirm}
+      />
+
+      <TwoButtonModal
+        cancelDisabled={processingClassification}
+        confirmDisabled={processingClassification}
+        isOpen={classificationConfirmOpen && classificationDraft !== null}
+        modalContent={
+          classificationDraft
+            ? classificationDraft.field === "domain"
+              ? `도메인: ${
+                  adminInquiryDomainLabels[classificationDraft.inquiry.domain]
+                } → ${
+                  adminInquiryDomainLabels[classificationDraft.domain]
+                }\n\n입력한 사유로 문의 도메인을 수정하시겠습니까?`
+              : `심각도: ${
+                  adminInquirySeverityLabels[
+                    classificationDraft.inquiry.severity
+                  ]
+                } → ${
+                  adminInquirySeverityLabels[classificationDraft.severity]
+                }\n\n입력한 사유로 문의 심각도를 수정하시겠습니까?`
+            : undefined
+        }
+        modalTitle="문의 분류를 수정할까요?"
+        onClose={() => {
+          if (!processingClassification) {
+            setClassificationConfirmOpen(false);
+          }
+        }}
+        onConfirm={handleClassificationConfirm}
+      />
 
       <OneButtonModal
         isOpen={noticeModal.isOpen}

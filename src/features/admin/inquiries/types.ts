@@ -48,3 +48,9 @@ export interface AdminInquiryListParams {
   page?: number;
   size?: number;
 }
+
+export interface AdminInquiryClassificationRequest {
+  domain: AdminInquiryDomain;
+  severity: AdminInquirySeverity;
+  reason: string;
+}

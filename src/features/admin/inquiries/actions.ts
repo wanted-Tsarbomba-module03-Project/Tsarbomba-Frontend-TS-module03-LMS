@@ -1,6 +1,11 @@
 import { requestAdminOperation } from "@/features/admin/operations/api";
 
-import type { AdminInquiryListParams, AdminInquiryPageResponse } from "./types";
+import type {
+  AdminInquiryClassificationRequest,
+  AdminInquiryListParams,
+  AdminInquiryPageResponse,
+  AdminInquirySummary,
+} from "./types";
 
 export async function getAdminInquiries(
   {
@@ -34,5 +39,18 @@ export async function getAdminInquiries(
   return requestAdminOperation<AdminInquiryPageResponse>(
     `/api/v1/admin/inquiries?${params.toString()}`,
     { signal },
+  );
+}
+
+export async function updateAdminInquiryClassification(
+  inquiryId: number,
+  payload: AdminInquiryClassificationRequest,
+) {
+  return requestAdminOperation<AdminInquirySummary>(
+    `/api/v1/admin/inquiries/${inquiryId}/classification`,
+    {
+      body: JSON.stringify(payload),
+      method: "PATCH",
+    },
   );
 }
