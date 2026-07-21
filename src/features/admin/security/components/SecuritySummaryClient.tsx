@@ -148,7 +148,8 @@ export default function SecuritySummaryClient() {
   const confirmLock = useCallback(async () => {
     if (!lockTarget) return;
     const target = lockTarget;
-    setLockTarget(null);
+    // 모달을 열어둔 채 처리 — confirmDisabled/cancelDisabled 가 실제로 동작해
+    // 처리 중 피드백 + 이중 클릭 방지가 되도록 함
     setLockingKey(`${target.ip}:${target.userId}`);
     try {
       await toggleUserLock(String(target.userId), true);
@@ -163,6 +164,7 @@ export default function SecuritySummaryClient() {
       });
     } finally {
       setLockingKey(null);
+      setLockTarget(null); // 요청 완료 후 확인 모달 닫기
     }
   }, [lockTarget]);
 

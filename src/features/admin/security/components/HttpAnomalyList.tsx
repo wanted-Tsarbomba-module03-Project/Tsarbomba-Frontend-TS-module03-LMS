@@ -90,6 +90,7 @@ export default function HttpAnomalyList({ httpAnomalies }: Props) {
                     {hasMore ? (
                       // 맨 위(위험) pill 박스 안 우측에 화살표를 넣어 토글
                       <button
+                        aria-expanded={isOpen}
                         className={
                           top.danger
                             ? s.httpTogglePillDanger
