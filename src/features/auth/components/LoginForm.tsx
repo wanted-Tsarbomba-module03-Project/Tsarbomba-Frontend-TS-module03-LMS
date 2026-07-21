@@ -111,13 +111,11 @@ export default function LoginForm() {
         window.dispatchEvent(new Event("loginSuccess"));
 
         const redirectByRole =
-          role === "MASTER"
-            ? "/admin/master"
-            : role === "ADMIN"
-              ? "/admin/rules"
-              : role === "OPERATOR"
-                ? "/admin/courses"
-                : "/";
+          role === "MASTER" || role === "ADMIN"
+            ? "/admin/security"
+            : role === "OPERATOR"
+              ? "/admin/courses"
+              : "/";
         setSuccessRedirect(redirectByRole);
         setSuccessOpen(true);
       } else {

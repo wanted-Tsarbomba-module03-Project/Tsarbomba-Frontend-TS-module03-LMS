@@ -67,10 +67,8 @@ export default function RootLayout({
   useEffect(() => {
     if (pathname !== "/") return;
 
-    if (userRole === "MASTER") {
-      router.replace("/admin/master");
-    } else if (userRole === "ADMIN") {
-      router.replace("/admin/rules");
+    if (userRole === "MASTER" || userRole === "ADMIN") {
+      router.replace("/admin/security");
     } else if (userRole === "OPERATOR") {
       router.replace("/admin/courses");
     }

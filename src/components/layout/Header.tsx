@@ -157,11 +157,9 @@ function HeaderInner({ isSimple }: HeaderProps) {
     (userRole === "MASTER" || userRole === "ADMIN" || userRole === "OPERATOR");
   const logoTargetHref = !isManagementRole
     ? "/"
-    : userRole === "MASTER"
-      ? "/admin/master"
-      : userRole === "ADMIN"
-        ? "/admin/rules"
-        : "/admin/courses";
+    : userRole === "MASTER" || userRole === "ADMIN"
+      ? "/admin/security"
+      : "/admin/courses";
   const isAdminPath = pathname.startsWith("/admin");
   const courseKeyword =
     pathname === "/" ? (searchParams.get(COURSE_SEARCH_PARAM) ?? "") : "";
