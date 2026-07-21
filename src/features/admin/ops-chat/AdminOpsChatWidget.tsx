@@ -21,6 +21,7 @@ const OPS_CHAT_PATH = "/api/v1/admin/security/ops-chat";
 const HISTORY_LIMIT = 20;
 const DRAG_VIEWPORT_MARGIN = 12;
 const DESKTOP_DRAG_MEDIA_QUERY = "(min-width: 768px)";
+const SCROLL_FOLLOW_THRESHOLD = 96;
 const SUGGESTED_QUESTIONS = [
   "어제 의심 로그인 있었어?",
   "최근 3일 로그인 실패 추이 알려줘",
@@ -67,8 +68,15 @@ export default function AdminOpsChatWidget() {
   const abortRef = useRef<AbortController | null>(null);
   const dragPointerOffsetRef = useRef<DragPosition | null>(null);
   const dragListenersRef = useRef<DragListeners | null>(null);
+  const dragPositionRef = useRef<DragPosition | null>(null);
+  const shouldFollowScrollRef = useRef(true);
 
   const isDisabled = sending;
+
+  const updateDragPosition = useCallback((position: DragPosition | null) => {
+    dragPositionRef.current = position;
+    setDragPosition(position);
+  }, []);
 
   const endDrag = useCallback(() => {
     const listeners = dragListenersRef.current;
@@ -153,7 +161,7 @@ export default function AdminOpsChatWidget() {
       const nextPosition = getClampedDragPosition(event.clientX, event.clientY);
 
       if (nextPosition) {
-        setDragPosition(nextPosition);
+        updateDragPosition(nextPosition);
       }
 
       const handlePointerMove = (pointerEvent: PointerEvent) => {
@@ -163,7 +171,7 @@ export default function AdminOpsChatWidget() {
         );
 
         if (clampedPosition) {
-          setDragPosition(clampedPosition);
+          updateDragPosition(clampedPosition);
         }
       };
 
@@ -180,19 +188,21 @@ export default function AdminOpsChatWidget() {
       window.addEventListener("pointermove", handlePointerMove);
       window.addEventListener("pointerup", handlePointerUp, { once: true });
     },
-    [endDrag, getClampedDragPosition],
+    [endDrag, getClampedDragPosition, updateDragPosition],
   );
 
   useEffect(() => {
     const handleResize = () => {
-      if (!dragPosition) {
+      const currentPosition = dragPositionRef.current;
+
+      if (!currentPosition) {
         return;
       }
 
       const panel = panelRef.current;
 
       if (!panel || !window.matchMedia(DESKTOP_DRAG_MEDIA_QUERY).matches) {
-        setDragPosition(null);
+        updateDragPosition(null);
         return;
       }
 
@@ -200,16 +210,24 @@ export default function AdminOpsChatWidget() {
       const maxX = window.innerWidth - panelRect.width - DRAG_VIEWPORT_MARGIN;
       const maxY = window.innerHeight - panelRect.height - DRAG_VIEWPORT_MARGIN;
 
-      setDragPosition({
-        x: clamp(dragPosition.x, DRAG_VIEWPORT_MARGIN, Math.max(DRAG_VIEWPORT_MARGIN, maxX)),
-        y: clamp(dragPosition.y, DRAG_VIEWPORT_MARGIN, Math.max(DRAG_VIEWPORT_MARGIN, maxY)),
+      updateDragPosition({
+        x: clamp(
+          currentPosition.x,
+          DRAG_VIEWPORT_MARGIN,
+          Math.max(DRAG_VIEWPORT_MARGIN, maxX),
+        ),
+        y: clamp(
+          currentPosition.y,
+          DRAG_VIEWPORT_MARGIN,
+          Math.max(DRAG_VIEWPORT_MARGIN, maxY),
+        ),
       });
     };
 
     window.addEventListener("resize", handleResize);
 
     return () => window.removeEventListener("resize", handleResize);
-  }, [dragPosition]);
+  }, [updateDragPosition]);
 
   const panelStyle = useMemo<CSSProperties | undefined>(() => {
     if (!dragPosition) {
@@ -274,6 +292,7 @@ export default function AdminOpsChatWidget() {
 
       abortRef.current?.abort();
       abortRef.current = controller;
+      shouldFollowScrollRef.current = true;
       setInput("");
       setCurrentStatus(null);
       setMessages((prevMessages) => [
@@ -347,12 +366,35 @@ export default function AdminOpsChatWidget() {
     void sendMessage(input);
   };
 
+  const updateShouldFollowScroll = useCallback(() => {
+    const container = messagesRef.current;
+
+    if (!container) {
+      shouldFollowScrollRef.current = true;
+      return;
+    }
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+
+    shouldFollowScrollRef.current =
+      distanceFromBottom <= SCROLL_FOLLOW_THRESHOLD;
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      shouldFollowScrollRef.current = true;
+    }
+  }, [open]);
+
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    scrollAnchorRef.current?.scrollIntoView({ block: "end" });
+    if (shouldFollowScrollRef.current) {
+      scrollAnchorRef.current?.scrollIntoView({ block: "end" });
+    }
   }, [messages, currentStatus, open]);
 
   return (
@@ -408,6 +450,7 @@ export default function AdminOpsChatWidget() {
 
           <div
             className="flex-1 overflow-y-auto bg-[#f8fafc] px-4 py-4"
+            onScroll={updateShouldFollowScroll}
             ref={messagesRef}
           >
             {messages.length === 0 && (
