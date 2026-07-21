@@ -2,11 +2,12 @@ import { ApiClientError, type BackendErrorPayload } from "@/lib/errorHandling";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const STREAM_FALLBACK_MESSAGE =
-  "AI 응답을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
+  "AI 응답을 불러오지 못했습니다.\n잠시 후 다시 시도해 주세요.";
 
 export interface ChatStreamHandlers {
   onToken: (text: string) => void;
   onRoom?: (roomId: number) => void;
+  onStatus?: (status: { tool?: string; message: string }) => void;
   onDone?: (usage: {
     promptTokens: number;
     completionTokens: number;
@@ -89,6 +90,7 @@ function handleFrame(raw: string, h: ChatStreamHandlers) {
   const parsed = JSON.parse(data);
 
   if (event === "room") h.onRoom?.(parsed.roomId);
+  else if (event === "status") h.onStatus?.(parsed);
   else if (event === "done") h.onDone?.(parsed);
   else if (event === "error") h.onError?.(parsed);
   else h.onToken(parsed.t ?? ""); // 본문 토큰 {"t":"..."}
@@ -107,7 +109,11 @@ function waitForNextPaint() {
   });
 }
 
-function createStreamStartError(response: Response, text: string, path: string) {
+function createStreamStartError(
+  response: Response,
+  text: string,
+  path: string,
+) {
   if (!text) {
     return new ApiClientError(
       {
