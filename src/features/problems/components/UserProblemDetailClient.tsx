@@ -7,12 +7,10 @@ import type {
   PointerEvent as ReactPointerEvent,
 } from "react";
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import CategoryNav from "@/components/layout/CategoryNav";
 import Sidebar from "@/components/layout/Sidebar";
-import { mobileSidebarClasses } from "@/components/layout/mobileSidebarClasses";
 import { streamChat } from "@/features/chat/stream";
 import { createChatTypewriter } from "@/features/chat/typewriter";
 import { handleClientError } from "@/lib/errorHandling";
@@ -73,7 +71,7 @@ function createClientMessageId() {
 const MIN_PROBLEM_PANEL_WIDTH = 260;
 const MIN_SOLVE_PANEL_WIDTH = 400;
 const RESIZE_HANDLE_RESERVED_WIDTH = 32;
-const DEFAULT_PROBLEM_PANEL_PERCENT = 50;
+const DEFAULT_PROBLEM_PANEL_PERCENT = 33.3333;
 
 const isExplanationViewedStatus = (status?: ProblemStatus) =>
   status === "EXPLANATION_VIEWED";
@@ -1451,44 +1449,6 @@ export default function UserProblemDetailClient({
         />
 
         <div className={problemDetailClasses.mainArea}>
-          <Sidebar
-            canMoveProblem={canMoveProblem}
-            currentIndex={currentIndex}
-            getProblemButtonClass={getProblemButtonClass}
-            isOpen={mobileSidebarOpen}
-            moveProblem={moveProblem}
-            problemSet={problemSet}
-            problemStates={problemStates}
-            variant="problem-detail"
-          />
-
-          {!chatOpen && (
-            <button
-              aria-label={mobileSidebarOpen ? "문제 목록 닫기" : "문제 목록 열기"}
-              aria-pressed={mobileSidebarOpen}
-              className={problemDetailClasses.mobileSidebarToggle}
-              onClick={() => setMobileSidebarOpen((prev) => !prev)}
-              type="button"
-            >
-              <Image
-                alt=""
-                className={problemDetailClasses.mobileSidebarIcon}
-                height={56}
-                src="/assets/img/sidebar.svg"
-                width={56}
-              />
-            </button>
-          )}
-
-          {mobileSidebarOpen && !chatOpen && (
-            <button
-              aria-label="문제 목록 닫기"
-              className={mobileSidebarClasses.backdrop}
-              onClick={() => setMobileSidebarOpen(false)}
-              type="button"
-            />
-          )}
-
           <section
             className={`${problemDetailClasses.contentArea} ${
               isPanelSplitAvailable
@@ -1508,6 +1468,21 @@ export default function UserProblemDetailClient({
               onDownloadDataset={handleDatasetDownload}
               problemSetDescription={problemSet.description}
               problemSetTitle={problemSet.title}
+              problemListSlot={
+                <Sidebar
+                  canMoveProblem={canMoveProblem}
+                  currentIndex={currentIndex}
+                  getProblemButtonClass={getProblemButtonClass}
+                  isOpen={mobileSidebarOpen}
+                  moveProblem={moveProblem}
+                  onToggleProblemList={() =>
+                    setMobileSidebarOpen((prev) => !prev)
+                  }
+                  problemSet={problemSet}
+                  problemStates={problemStates}
+                  variant="problem-detail"
+                />
+              }
               style={isPanelSplitAvailable ? problemPanelStyle : undefined}
             />
 

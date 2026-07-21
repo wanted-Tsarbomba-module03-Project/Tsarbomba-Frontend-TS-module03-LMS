@@ -2,7 +2,7 @@
 
 import { memo, useRef, useState } from "react";
 import Image from "next/image";
-import type { CSSProperties, KeyboardEvent } from "react";
+import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 
 import { problemDetailClasses } from "../problemDetailStyles";
 
@@ -23,6 +23,7 @@ interface ProblemStatementCardProps {
   onDownloadDataset?: () => void;
   problemSetDescription?: string;
   problemSetTitle?: string;
+  problemListSlot?: ReactNode;
   style?: CSSProperties;
 }
 
@@ -33,6 +34,7 @@ function ProblemStatementCard({
   onDownloadDataset,
   problemSetDescription,
   problemSetTitle,
+  problemListSlot,
   style,
 }: ProblemStatementCardProps) {
   const [activeTab, setActiveTab] = useState<StatementTab>("overview");
@@ -70,6 +72,7 @@ function ProblemStatementCard({
       className={`${problemDetailClasses.problemBox} ${className}`}
       style={style}
     >
+      {problemListSlot}
       <div className={problemDetailClasses.problemHeader}>
         <h2>문제 내용</h2>
         {onDownloadDataset && (

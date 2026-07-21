@@ -9,12 +9,9 @@ const skeletonClasses = {
     "mx-auto flex max-w-300 items-center justify-between px-6 max-md:px-4",
   mainArea:
     "relative flex min-h-[calc(80vh-80px)] gap-4 overflow-hidden py-3.5 max-lg:flex-col",
-  sidebar:
-    "w-[220px] shrink-0 rounded-base border border-border-light bg-bg-box p-4 max-lg:w-full",
-  sidebarList: "mt-5 flex flex-col gap-2",
   contentArea: "flex min-w-0 flex-1 items-stretch gap-3 max-[1180px]:flex-col",
   problemBox:
-    "min-w-[260px] flex-[0_0_50%] rounded-base border border-border-light bg-bg-box p-4 max-[1180px]:w-full max-[1180px]:max-w-full max-[1180px]:min-w-0 max-[1180px]:flex-auto",
+    "relative min-w-[260px] flex-[0_0_33.3333%] max-w-[33.3333%] rounded-base border border-border-light bg-bg-box p-4 max-[1180px]:w-full max-[1180px]:max-w-full max-[1180px]:min-w-0 max-[1180px]:flex-auto",
   solveBox:
     "min-w-[400px] flex-1 rounded-base border border-border-light bg-bg-box p-4 max-[1180px]:min-w-0",
   resizeHandle:
@@ -33,6 +30,8 @@ const skeletonClasses = {
   tabButtonDisabled:
     "h-[42px] rounded-base border border-[#cbd5e1] bg-[#f1f5f9]",
   submitWrap: "mt-3 flex justify-end",
+  problemListToggle:
+    "mb-3 flex h-11 w-full items-center justify-between rounded-base border border-[#1a237e] bg-white px-4",
 } as const;
 
 function SkeletonLine({
@@ -90,22 +89,13 @@ export default function ProblemDetailSkeleton() {
       </nav>
 
       <div className={skeletonClasses.mainArea}>
-        <aside className={skeletonClasses.sidebar}>
-          <SkeletonLine height="1.25rem" width="64%" />
-          <div className={skeletonClasses.sidebarList}>
-            {Array.from({ length: 5 }, (_, index) => (
-              <Skeleton
-                borderRadius="8px"
-                height="40px"
-                key={index}
-                width={index === 0 ? "100%" : "82%"}
-              />
-            ))}
-          </div>
-        </aside>
-
         <section className={skeletonClasses.contentArea}>
           <article className={skeletonClasses.problemBox}>
+            <div className={skeletonClasses.problemListToggle}>
+              <SkeletonLine height="1rem" width="112px" />
+              <Skeleton borderRadius="8px" height="18px" width="18px" />
+            </div>
+
             <div className="flex items-center justify-between gap-3">
               <SkeletonLine height="1.25rem" width="110px" />
               <Skeleton borderRadius="8px" height="36px" width="36px" />
