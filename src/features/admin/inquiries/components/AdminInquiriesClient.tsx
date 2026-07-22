@@ -719,7 +719,10 @@ export default function AdminInquiriesClient() {
           inquiryListClasses.editableBadge
         } ${domainColorClasses[inquiry.domain]}`}
         disabled={processingClassification}
-        onClick={() => openClassificationModal(inquiry, "domain")}
+        onClick={(event) => {
+          event.stopPropagation();
+          openClassificationModal(inquiry, "domain");
+        }}
         type="button"
       >
         {adminInquiryDomainLabels[inquiry.domain] ?? inquiry.domain}
@@ -735,7 +738,10 @@ export default function AdminInquiriesClient() {
           inquiryListClasses.editableBadge
         } ${severityColorClasses[inquiry.severity]}`}
         disabled={processingClassification}
-        onClick={() => openClassificationModal(inquiry, "severity")}
+        onClick={(event) => {
+          event.stopPropagation();
+          openClassificationModal(inquiry, "severity");
+        }}
         type="button"
       >
         {adminInquirySeverityLabels[inquiry.severity] ?? inquiry.severity}
@@ -945,6 +951,9 @@ export default function AdminInquiriesClient() {
             columns={inquiryColumns}
             data={inquiries}
             emptyMessage="조회된 문의사항이 없습니다."
+            onRowClick={(inquiry) =>
+              router.push(`/admin/cs/${inquiry.inquiryId}`)
+            }
             pagination={
               <Pagination
                 currentPage={page}

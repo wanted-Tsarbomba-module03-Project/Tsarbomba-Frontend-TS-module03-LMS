@@ -14,6 +14,7 @@ import Footer from "../components/layout/Footer";
 import CategoryNav from "../components/layout/CategoryNav";
 import OneButtonModal from "../components/common/OneButtonModal";
 import { mobileSidebarClasses } from "@/components/layout/mobileSidebarClasses";
+import ActiveInquiryRepliesModal from "@/features/inquiries/components/ActiveInquiryRepliesModal";
 import "primereact/resources/themes/lara-light-blue/theme.css";
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
@@ -232,6 +233,9 @@ export default function RootLayout({
           onClose={handleAccessDeniedClose}
           modalTitle="입력 확인"
           modalContent="접근 권한이 없습니다."
+        />
+        <ActiveInquiryRepliesModal
+          enabled={isMount && isLoggedIn && !isAuthPath && !isAdminPath}
         />
       </body>
     </html>
