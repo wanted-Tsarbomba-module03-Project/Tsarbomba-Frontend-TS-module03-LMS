@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type Key, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type Key,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 
 type ListItem = object & {
@@ -42,7 +49,7 @@ const listClasses = {
   scrollArea:
     "w-full max-w-full overscroll-x-contain overflow-auto max-h-[min(520px,calc(100dvh-260px))] [scrollbar-gutter:stable] [scrollbar-width:thin]",
   table:
-    "w-full min-w-[720px] table-fixed border-separate border-spacing-0 max-[760px]:min-w-[640px] max-[420px]:min-w-[560px] [&_td]:overflow-hidden [&_td]:text-ellipsis [&_td]:whitespace-nowrap [&_th]:overflow-visible [&_th]:whitespace-nowrap [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-[1] [&_thead_th]:h-[50px] [&_thead_th]:border-y [&_thead_th]:border-border-light [&_thead_th]:bg-bg-navbar [&_thead_th]:text-center [&_thead_th]:align-middle [&_thead_th]:font-semibold [&_tbody_td]:h-[58px] [&_tbody_td]:border-b [&_tbody_td]:border-border-light [&_tbody_td]:p-0 [&_tbody_td]:text-center [&_tbody_td]:align-middle [&_tbody_tr:hover_td]:cursor-pointer [&_tbody_tr:hover_td]:bg-[#f0f0f0]",
+    "w-full min-w-[720px] table-fixed border-separate border-spacing-0 max-[760px]:min-w-[640px] max-[420px]:min-w-[560px] [&_td]:overflow-hidden [&_td]:text-ellipsis [&_td]:whitespace-nowrap [&_th]:overflow-visible [&_th]:whitespace-nowrap [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-[1] [&_thead_th]:h-[50px] [&_thead_th]:border-y [&_thead_th]:border-border-light [&_thead_th]:bg-bg-navbar [&_thead_th]:text-center [&_thead_th]:align-middle [&_thead_th]:font-semibold [&_tbody_td]:h-[58px] [&_tbody_td]:border-b [&_tbody_td]:border-border-light [&_tbody_td]:p-0 [&_tbody_td]:text-center [&_tbody_td]:align-middle [&_tbody_tr:hover_td]:cursor-pointer [&_tbody_tr:hover_td]:bg-[#f0f0f0] [&_tbody_tr:focus-visible_td]:bg-[#eef2ff]",
   cellContent:
     "box-border min-w-0 overflow-hidden text-ellipsis whitespace-nowrap break-keep px-1 py-2",
   pagination:
@@ -91,12 +98,33 @@ export default function List<T extends ListItem>({
         {data.length > 0 ? (
           data.map((item, index) => {
             const href = rowHref?.(item, index);
+            const rowClickable = !href && Boolean(onRowClick);
+            const handleRowClick = () => {
+              if (rowClickable) {
+                onRowClick?.(item);
+              }
+            };
+            const handleRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
+              if (
+                !rowClickable ||
+                isInteractiveTarget(event.target) ||
+                (event.key !== "Enter" && event.key !== " ")
+              ) {
+                return;
+              }
+
+              event.preventDefault();
+              onRowClick?.(item);
+            };
 
             return (
               <tr
                 className={getRowClassName(rowClassName, item, index)}
                 key={rowKey?.(item, index) ?? item.id ?? index}
-                onClick={href ? undefined : () => onRowClick?.(item)}
+                onClick={handleRowClick}
+                onKeyDown={handleRowKeyDown}
+                role={rowClickable ? "button" : undefined}
+                tabIndex={rowClickable ? 0 : undefined}
               >
                 {columns.map((column) => {
                   const cellContent = getCellContent(
@@ -324,4 +352,15 @@ function normalizeTitle(value: string | number | boolean | undefined) {
   const title = String(value).trim();
 
   return title.length > 0 ? title : undefined;
+}
+
+function isInteractiveTarget(target: EventTarget) {
+  return (
+    target instanceof Element &&
+    Boolean(
+      target.closest(
+        'a, button, input, textarea, select, summary, [role="button"], [role="link"], [tabindex]:not([tabindex="-1"])',
+      ),
+    )
+  );
 }

@@ -28,6 +28,17 @@ export interface AdminInquirySummary {
   createdAt: string;
 }
 
+export interface AdminInquiryDetail extends AdminInquirySummary {
+  userId: number;
+  content: string;
+  sourceUrl: string | null;
+  estimatedUrl: string | null;
+  recommendedAction: string | null;
+  adminReply: string | null;
+  repliedBy: number | string | null;
+  repliedAt: string | null;
+}
+
 export interface AdminInquiryPageResponse {
   content: AdminInquirySummary[];
   page: number;
@@ -52,5 +63,14 @@ export interface AdminInquiryListParams {
 export interface AdminInquiryClassificationRequest {
   domain: AdminInquiryDomain;
   severity: AdminInquirySeverity;
+  reason: string;
+}
+
+export interface AdminInquiryReplyRequest {
+  content: string;
+}
+
+export interface AdminInquiryFilterRequest {
+  filtered: boolean;
   reason: string;
 }
