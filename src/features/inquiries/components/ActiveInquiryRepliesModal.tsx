@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import OneButtonModal from "@/components/common/OneButtonModal";
@@ -41,6 +41,9 @@ export default function ActiveInquiryRepliesModal({
   enabled: boolean;
 }) {
   const router = useRouter();
+  const titleId = useId();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
   const [replies, setReplies] = useState<ActiveInquiryReply[]>([]);
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -52,7 +55,12 @@ export default function ActiveInquiryRepliesModal({
 
   useEffect(() => {
     if (!enabled) {
-      return;
+      const resetTimer = window.setTimeout(() => {
+        setOpen(false);
+        setReplies([]);
+      }, 0);
+
+      return () => window.clearTimeout(resetTimer);
     }
 
     const controller = new AbortController();
@@ -62,7 +70,13 @@ export default function ActiveInquiryRepliesModal({
         const result = await getActiveInquiryReplies(controller.signal);
         const nextReplies = result.data?.replies ?? [];
 
-        if (controller.signal.aborted || nextReplies.length === 0) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        if (nextReplies.length === 0) {
+          setOpen(false);
+          setReplies([]);
           return;
         }
 
@@ -92,7 +106,7 @@ export default function ActiveInquiryRepliesModal({
     return () => controller.abort();
   }, [enabled, router]);
 
-  const closeReplies = async () => {
+  const closeReplies = useCallback(async () => {
     if (closing) {
       return;
     }
@@ -100,15 +114,83 @@ export default function ActiveInquiryRepliesModal({
     setClosing(true);
 
     try {
-      await Promise.allSettled(
+      const results = await Promise.allSettled(
         replies.map((reply) => markInquiryReplyVisible(reply.inquiryId)),
       );
-    } finally {
-      setClosing(false);
+      const failedReplies = replies.filter(
+        (_, index) => results[index]?.status === "rejected",
+      );
+
+      if (failedReplies.length > 0) {
+        setReplies(failedReplies);
+        setOpen(true);
+        setNoticeModal({
+          isOpen: true,
+          title: "문의 답변 확인 처리 실패",
+          content:
+            "일부 답변을 확인 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        });
+        return;
+      }
+
       setOpen(false);
       setReplies([]);
+    } finally {
+      setClosing(false);
     }
-  };
+  }, [closing, replies]);
+
+  useEffect(() => {
+    if (!enabled || !open || replies.length === 0) {
+      return;
+    }
+
+    previouslyFocusedElementRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        void closeReplies();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const focusableElements = closeButtonRef.current
+        ?.closest('[role="dialog"]')
+        ?.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), textarea:not(:disabled), input:not(:disabled), select:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+        );
+
+      if (!focusableElements || focusableElements.length === 0) {
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocusedElementRef.current?.focus();
+    };
+  }, [closeReplies, enabled, open, replies.length]);
 
   return (
     <>
@@ -116,11 +198,12 @@ export default function ActiveInquiryRepliesModal({
         <div className={replyModalClasses.overlay}>
           <section
             aria-modal="true"
+            aria-labelledby={titleId}
             className={replyModalClasses.panel}
             role="dialog"
           >
             <header className={replyModalClasses.header}>
-              <h2 className={replyModalClasses.title}>
+              <h2 className={replyModalClasses.title} id={titleId}>
                 문의 답변이 도착했습니다
               </h2>
               <p className={replyModalClasses.description}>
@@ -156,6 +239,7 @@ export default function ActiveInquiryRepliesModal({
                 className={replyModalClasses.button}
                 disabled={closing}
                 onClick={() => void closeReplies()}
+                ref={closeButtonRef}
                 type="button"
               >
                 닫기
@@ -182,10 +266,14 @@ export default function ActiveInquiryRepliesModal({
 }
 
 function formatDateTime(value: string) {
+  if (!value.trim()) {
+    return "-";
+  }
+
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return value;
+    return "-";
   }
 
   return new Intl.DateTimeFormat("ko-KR", {

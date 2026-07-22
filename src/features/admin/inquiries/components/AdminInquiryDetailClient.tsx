@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
 
@@ -63,7 +63,7 @@ const detailClasses = {
     "rounded-base border border-border-light bg-bg-navbar p-4 text-body leading-7 text-text-primary",
   replyForm: "flex flex-col gap-3",
   textarea:
-    "min-h-[150px] resize-y rounded-base border border-border-light bg-bg-box p-3 text-body leading-6 text-text-primary outline-none focus:ring-2 focus:ring-[#1a237e] disabled:bg-[#f3f4f6] disabled:text-text-secondary",
+    "min-h-[150px] resize-y rounded-base border border-border-light bg-bg-box p-3 text-body leading-6 text-text-primary outline-hidden focus:ring-2 focus:ring-[#1a237e] disabled:bg-[#f3f4f6] disabled:text-text-secondary",
   modalOverlay:
     "fixed inset-0 z-[999] flex h-dvh w-dvw items-center justify-center bg-[rgba(16,24,40,0.45)] px-4 py-6",
   modalPanel:
@@ -72,7 +72,7 @@ const detailClasses = {
   modalDescription:
     "mt-2 mb-0 min-h-[48px] whitespace-pre-line text-body text-text-secondary",
   modalTextarea:
-    "mt-4 min-h-[140px] w-full resize-y rounded-base border border-border-light p-3 text-body text-text-primary outline-none focus:ring-2 focus:ring-[#1a237e] disabled:bg-[#f3f4f6] disabled:text-text-secondary",
+    "mt-4 min-h-[140px] w-full resize-y rounded-base border border-border-light p-3 text-body text-text-primary outline-hidden focus:ring-2 focus:ring-[#1a237e] disabled:bg-[#f3f4f6] disabled:text-text-secondary",
   modalError:
     "mt-2 mb-0 min-h-[18px] text-description font-semibold text-[#b91c1c]",
   modalActions: "mt-5 flex justify-end gap-2",
@@ -184,7 +184,7 @@ export default function AdminInquiryDetailClient() {
     setFilterReasonOpen(true);
   };
 
-  const closeFilterReason = () => {
+  const closeFilterReason = useCallback(() => {
     if (saving) {
       return;
     }
@@ -192,7 +192,7 @@ export default function AdminInquiryDetailClient() {
     setFilterReasonOpen(false);
     setFilterConfirmOpen(false);
     setFilterReason("");
-  };
+  }, [saving]);
 
   const handleFilterReasonSubmit = () => {
     if (filterReasonInvalid) {
@@ -523,6 +523,61 @@ function FilterReasonModal({
   onSubmit: () => void;
   reason: string;
 }) {
+  const titleId = useId();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    previouslyFocusedElementRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    textareaRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const focusableElements = textareaRef.current
+        ?.closest('[role="dialog"]')
+        ?.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), textarea:not(:disabled), input:not(:disabled), select:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+        );
+
+      if (!focusableElements || focusableElements.length === 0) {
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocusedElementRef.current?.focus();
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) {
     return null;
   }
@@ -532,10 +587,15 @@ function FilterReasonModal({
   return (
     <div className={detailClasses.modalOverlay} onClick={onClose}>
       <div
+        aria-labelledby={titleId}
+        aria-modal="true"
         className={detailClasses.modalPanel}
         onClick={(event) => event.stopPropagation()}
+        role="dialog"
       >
-        <h2 className={detailClasses.modalTitle}>AI 필터링 상태 수정</h2>
+        <h2 className={detailClasses.modalTitle} id={titleId}>
+          AI 필터링 상태 수정
+        </h2>
         <p className={detailClasses.modalDescription}>
           {`문의 상태를 ${
             filtered ? "AI 필터링" : "정상 문의"
@@ -547,6 +607,7 @@ function FilterReasonModal({
           maxLength={300}
           onChange={(event) => onReasonChange(event.target.value)}
           placeholder="예: AI는 무의미 문의로 판단했지만 실제 문제 제출 오류 문의로 확인됨"
+          ref={textareaRef}
           value={reason}
         />
         <p className={detailClasses.modalError}>
@@ -588,10 +649,14 @@ function renderUrl(url: string | null) {
 }
 
 function formatDateTime(value: string) {
+  if (!value.trim()) {
+    return "-";
+  }
+
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return value;
+    return "-";
   }
 
   return new Intl.DateTimeFormat("ko-KR", {

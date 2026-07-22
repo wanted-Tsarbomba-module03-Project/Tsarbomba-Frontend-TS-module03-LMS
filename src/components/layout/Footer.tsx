@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import OneButtonModal from "@/components/common/OneButtonModal";
@@ -29,7 +29,7 @@ const footerClasses = {
   modalDescription:
     "mt-2 mb-0 min-h-[48px] whitespace-pre-line text-body text-text-secondary",
   textarea:
-    "mt-4 min-h-[160px] w-full resize-y rounded-base border border-border-light p-3 text-body text-text-primary outline-none focus:ring-2 focus:ring-[#1a237e] disabled:bg-[#f3f4f6] disabled:text-text-secondary",
+    "mt-4 min-h-[160px] w-full resize-y rounded-base border border-border-light p-3 text-body text-text-primary outline-hidden focus:ring-2 focus:ring-[#1a237e] disabled:bg-[#f3f4f6] disabled:text-text-secondary",
   modalFooter: "mt-2 flex items-center justify-between gap-3",
   count: "text-description text-text-secondary",
   error: "min-h-[18px] text-description font-semibold text-[#b91c1c]",
@@ -58,14 +58,14 @@ function Footer() {
   const normalizedInquiry = inquiryContent.trim();
   const inquiryInvalid = normalizedInquiry.length === 0;
 
-  const closeInquiryModal = () => {
+  const closeInquiryModal = useCallback(() => {
     if (submitting) {
       return;
     }
 
     setInquiryOpen(false);
     setInquiryContent("");
-  };
+  }, [submitting]);
 
   const handleInquirySubmit = async () => {
     if (submitting || inquiryInvalid) {
@@ -86,6 +86,7 @@ function Footer() {
         content: "관리자가 내용을 확인한 뒤 필요한 조치를 진행합니다.",
       });
     } catch (error) {
+      setInquiryOpen(false);
       handleClientError(error, {
         router,
         fallbackTitle: "문의를 등록하지 못했습니다.",
@@ -178,6 +179,61 @@ function InquiryModal({
   onClose: () => void;
   onSubmit: () => void;
 }) {
+  const titleId = useId();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    previouslyFocusedElementRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    textareaRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const focusableElements = textareaRef.current
+        ?.closest('[role="dialog"]')
+        ?.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), textarea:not(:disabled), input:not(:disabled), select:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+        );
+
+      if (!focusableElements || focusableElements.length === 0) {
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocusedElementRef.current?.focus();
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) {
     return null;
   }
@@ -187,10 +243,15 @@ function InquiryModal({
   return (
     <div className={footerClasses.modalOverlay} onClick={onClose}>
       <div
+        aria-labelledby={titleId}
+        aria-modal="true"
         className={footerClasses.modalPanel}
         onClick={(event) => event.stopPropagation()}
+        role="dialog"
       >
-        <h2 className={footerClasses.modalTitle}>문의하기</h2>
+        <h2 className={footerClasses.modalTitle} id={titleId}>
+          문의하기
+        </h2>
         <p className={footerClasses.modalDescription}>
           {"이용 중 불편한 점이나 확인이 필요한 내용을 남겨 주세요.\n현재 페이지 경로가 함께 전달됩니다."}
         </p>
@@ -200,6 +261,7 @@ function InquiryModal({
           maxLength={INQUIRY_MAX_LENGTH}
           onChange={(event) => onChange(event.target.value)}
           placeholder="문의 내용을 입력해 주세요."
+          ref={textareaRef}
           value={content}
         />
         <div className={footerClasses.modalFooter}>
