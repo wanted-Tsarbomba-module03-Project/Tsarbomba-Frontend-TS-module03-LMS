@@ -11,6 +11,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import CategoryNav from "@/components/layout/CategoryNav";
 import Sidebar from "@/components/layout/Sidebar";
+import { getSuggestedQuestions } from "@/features/chat/actions";
 import { streamChat } from "@/features/chat/stream";
 import { createChatTypewriter } from "@/features/chat/typewriter";
 import { handleClientError } from "@/lib/errorHandling";
@@ -348,6 +349,7 @@ export default function UserProblemDetailClient({
   const [chatSending, setChatSending] = useState(false);
   const [showChatResponsePending, setShowChatResponsePending] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [problemPanelPercent, setProblemPanelPercent] = useState(
     DEFAULT_PROBLEM_PANEL_PERCENT,
   );
@@ -440,6 +442,44 @@ export default function UserProblemDetailClient({
   const isCurrentProblemCorrect = isCorrectLikeStatus(
     problemStates[currentIndex],
   );
+
+  useEffect(() => {
+    const problemSetNumericId = Number(problemSet.id);
+    const problemNumericId = Number(currentProblem?.problemId);
+
+    if (
+      !Number.isFinite(problemSetNumericId) ||
+      problemSetNumericId <= 0 ||
+      !Number.isFinite(problemNumericId) ||
+      problemNumericId <= 0
+    ) {
+      const resetTimer = window.setTimeout(() => {
+        setSuggestedQuestions([]);
+      }, 0);
+
+      return () => window.clearTimeout(resetTimer);
+    }
+
+    const controller = new AbortController();
+
+    getSuggestedQuestions(
+      problemSetNumericId,
+      problemNumericId,
+      controller.signal,
+    )
+      .then((result) => {
+        if (!controller.signal.aborted) {
+          setSuggestedQuestions(result?.questions ?? []);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setSuggestedQuestions([]);
+        }
+      });
+
+    return () => controller.abort();
+  }, [currentProblem?.problemId, problemSet.id]);
 
   const problemPanelStyle = useMemo(
     () =>
@@ -639,13 +679,17 @@ export default function UserProblemDetailClient({
 
     const nextCodes = updateArrayItem(userCodes, currentIndex, code);
 
-    setUserCodes(nextCodes);
-    setCurrentIndex(nextIndex);
-    setCode(nextCodes[nextIndex] ?? "");
-    setSubmissionResult(submissionResults[nextIndex] ?? null);
-    setActiveTab("result");
-    setExecutionResult(null);
-    resetChatState();
+    const syncTimer = window.setTimeout(() => {
+      setUserCodes(nextCodes);
+      setCurrentIndex(nextIndex);
+      setCode(nextCodes[nextIndex] ?? "");
+      setSubmissionResult(submissionResults[nextIndex] ?? null);
+      setActiveTab("result");
+      setExecutionResult(null);
+      resetChatState();
+    }, 0);
+
+    return () => window.clearTimeout(syncTimer);
   }, [
     code,
     currentIndex,
@@ -1263,9 +1307,12 @@ export default function UserProblemDetailClient({
     [chatMessages, feedbackPendingIds, router],
   );
 
-  const sendChat = async () => {
+  const sendChat = async (overrideMessage?: string) => {
+    const userMessage =
+      typeof overrideMessage === "string" ? overrideMessage.trim() : chatInput.trim();
+
     if (
-      !chatInput.trim() ||
+      !userMessage ||
       chatSending ||
       chatLoading ||
       !problemSet.id ||
@@ -1274,7 +1321,6 @@ export default function UserProblemDetailClient({
       return;
     }
 
-    const userMessage = chatInput;
     const targetRoomId = chatRoomId;
     const targetProblemId = currentProblem.problemId;
     const controller = new AbortController();
@@ -1436,6 +1482,15 @@ export default function UserProblemDetailClient({
     }
   };
 
+  const handleSelectSuggestedQuestion = (question: string) => {
+    if (!chatOpen) {
+      setChatOpen(true);
+      setHasOpenedChatPanel(true);
+    }
+
+    setChatInput(question);
+  };
+
   return (
     <>
       <main className={problemDetailClasses.container}>
@@ -1539,6 +1594,7 @@ export default function UserProblemDetailClient({
               chatRoomTitle={chatRoomTitle}
               chatSending={chatSending || chatLoading}
               showChatSendingIndicator={showChatResponsePending}
+              suggestedQuestions={suggestedQuestions}
               onChatInputChange={setChatInput}
               onChatRoomTitleCancel={cancelChatRoomTitleEdit}
               onChatRoomTitleChange={setChatRoomTitleInput}
@@ -1546,6 +1602,7 @@ export default function UserProblemDetailClient({
               onChatRoomTitleSubmit={requestChatRoomTitleUpdate}
               onClose={() => setChatOpen(false)}
               onFeedback={handleChatFeedback}
+              onSelectSuggestedQuestion={handleSelectSuggestedQuestion}
               onSendChat={sendChat}
             />
           )}

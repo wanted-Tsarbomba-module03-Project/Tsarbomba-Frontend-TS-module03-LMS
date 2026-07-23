@@ -36,3 +36,12 @@ export interface ChatResponse {
   answer: string;
   roomId?: number;
 }
+
+export type SuggestedQuestionSource = "GENERATED" | "DEFAULT";
+
+export interface SuggestedQuestions {
+  problemSetId: number;
+  problemId: number;
+  source: SuggestedQuestionSource;
+  questions: string[];
+}
