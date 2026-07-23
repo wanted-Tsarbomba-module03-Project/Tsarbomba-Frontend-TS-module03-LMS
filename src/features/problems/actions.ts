@@ -2,6 +2,12 @@ import { ApiClientError, type BackendErrorPayload } from "@/lib/errorHandling";
 import { SERVER_API_BASE_URL } from "@/lib/serverEnv";
 
 import { PROBLEM_SET_PAGE_SIZE } from "./constants";
+import {
+  normalizeOptionalString,
+  normalizePositiveNumber,
+  normalizeProblemDifficulty,
+  normalizeTimeoutSeconds,
+} from "./problemDraftGenerationUtils";
 import type {
   CreateProblemRequest,
   EditableRecommendedCoursesResponse,
@@ -277,24 +283,6 @@ export function createProblemUpdateRequestBody(
   };
 }
 
-function normalizePositiveNumber(value: unknown, fallback: number) {
-  const parsedValue =
-    typeof value === "number" ? value : Number.parseInt(String(value), 10);
-
-  return Number.isFinite(parsedValue) && parsedValue > 0
-    ? parsedValue
-    : fallback;
-}
-
-function normalizeDraftTimeoutSeconds(value: unknown) {
-  const timeout = normalizePositiveNumber(
-    value,
-    INITIAL_SUB_PROBLEM.testCases[0].timeoutMs,
-  );
-
-  return timeout >= 1000 ? Math.max(1, Math.round(timeout / 1000)) : timeout;
-}
-
 function normalizeProblemSetDraft(response: unknown): ProblemSetDraft {
   const payload = response as { data?: unknown } | null;
   const data = (payload?.data ?? response) as Partial<ProblemSetDraft> & {
@@ -304,7 +292,9 @@ function normalizeProblemSetDraft(response: unknown): ProblemSetDraft {
     problems?: unknown;
     usedTools?: unknown;
   };
-  const draftSource = (data.draft ?? data.problemSet ?? data) as Partial<ProblemSetDraft>;
+  const draftSource = (data.draft ??
+    data.problemSet ??
+    data) as Partial<ProblemSetDraft>;
   const rawProblems = Array.isArray(draftSource.problems)
     ? draftSource.problems
     : [];
@@ -323,9 +313,9 @@ function normalizeProblemSetDraft(response: unknown): ProblemSetDraft {
           : undefined,
     title: String(draftSource.title ?? ""),
     description: String(draftSource.description ?? ""),
-    categoryName: draftSource.categoryName,
-    difficulty: draftSource.difficulty,
-    dataFileName: draftSource.dataFileName,
+    categoryName: normalizeOptionalString(draftSource.categoryName),
+    difficulty: normalizeProblemDifficulty(draftSource.difficulty),
+    dataFileName: normalizeOptionalString(draftSource.dataFileName),
     usedTools: rawUsedTools
       .map((tool) => (typeof tool === "string" ? tool : ""))
       .filter(Boolean),
@@ -360,7 +350,10 @@ function normalizeProblemSetDraft(response: unknown): ProblemSetDraft {
           return {
             testCode: String(testCase.testCode ?? ""),
             isHidden: Boolean(testCase.isHidden),
-            timeoutMs: normalizeDraftTimeoutSeconds(testCase.timeoutMs),
+            timeoutMs: normalizeTimeoutSeconds(
+              testCase.timeoutMs,
+              INITIAL_SUB_PROBLEM.testCases[0].timeoutMs,
+            ),
           };
         }),
       };

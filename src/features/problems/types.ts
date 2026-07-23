@@ -73,6 +73,16 @@ export interface ProblemSetDraftGenerateRequest {
   subProblemCount: number;
 }
 
+export interface ProblemSetDraftProblem {
+  title: string;
+  content: string;
+  point: number;
+  startCode: string | null;
+  hint: string;
+  explanation: string;
+  testCases: ProblemTestCase[];
+}
+
 export interface ProblemSetDraft {
   answer?: string;
   title: string;
@@ -81,15 +91,7 @@ export interface ProblemSetDraft {
   difficulty?: ProblemDifficulty;
   dataFileName?: string;
   usedTools?: string[];
-  problems: Array<{
-    title: string;
-    content: string;
-    point: number;
-    startCode: string | null;
-    hint: string;
-    explanation: string;
-    testCases: ProblemTestCase[];
-  }>;
+  problems: ProblemSetDraftProblem[];
 }
 
 export interface RecommendedCourse {

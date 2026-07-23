@@ -130,6 +130,8 @@ export function clearProblemDraftGeneration(jobId?: string) {
     return;
   }
 
+  currentController?.abort();
+  currentController = null;
   currentJob = null;
   notifySubscribers();
 }

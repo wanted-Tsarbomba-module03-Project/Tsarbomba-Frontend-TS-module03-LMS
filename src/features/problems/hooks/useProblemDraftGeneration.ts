@@ -14,6 +14,7 @@ import {
   startProblemDraftGeneration,
   subscribeProblemDraftGeneration,
 } from "../problemDraftGenerationStore";
+import { normalizeTimeoutSeconds } from "../problemDraftGenerationUtils";
 import type {
   ProblemCategory,
   ProblemInfo,
@@ -192,10 +193,7 @@ export function useProblemDraftGeneration({
             testCases: problem.testCases.map((testCase) => ({
               isHidden: testCase.isHidden,
               testCode: testCase.testCode,
-              timeoutMs:
-                testCase.timeoutMs > 1000
-                  ? Math.max(1, Math.round(testCase.timeoutMs / 1000))
-                  : testCase.timeoutMs,
+              timeoutMs: normalizeTimeoutSeconds(testCase.timeoutMs),
             })),
           }))
         : [createInitialSubProblem()],
