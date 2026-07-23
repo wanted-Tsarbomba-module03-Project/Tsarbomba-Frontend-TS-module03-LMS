@@ -542,12 +542,6 @@ export default function CourseProblemDetailClient({
         return;
       }
 
-      setLoadedExplanationProblemIds((prev) => {
-        const next = new Set(prev);
-        next.add(result.problemId);
-        return next;
-      });
-
       const currentProblemState = problemStates[currentIndex];
       const nextCurrentProblemState =
         currentProblemState === "CORRECT" ? "CORRECT" : "EXPLANATION_VIEWED";
@@ -594,12 +588,13 @@ export default function CourseProblemDetailClient({
 
       // 해설 텍스트가 응답에 비면 서버에서 재조회해 채운다 (진행도 처리와 분리 — 해설이 비어도 잠금 해제/완료는 반영됨).
       // router.refresh()로는 이 클라이언트 state 가 안 채워져 직접 재조회가 필요.
+      let freshExplanation: string | undefined;
       if (!(result.explanation ?? currentProblem.explanation)) {
         try {
           const fresh = await getLectureProblemSet(lectureProblemSetId, {
             cache: "no-store",
           });
-          const freshExplanation = fresh.problems.find(
+          freshExplanation = fresh.problems.find(
             (problem) => problem.problemId === result.problemId,
           )?.explanation;
           if (freshExplanation) {
@@ -618,6 +613,15 @@ export default function CourseProblemDetailClient({
         } catch {
           /* 재조회 실패 시 기존 값 유지 — 이후 재진입/새로고침으로 복구 가능 */
         }
+      }
+
+      // 해설 텍스트를 확정했을 때만 loaded 로 기록 — 비어 있으면 다음 해설 탭 진입 시 재조회되도록 남긴다.
+      if (result.explanation ?? currentProblem.explanation ?? freshExplanation) {
+        setLoadedExplanationProblemIds((prev) => {
+          const next = new Set(prev);
+          next.add(result.problemId);
+          return next;
+        });
       }
 
       // 잠금 해제가 persist 됐으므로 Router Cache 를 무효화해 재진입 시 stale 상태 방지 (배포 전용 재현).
