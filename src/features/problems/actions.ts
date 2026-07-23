@@ -20,6 +20,9 @@ import type {
   ProblemCodeSubmission,
   ProblemChatRoom,
   ProblemDatasetDownloadUrl,
+  ProblemTestCase,
+  ProblemSetDraft,
+  ProblemSetDraftGenerateRequest,
   ProblemRecommendedCoursesResponse,
   ProblemSetDetail,
   ProblemSetProgress,
@@ -90,6 +93,7 @@ type NextRequestInit = RequestInit & {
 };
 
 const CREATE_PATH = "/api/v1/problems/with-dataset";
+const DRAFT_GENERATE_PATH = "/api/v1/admin/problem-set-drafts/generate";
 const DEFAULT_FALLBACK_MESSAGE =
   "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
 
@@ -213,6 +217,34 @@ export async function createProblem(
   return text ? JSON.parse(text) : null;
 }
 
+export async function generateProblemSetDraft(
+  requestBody: ProblemSetDraftGenerateRequest,
+  file: File,
+  signal?: AbortSignal,
+) {
+  const formData = new FormData();
+
+  formData.append(
+    "request",
+    new Blob([JSON.stringify(requestBody)], {
+      type: "application/json",
+    }),
+  );
+  formData.append("datasetFile", file);
+
+  const result = await requestJson<unknown>(
+    DRAFT_GENERATE_PATH,
+    "문제세트 초안을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    {
+      method: "POST",
+      body: formData,
+      signal,
+    },
+  );
+
+  return normalizeProblemSetDraft(result);
+}
+
 export function createProblemUpdateRequestBody(
   problemInfo: ProblemInfo,
   problems: SubProblem[],
@@ -242,6 +274,97 @@ export function createProblemUpdateRequestBody(
         timeoutMs: Number(testCase.timeoutMs) * 1000,
       })),
     })),
+  };
+}
+
+function normalizePositiveNumber(value: unknown, fallback: number) {
+  const parsedValue =
+    typeof value === "number" ? value : Number.parseInt(String(value), 10);
+
+  return Number.isFinite(parsedValue) && parsedValue > 0
+    ? parsedValue
+    : fallback;
+}
+
+function normalizeDraftTimeoutSeconds(value: unknown) {
+  const timeout = normalizePositiveNumber(
+    value,
+    INITIAL_SUB_PROBLEM.testCases[0].timeoutMs,
+  );
+
+  return timeout >= 1000 ? Math.max(1, Math.round(timeout / 1000)) : timeout;
+}
+
+function normalizeProblemSetDraft(response: unknown): ProblemSetDraft {
+  const payload = response as { data?: unknown } | null;
+  const data = (payload?.data ?? response) as Partial<ProblemSetDraft> & {
+    answer?: unknown;
+    draft?: Partial<ProblemSetDraft>;
+    problemSet?: Partial<ProblemSetDraft>;
+    problems?: unknown;
+    usedTools?: unknown;
+  };
+  const draftSource = (data.draft ?? data.problemSet ?? data) as Partial<ProblemSetDraft>;
+  const rawProblems = Array.isArray(draftSource.problems)
+    ? draftSource.problems
+    : [];
+  const rawUsedTools = Array.isArray(data.usedTools)
+    ? data.usedTools
+    : Array.isArray(draftSource.usedTools)
+      ? draftSource.usedTools
+      : [];
+
+  return {
+    answer:
+      typeof data.answer === "string"
+        ? data.answer
+        : typeof draftSource.answer === "string"
+          ? draftSource.answer
+          : undefined,
+    title: String(draftSource.title ?? ""),
+    description: String(draftSource.description ?? ""),
+    categoryName: draftSource.categoryName,
+    difficulty: draftSource.difficulty,
+    dataFileName: draftSource.dataFileName,
+    usedTools: rawUsedTools
+      .map((tool) => (typeof tool === "string" ? tool : ""))
+      .filter(Boolean),
+    problems: rawProblems.map((rawProblem, index) => {
+      const problem = rawProblem as {
+        title?: unknown;
+        questionTitle?: unknown;
+        content?: unknown;
+        context?: unknown;
+        point?: unknown;
+        startCode?: unknown;
+        hint?: unknown;
+        explanation?: unknown;
+        solution?: unknown;
+        testCases?: unknown;
+      };
+      const rawTestCases = Array.isArray(problem.testCases)
+        ? problem.testCases
+        : INITIAL_SUB_PROBLEM.testCases;
+
+      return {
+        title: String(problem.title ?? problem.questionTitle ?? `소문제 ${index + 1}`),
+        content: String(problem.content ?? problem.context ?? ""),
+        point: normalizePositiveNumber(problem.point, INITIAL_SUB_PROBLEM.point),
+        startCode:
+          typeof problem.startCode === "string" ? problem.startCode : null,
+        hint: String(problem.hint ?? ""),
+        explanation: String(problem.explanation ?? problem.solution ?? ""),
+        testCases: rawTestCases.map((rawTestCase) => {
+          const testCase = rawTestCase as Partial<ProblemTestCase>;
+
+          return {
+            testCode: String(testCase.testCode ?? ""),
+            isHidden: Boolean(testCase.isHidden),
+            timeoutMs: normalizeDraftTimeoutSeconds(testCase.timeoutMs),
+          };
+        }),
+      };
+    }),
   };
 }
 
