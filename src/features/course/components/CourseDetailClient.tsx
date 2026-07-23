@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { optimizedImageProps } from "@/components/common/imageOptimization";
@@ -132,6 +132,8 @@ export default function CourseDetailClient({
   const [recommendError, setRecommendError] = useState(false);
   const [recommendBlocked, setRecommendBlocked] = useState(false);
   const recommendTitleId = useId();
+  const recommendModalRef = useRef<HTMLDivElement>(null);
+  const recommendCloseRef = useRef<HTMLButtonElement>(null);
 
   // 추천 조회 기준 강의 = 마지막 강의(최고 order). BE 가 "마지막 + 전체 완료" 를 검증.
   const lastLectureId =
@@ -146,14 +148,37 @@ export default function CourseDetailClient({
     redirect?: string;
   } | null>(null);
 
-  // 추천 모달 Esc 닫기
+  // 추천 모달 Esc 닫기 + 포커스 트랩(열림 시 닫기버튼 포커스, Tab 가두기, 닫힘 시 트리거 복귀)
   useEffect(() => {
     if (!showRecommend) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    recommendCloseRef.current?.focus();
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowRecommend(false);
+      if (e.key === "Escape") {
+        setShowRecommend(false);
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const focusables = recommendModalRef.current?.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusables || focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      previouslyFocused?.focus?.();
+    };
   }, [showRecommend]);
 
   const handleRecommendClick = async () => {
@@ -548,6 +573,7 @@ export default function CourseDetailClient({
           onClick={() => setShowRecommend(false)}
         >
           <div
+            ref={recommendModalRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby={recommendTitleId}
@@ -562,6 +588,7 @@ export default function CourseDetailClient({
                 AI 추천 문제
               </h3>
               <button
+                ref={recommendCloseRef}
                 type="button"
                 onClick={() => setShowRecommend(false)}
                 aria-label="모달 닫기"
@@ -618,12 +645,12 @@ export default function CourseDetailClient({
                         onClick={() => router.push(`/problems/${ps.problemSetId}`)}
                         className="w-full text-left p-5 rounded-lg border border-border-light hover:border-text-blue hover:shadow-md transition-all duration-200 cursor-pointer"
                       >
-                        <p className="text-xl font-bold text-text-primary mb-2">
+                        <span className="block text-xl font-bold text-text-primary mb-2">
                           {ps.title}
-                        </p>
-                        <p className="text-base text-text-secondary leading-relaxed">
+                        </span>
+                        <span className="block text-base text-text-secondary leading-relaxed">
                           {ps.description}
-                        </p>
+                        </span>
                         {ps.recommendationReason && (
                           <span className="mt-4 flex gap-2 rounded-md bg-[#eef2ff] px-4 py-3 text-[15px] leading-relaxed text-text-blue">
                             <span aria-hidden="true">💡</span>
