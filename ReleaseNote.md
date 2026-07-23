@@ -8,6 +8,20 @@
   - 카테고리 버튼을 네브바 **왼쪽으로 정렬**하고 헤더 아래 **여백 제거**
   - **내 강의실** 진행 중/완료한 강의를 각 **한 줄 높이로 제한 + 세로 스크롤** 처리해, 강의가 많아도 진행·완료 두 섹션이 한 화면에 보이도록 개선
   - 강좌 완료 추천 모달을 **"AI 추천 문제"** 로 명칭 통일(버튼·제목), 문제명·설명·추천 사유 **글씨 확대** + 모달 폭 축소·세로 확장, 카드 호버 색상 정리
+# v1.6.14 (2026-07-22)
+
+### 문의 상세/답변 및 사용자 문의 알림 기능 추가
+
+- **Added**
+  - `/admin/cs/[id]` 문의 상세 페이지 추가 — `GET /api/v1/admin/inquiries/{inquiryId}` 상세 조회, `POST /api/v1/admin/inquiries/{inquiryId}/reply` 관리자 답변 등록 연동
+  - 문의 상세 페이지에서 `PATCH /api/v1/admin/inquiries/{inquiryId}/filter`로 AI 필터링 여부를 사유 입력 후 수정하는 기능 추가
+  - Footer에 `문의하기` 버튼과 500자 문의 작성 모달 추가 — `POST /api/v1/inquiries`로 문의 내용과 현재 페이지 `sourceUrl` 전송
+  - 로그인 후 일반 사용자 화면에서 `GET /api/v1/inquiries/me/replies/active`로 미확인 문의 답변을 조회하고, 답변이 있으면 모달로 표시
+  - 문의 답변 모달 닫기 시 `PATCH /api/v1/inquiries/{inquiryId}/reply-visibility`로 확인 처리
+- **Changed**
+  - 문의 목록 행 클릭 시 상세 페이지로 이동하도록 연결하고, 도메인/심각도 분류 수정 버튼 클릭은 행 이동과 충돌하지 않도록 처리
+  - 관리자 답변 등록 후 일부 응답만 내려와도 기존 상세 조회 데이터를 유지하도록 답변 관련 필드만 병합
+  - Footer 텍스트 스타일을 `line-clamp-2 whitespace-normal! break-keep leading-5 text-description text-text-secondary` 기준으로 정리
 
 ---
 
