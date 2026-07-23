@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import AdminOpsChatWidget from "@/features/admin/ops-chat/AdminOpsChatWidget";
+import ProblemDraftGenerationStatus from "@/features/problems/components/ProblemDraftGenerationStatus";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
@@ -15,6 +16,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <>
       {children}
+      <ProblemDraftGenerationStatus />
       <AdminOpsChatWidget />
     </>
   );

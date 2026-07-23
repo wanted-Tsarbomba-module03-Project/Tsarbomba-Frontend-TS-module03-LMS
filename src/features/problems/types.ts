@@ -63,6 +63,37 @@ export interface CreateProblemRequest {
   }>;
 }
 
+export interface ProblemSetDraftGenerateRequest {
+  question: string;
+  dataFileName: string;
+  topic: string;
+  categoryName: string;
+  difficulty: ProblemDifficulty;
+  problemCount: number;
+  subProblemCount: number;
+}
+
+export interface ProblemSetDraftProblem {
+  title: string;
+  content: string;
+  point: number;
+  startCode: string | null;
+  hint: string;
+  explanation: string;
+  testCases: ProblemTestCase[];
+}
+
+export interface ProblemSetDraft {
+  answer?: string;
+  title: string;
+  description: string;
+  categoryName?: string;
+  difficulty?: ProblemDifficulty;
+  dataFileName?: string;
+  usedTools?: string[];
+  problems: ProblemSetDraftProblem[];
+}
+
 export interface RecommendedCourse {
   courseId: number;
   title: string;
