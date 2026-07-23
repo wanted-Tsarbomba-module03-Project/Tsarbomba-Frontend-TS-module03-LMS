@@ -257,9 +257,12 @@ function ClassificationReasonModal({
   const firstFieldRef = useRef<HTMLSelectElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
+  const draftFocusKey = draft
+    ? `${draft.inquiry.inquiryId}-${draft.field}`
+    : null;
 
   useEffect(() => {
-    if (!draft) {
+    if (!draftFocusKey) {
       return;
     }
 
@@ -307,7 +310,7 @@ function ClassificationReasonModal({
       document.removeEventListener("keydown", handleKeyDown);
       previouslyFocusedElementRef.current?.focus();
     };
-  }, [draft, onClose]);
+  }, [draftFocusKey, onClose]);
 
   if (!draft) {
     return null;
