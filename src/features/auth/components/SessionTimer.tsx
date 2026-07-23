@@ -25,7 +25,6 @@ export default function SessionTimer({ onExpire }: SessionTimerProps) {
   const [remaining, setRemaining] = useState<number | null>(null);
   const [extendable, setExtendable] = useState(false);
   const [isExtending, setIsExtending] = useState(false);
-  const intervalRef = useRef<number | null>(null);
   const expiredRef = useRef(false);
 
   // 최초 세션 조회
@@ -46,31 +45,29 @@ export default function SessionTimer({ onExpire }: SessionTimerProps) {
     };
   }, []);
 
-  // 1초 단위 카운트다운
+  // 1초 단위 카운트다운 — 0에 도달해도 interval 은 유지한다.
+  // (연장 성공으로 remaining 이 다시 양수가 되면 같은 interval 이 이어서 카운트다운)
   useEffect(() => {
     if (remaining === null) return;
-    intervalRef.current = window.setInterval(() => {
+    const timer = window.setInterval(() => {
       setRemaining((prev) => {
         if (prev === null) return prev;
-        if (prev <= 1) {
-          if (intervalRef.current) window.clearInterval(intervalRef.current);
-          return 0;
-        }
-        return prev - 1;
+        return prev > 0 ? prev - 1 : 0;
       });
     }, 1000);
-    return () => {
-      if (intervalRef.current) window.clearInterval(intervalRef.current);
-    };
+    return () => window.clearInterval(timer);
+    // remaining 값 자체가 아닌 null 여부에만 반응 — 매 tick 마다 interval 을 재생성하지 않기 위함.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remaining === null]);
 
-  // 잔여 시간이 0에 도달하면 1회만 만료 콜백 실행
+  // 잔여 시간이 0에 도달하면 1회만 만료 콜백 실행.
+  // 연장 진행 중(isExtending)이면 보류 — tick 이 먼저 0을 만들어도 연장 요청을 기다린다.
   useEffect(() => {
-    if (remaining === 0 && !expiredRef.current) {
+    if (remaining === 0 && !expiredRef.current && !isExtending) {
       expiredRef.current = true;
       onExpire?.();
     }
-  }, [remaining, onExpire]);
+  }, [remaining, isExtending, onExpire]);
 
   const handleExtend = async () => {
     if (isExtending) return;
