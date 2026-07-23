@@ -3,6 +3,7 @@ import type {
   EmailVerifyRequest,
   LoginRequest,
   OAuthCompleteRequest,
+  SessionStatusData,
   SignupRequest,
 } from "./types";
 
@@ -352,6 +353,43 @@ export const completeOauthSignup = async (
   }
 
   return response.json().catch(() => null);
+};
+
+/* 세션 잔여 시간 조회 — GET /api/v1/auth/session */
+export const getSession = async (): Promise<SessionStatusData> => {
+  const response = await fetch(`${BASE_URL}/api/v1/auth/session`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      await handleBadResponse(response, "세션 정보를 불러오지 못했습니다."),
+    );
+  }
+
+  const json = (await response.json()) as AuthResponse<SessionStatusData>;
+  if (!json?.data) throw new Error("세션 정보가 비어있습니다.");
+  return json.data;
+};
+
+/* 세션 연장 — POST /api/v1/auth/session/extend */
+export const extendSession = async (): Promise<SessionStatusData> => {
+  const response = await fetch(`${BASE_URL}/api/v1/auth/session/extend`, {
+    method: "POST",
+    headers: HEADERS,
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      await handleBadResponse(response, "세션 연장에 실패했습니다."),
+    );
+  }
+
+  const json = (await response.json()) as AuthResponse<SessionStatusData>;
+  if (!json?.data) throw new Error("세션 정보가 비어있습니다.");
+  return json.data;
 };
 
 /* 로그아웃 */
