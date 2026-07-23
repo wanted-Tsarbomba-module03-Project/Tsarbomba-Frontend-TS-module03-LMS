@@ -59,8 +59,10 @@ const listClasses = {
 const INDEX_COLUMN_WIDTH = "clamp(48px, 6ch, 72px)";
 
 export const listCellClasses = {
-  twoLine: "line-clamp-2 whitespace-normal! break-words leading-5",
-  twoLineKeepAll: "line-clamp-2 whitespace-normal! break-keep leading-5",
+  twoLine:
+    "block min-w-0 max-w-full overflow-hidden line-clamp-2 whitespace-normal! break-words leading-5",
+  twoLineKeepAll:
+    "block min-w-0 max-w-full overflow-hidden line-clamp-2 whitespace-normal! break-keep leading-5",
 } as const;
 
 export default function List<T extends ListItem>({

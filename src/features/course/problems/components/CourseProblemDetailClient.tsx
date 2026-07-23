@@ -9,6 +9,7 @@ import Image from "next/image";
 import CategoryNav from "@/components/layout/CategoryNav";
 import Sidebar from "@/components/layout/Sidebar";
 import { OneButtonModal, TwoButtonModal, WarningModal } from "@/components/common";
+import { getSuggestedQuestions } from "@/features/chat/actions";
 import { streamChat } from "@/features/chat/stream";
 import { createChatTypewriter } from "@/features/chat/typewriter";
 import { ApiClientError, handleClientError } from "@/lib/errorHandling";
@@ -230,6 +231,7 @@ export default function CourseProblemDetailClient({
   const [chatInput, setChatInput] = useState("");
   const [chatSending, setChatSending] = useState(false);
   const [showChatResponsePending, setShowChatResponsePending] = useState(false);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
 
   // 이 문제 풀이가 속한 강의 + 다음 강의 정보 — 나가기/완료 시 정확한 lecture 페이지로 이동.
   const [currentLectureId, setCurrentLectureId] = useState<number | null>(null);
@@ -337,6 +339,44 @@ export default function CourseProblemDetailClient({
   const isCurrentProblemCorrect = isCorrectLikeStatus(
     problemStates[currentIndex],
   );
+
+  useEffect(() => {
+    const problemSetNumericId = Number(problemSet.problemSetId ?? problemSet.id);
+    const problemNumericId = Number(currentProblem?.problemId);
+
+    if (
+      !Number.isFinite(problemSetNumericId) ||
+      problemSetNumericId <= 0 ||
+      !Number.isFinite(problemNumericId) ||
+      problemNumericId <= 0
+    ) {
+      const resetTimer = window.setTimeout(() => {
+        setSuggestedQuestions([]);
+      }, 0);
+
+      return () => window.clearTimeout(resetTimer);
+    }
+
+    const controller = new AbortController();
+
+    getSuggestedQuestions(
+      problemSetNumericId,
+      problemNumericId,
+      controller.signal,
+    )
+      .then((result) => {
+        if (!controller.signal.aborted) {
+          setSuggestedQuestions(result?.questions ?? []);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setSuggestedQuestions([]);
+        }
+      });
+
+    return () => controller.abort();
+  }, [currentProblem?.problemId, problemSet.id, problemSet.problemSetId]);
 
   // 데이터셋(CSV) 다운로드 — 문제세트 단위 (문제풀이방과 동일). 서버가 서명 URL 발급.
   const handleDatasetDownload = async () => {
@@ -780,9 +820,12 @@ export default function CourseProblemDetailClient({
     [chatMessages, feedbackPendingIds, router],
   );
 
-  const sendChat = async () => {
+  const sendChat = async (overrideMessage?: string) => {
+    const userMessage =
+      typeof overrideMessage === "string" ? overrideMessage.trim() : chatInput.trim();
+
     if (
-      !chatInput.trim() ||
+      !userMessage ||
       chatSending ||
       !problemSet.id ||
       !currentProblem?.problemId
@@ -790,7 +833,6 @@ export default function CourseProblemDetailClient({
       return;
     }
 
-    const userMessage = chatInput;
     const targetRoomId = chatRoomId;
     const targetProblemId = currentProblem.problemId;
     const targetProblemSetId = problemSet.problemSetId ?? problemSet.id;
@@ -915,6 +957,14 @@ export default function CourseProblemDetailClient({
         setShowChatResponsePending(false);
       }
     }
+  };
+
+  const handleSelectSuggestedQuestion = (question: string) => {
+    if (!chatOpen) {
+      setChatOpen(true);
+    }
+
+    setChatInput(question);
   };
 
   return (
@@ -1068,9 +1118,11 @@ export default function CourseProblemDetailClient({
             feedbackPendingIds={feedbackPendingIds}
             chatSending={chatSending}
             showChatSendingIndicator={showChatResponsePending}
+            suggestedQuestions={suggestedQuestions}
             onChatInputChange={setChatInput}
             onClose={() => setChatOpen(false)}
             onFeedback={handleChatFeedback}
+            onSelectSuggestedQuestion={handleSelectSuggestedQuestion}
             onSendChat={sendChat}
           />
         </div>

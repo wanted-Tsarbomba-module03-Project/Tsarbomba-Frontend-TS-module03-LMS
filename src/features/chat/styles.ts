@@ -78,6 +78,10 @@ export const problemChatClasses = {
   spinner:
     "h-4 w-4 animate-spin rounded-full border-2 border-[#93a9c8] border-t-button-blue-bg",
   spinnerText: "text-body text-text-primary",
+  suggestedWrap:
+    "flex flex-wrap gap-2 border-t border-border-light bg-bg-box px-3.5 pt-3 pb-2 max-[380px]:px-2.5",
+  suggestedChip:
+    "cursor-pointer rounded-base border border-[#1a237e] bg-white px-3 py-2 text-left text-description font-semibold text-[#1a237e] transition hover:bg-[#eef2ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a237e] disabled:cursor-not-allowed disabled:border-[#cbd5e1] disabled:bg-[#f1f5f9] disabled:text-[#64748b]",
   chatInputWrap:
     "flex items-end gap-2 border-t border-border-light p-3.5 max-[380px]:p-2.5 [&_textarea]:box-border [&_textarea]:max-h-36 [&_textarea]:min-h-11 [&_textarea]:min-w-0 [&_textarea]:flex-1 [&_textarea]:resize-none [&_textarea]:overflow-y-hidden [&_textarea]:rounded-base [&_textarea]:border [&_textarea]:border-border-light [&_textarea]:p-2.5 [&_textarea]:leading-normal [&_textarea]:text-text-primary [&_textarea]:outline-none [&_button]:h-11 [&_button]:min-w-[72px] [&_button]:cursor-pointer [&_button]:rounded-base [&_button]:border [&_button]:border-button-blue-bg [&_button]:bg-button-blue-bg [&_button]:px-3 [&_button]:text-text-white [&_button:disabled]:cursor-not-allowed [&_button:disabled]:opacity-60 max-[380px]:[&_button]:min-w-[60px]",
 } as const;

@@ -122,6 +122,7 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
     ? getLinkedProblemLabel(linkedProblem)
     : "";
   const headerActionDisabled = deleting || updatingTitle;
+  const inputDisabled = sending || !activeRoomId;
 
   useEffect(() => {
     activeRoomIdRef.current = activeRoomId;
@@ -203,34 +204,6 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
     resizeChatInput(inputRef.current);
   }, [inputValue]);
 
-  const refreshChatRoomMeta = useCallback(async (targetRoomId: string) => {
-    try {
-      const rooms = await getChatRooms();
-      const currentRoom = rooms.find(
-        (room) => String(room.roomId) === targetRoomId,
-      );
-
-      if (activeRoomIdRef.current !== targetRoomId) {
-        return;
-      }
-
-      const nextTitle = currentRoom?.title || DEFAULT_CHAT_TITLE;
-      const enrichedLinkedProblem = await enrichLinkedProblem(
-        getLinkedProblem(currentRoom),
-      );
-
-      if (activeRoomIdRef.current !== targetRoomId) {
-        return;
-      }
-
-      setChatTitle(nextTitle);
-      setTitleInputValue(nextTitle);
-      setLinkedProblemState(enrichedLinkedProblem);
-    } catch {
-      // 새 채팅방 제목 조회 실패는 현재 메시지 표시를 방해하지 않는다.
-    }
-  }, []);
-
   useEffect(() => {
     if (!activeRoomId) {
       const timeoutId = setTimeout(() => {
@@ -305,6 +278,33 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
     return () => {
       controller.abort();
     };
+  }, [activeRoomId, router]);
+
+  useEffect(() => {
+    if (activeRoomId) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const moveToLatestRoom = async () => {
+      try {
+        const rooms = await getChatRooms(controller.signal);
+        const nextRoomId = rooms[0]?.roomId;
+
+        if (controller.signal.aborted || nextRoomId === undefined) {
+          return;
+        }
+
+        router.replace(`/chat/${nextRoomId}`);
+      } catch {
+        // 기존 대화방 자동 이동 실패는 빈 상태 표시로 fallback 한다.
+      }
+    };
+
+    void moveToLatestRoom();
+
+    return () => controller.abort();
   }, [activeRoomId, router]);
 
   const appendMessage = useCallback((message: ChatMessage) => {
@@ -390,14 +390,12 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
   );
 
   const sendMessage = useCallback(async () => {
-    if (!inputValue.trim() || sending) {
+    if (!inputValue.trim() || sending || !activeRoomId) {
       return;
     }
 
     const userMessage = inputValue;
     const controller = new AbortController();
-    const roomIdAtRequestStart = activeRoomIdRef.current;
-    let newRoomId: number | undefined;
     let streamErrorReceived = false;
     const userMessageId = createClientMessageId();
     const assistantMessageId = createClientMessageId();
@@ -437,30 +435,23 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
     });
 
     try {
-      const path = activeRoomId
-        ? `/api/v1/chat/${activeRoomId}/messages`
-        : "/api/v1/chat/messages";
+      const path = `/api/v1/chat/${activeRoomId}/messages`;
 
       await streamChat(
         path,
-        activeRoomId
-          ? { userMessage }
-          : { userMessage, problemSetId: null, problemId: null },
+        { userMessage },
         {
           onToken: (token) => {
             setShowResponsePending(false);
             typewriter.push(token);
           },
-          onRoom: (roomId) => {
-            newRoomId = roomId;
-          },
           onDone: () => {
-            const refreshRoomId = newRoomId ?? activeRoomIdRef.current;
+            const refreshRoomId = activeRoomIdRef.current;
 
             if (refreshRoomId) {
               void refreshMessages(
                 String(refreshRoomId),
-                newRoomId ? roomIdAtRequestStart : String(refreshRoomId),
+                String(refreshRoomId),
               ).catch((error) => {
                 handleClientError(error, {
                   router,
@@ -490,20 +481,6 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
       }
 
       window.dispatchEvent(new Event("chatRoomUpdated"));
-
-      if (!activeRoomId && newRoomId) {
-        if (activeRoomIdRef.current !== roomIdAtRequestStart) {
-          return;
-        }
-
-        const nextRoomId = String(newRoomId);
-
-        skipNextRoomLoadRef.current = nextRoomId;
-        activeRoomIdRef.current = nextRoomId;
-        setCurrentRoomId(nextRoomId);
-        window.history.replaceState(null, "", `/chat/${nextRoomId}`);
-        void refreshChatRoomMeta(nextRoomId);
-      }
     } catch (error) {
       if (controller.signal.aborted) {
         typewriter.stop();
@@ -541,7 +518,6 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
     appendMessage,
     inputValue,
     refreshMessages,
-    refreshChatRoomMeta,
     router,
     sending,
   ]);
@@ -562,13 +538,18 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
 
     try {
       await deleteChatRoom(activeRoomId);
+      const remainingRooms = (await getChatRooms()).filter(
+        (room) => String(room.roomId) !== String(activeRoomId),
+      );
+      const nextRoomId = remainingRooms[0]?.roomId;
       chatStreamAbortRef.current?.abort();
       chatStreamAbortRef.current = null;
-      activeRoomIdRef.current = undefined;
+      activeRoomIdRef.current =
+        nextRoomId === undefined ? undefined : String(nextRoomId);
       skipNextRoomLoadRef.current = null;
-      setCurrentRoomId(undefined);
+      setCurrentRoomId(nextRoomId === undefined ? undefined : String(nextRoomId));
       setMessages([]);
-      setMessagesLoading(false);
+      setMessagesLoading(nextRoomId !== undefined);
       setInputValue("");
       setSending(false);
       setShowResponsePending(false);
@@ -579,7 +560,12 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
       setLinkedProblemState(null);
       window.dispatchEvent(new Event("chatRoomUpdated"));
       setDeleteModalOpen(false);
-      router.replace("/chat");
+
+      if (nextRoomId !== undefined) {
+        router.replace(`/chat/${nextRoomId}`);
+      } else {
+        router.replace("/chat");
+      }
     } catch (error) {
       setDeleteModalOpen(false);
       handleClientError(error, {
@@ -869,10 +855,12 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
           <textarea
             aria-label="채팅 메시지 입력"
             className={chatClasses.input}
-            disabled={sending}
+            disabled={inputDisabled}
             onChange={(event) => setInputValue(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="질문 입력"
+            placeholder={
+              activeRoomId ? "질문 입력" : "기존 대화방을 선택해 주세요."
+            }
             ref={inputRef}
             rows={1}
             value={inputValue}
@@ -880,7 +868,7 @@ export default function GeneralChatClient({ roomId }: GeneralChatClientProps) {
 
           <button
             className={chatClasses.sendButton}
-            disabled={sending || !inputValue.trim()}
+            disabled={inputDisabled || !inputValue.trim()}
             onClick={() => void sendMessage()}
             type="button"
           >

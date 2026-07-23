@@ -25,6 +25,7 @@ interface ProblemChatPanelProps {
   chatRoomTitle?: string | null;
   chatSending: boolean;
   showChatSendingIndicator?: boolean;
+  suggestedQuestions?: string[];
   canEditChatRoomTitle?: boolean;
   onChatInputChange: (value: string) => void;
   onChatRoomTitleCancel?: () => void;
@@ -36,7 +37,8 @@ interface ProblemChatPanelProps {
     messageId: number,
     rating: FeedbackRating,
   ) => boolean | Promise<boolean>;
-  onSendChat: () => void;
+  onSelectSuggestedQuestion?: (question: string) => void;
+  onSendChat: (message?: string) => void;
 }
 
 const DESKTOP_DRAG_MEDIA_QUERY = "(min-width: 768px)";
@@ -66,6 +68,7 @@ export default function ProblemChatPanel({
   chatRoomTitle,
   chatSending,
   showChatSendingIndicator = chatSending,
+  suggestedQuestions = [],
   canEditChatRoomTitle = false,
   onChatInputChange,
   onChatRoomTitleCancel,
@@ -74,6 +77,7 @@ export default function ProblemChatPanel({
   onChatRoomTitleSubmit,
   onClose,
   onFeedback,
+  onSelectSuggestedQuestion,
   onSendChat,
 }: ProblemChatPanelProps) {
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
@@ -565,6 +569,22 @@ export default function ProblemChatPanel({
         </div>
       )}
 
+      {suggestedQuestions.length > 0 && chatMessages.length === 0 && (
+        <div className={problemChatClasses.suggestedWrap}>
+          {suggestedQuestions.map((question) => (
+            <button
+              className={problemChatClasses.suggestedChip}
+              disabled={isChatDisabled}
+              key={question}
+              onClick={() => onSelectSuggestedQuestion?.(question)}
+              type="button"
+            >
+              {question}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className={problemChatClasses.chatInputWrap}>
         <textarea
           aria-label="챗봇 질문 입력"
@@ -583,7 +603,7 @@ export default function ProblemChatPanel({
         />
         <button
           disabled={isChatDisabled || !chatInput.trim()}
-          onClick={onSendChat}
+          onClick={() => onSendChat()}
           type="button"
         >
           전송
