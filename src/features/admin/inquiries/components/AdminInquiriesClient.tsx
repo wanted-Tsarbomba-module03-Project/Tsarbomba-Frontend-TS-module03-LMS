@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
@@ -137,7 +137,7 @@ const inquiryListClasses = {
   badge:
     "inline-flex h-8 min-w-[58px] items-center justify-center rounded-full px-3 text-description font-semibold",
   editableBadge:
-    "cursor-pointer border-0 transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a237e]",
+    "cursor-pointer border-0 transition hover:brightness-95 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#1a237e]",
   modalForm:
     "fixed inset-0 z-[999] flex h-dvh w-dvw items-center justify-center bg-[rgba(16,24,40,0.45)] px-4 py-6",
   modalPanel:
@@ -149,9 +149,9 @@ const inquiryListClasses = {
   modalField: "flex min-w-0 flex-col gap-2",
   modalLabel: "text-description font-semibold text-text-primary",
   modalSelect:
-    "h-11 rounded-base border border-border-light bg-bg-box px-3 text-body font-semibold text-text-primary outline-none focus:ring-2 focus:ring-[#1a237e]",
+    "h-11 rounded-base border border-border-light bg-bg-box px-3 text-body font-semibold text-text-primary outline-hidden focus:ring-2 focus:ring-[#1a237e]",
   modalTextarea:
-    "mt-4 min-h-[140px] w-full resize-y rounded-base border border-border-light p-3 text-body text-text-primary outline-none focus:ring-2 focus:ring-[#1a237e]",
+    "mt-4 min-h-[140px] w-full resize-y rounded-base border border-border-light p-3 text-body text-text-primary outline-hidden focus:ring-2 focus:ring-[#1a237e]",
   modalError:
     "mt-2 mb-0 min-h-[18px] text-description font-semibold text-[#b91c1c]",
   modalActions: "mt-5 flex justify-end gap-2",
@@ -162,12 +162,12 @@ const inquiryListClasses = {
   modalSecondary:
     "border border-border-light bg-bg-navbar text-text-secondary hover:not-disabled:bg-[#e5e7eb]",
   filterButton:
-    "mx-auto flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-base px-2 py-1 text-description font-semibold text-text-primary transition hover:bg-[#e5e7eb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a237e]",
+    "mx-auto flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-base px-2 py-1 text-description font-semibold text-text-primary transition hover:bg-[#e5e7eb] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#1a237e]",
   filterWrap: "relative mx-auto w-full min-w-0",
   filterMenu:
     "fixed z-50 overflow-y-auto rounded-base border border-border-light bg-white p-1.5 text-left shadow-[0_14px_32px_rgba(15,23,42,0.18)]",
   filterOption:
-    "flex w-full cursor-pointer items-center gap-2 rounded-base px-2.5 py-2 text-left text-description font-semibold text-text-primary transition hover:bg-[#eef2ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a237e]",
+    "flex w-full cursor-pointer items-center gap-2 rounded-base px-2.5 py-2 text-left text-description font-semibold text-text-primary transition hover:bg-[#eef2ff] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#1a237e]",
   filterOptionActive: "bg-[#eef2ff] text-[#1a237e]",
   filterSwatch: "h-2.5 w-2.5 shrink-0 rounded-full",
   filterLabel: "truncate",
@@ -253,6 +253,62 @@ function ClassificationReasonModal({
   onSeverityChange: (severity: AdminInquirySeverity) => void;
   onSubmit: () => void;
 }) {
+  const titleId = useId();
+  const firstFieldRef = useRef<HTMLSelectElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!draft) {
+      return;
+    }
+
+    previouslyFocusedElementRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    firstFieldRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const focusableElements = textareaRef.current
+        ?.closest('[role="dialog"]')
+        ?.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), textarea:not(:disabled), input:not(:disabled), select:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+        );
+
+      if (!focusableElements || focusableElements.length === 0) {
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocusedElementRef.current?.focus();
+    };
+  }, [draft, onClose]);
+
   if (!draft) {
     return null;
   }
@@ -273,10 +329,15 @@ function ClassificationReasonModal({
   return (
     <div className={inquiryListClasses.modalForm} onClick={onClose}>
       <div
+        aria-labelledby={titleId}
+        aria-modal="true"
         className={inquiryListClasses.modalPanel}
         onClick={(event) => event.stopPropagation()}
+        role="dialog"
       >
-        <h2 className={inquiryListClasses.modalTitle}>문의 분류 수정</h2>
+        <h2 className={inquiryListClasses.modalTitle} id={titleId}>
+          문의 분류 수정
+        </h2>
         <p className={inquiryListClasses.modalDescription}>
           {`"${draft.inquiry.title}" 문의의 ${fieldLabel}을(를) 선택하고 수정 사유를 입력해 주세요.`}
         </p>
@@ -290,6 +351,7 @@ function ClassificationReasonModal({
                 onChange={(event) =>
                   onDomainChange(event.target.value as AdminInquiryDomain)
                 }
+                ref={firstFieldRef}
                 value={draft.domain}
               >
                 {adminInquiryDomainOptions.map(([optionValue, optionLabel]) => (
@@ -308,6 +370,7 @@ function ClassificationReasonModal({
                 onChange={(event) =>
                   onSeverityChange(event.target.value as AdminInquirySeverity)
                 }
+                ref={firstFieldRef}
                 value={draft.severity}
               >
                 {adminInquirySeverityOptions.map(
@@ -327,6 +390,7 @@ function ClassificationReasonModal({
           maxLength={300}
           onChange={(event) => onReasonChange(event.target.value)}
           placeholder="예: 문제 제출 결과 미노출은 강의가 아니라 문제 도메인 이슈로 봐야 함"
+          ref={textareaRef}
           value={reason}
         />
         <p className={inquiryListClasses.modalError}>{errorMessage}</p>
@@ -719,7 +783,10 @@ export default function AdminInquiriesClient() {
           inquiryListClasses.editableBadge
         } ${domainColorClasses[inquiry.domain]}`}
         disabled={processingClassification}
-        onClick={() => openClassificationModal(inquiry, "domain")}
+        onClick={(event) => {
+          event.stopPropagation();
+          openClassificationModal(inquiry, "domain");
+        }}
         type="button"
       >
         {adminInquiryDomainLabels[inquiry.domain] ?? inquiry.domain}
@@ -735,7 +802,10 @@ export default function AdminInquiriesClient() {
           inquiryListClasses.editableBadge
         } ${severityColorClasses[inquiry.severity]}`}
         disabled={processingClassification}
-        onClick={() => openClassificationModal(inquiry, "severity")}
+        onClick={(event) => {
+          event.stopPropagation();
+          openClassificationModal(inquiry, "severity");
+        }}
         type="button"
       >
         {adminInquirySeverityLabels[inquiry.severity] ?? inquiry.severity}
@@ -945,6 +1015,9 @@ export default function AdminInquiriesClient() {
             columns={inquiryColumns}
             data={inquiries}
             emptyMessage="조회된 문의사항이 없습니다."
+            onRowClick={(inquiry) =>
+              router.push(`/admin/cs/${inquiry.inquiryId}`)
+            }
             pagination={
               <Pagination
                 currentPage={page}

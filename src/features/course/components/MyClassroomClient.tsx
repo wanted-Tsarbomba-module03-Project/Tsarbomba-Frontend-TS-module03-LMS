@@ -101,7 +101,7 @@ function Section({
           {emptyText}
         </div>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 md:grid-cols-4 sm:overflow-x-visible sm:pb-0">
+        <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 md:grid-cols-4 sm:gap-4 sm:overflow-x-hidden sm:overflow-y-auto sm:max-h-[300px] sm:pb-0 sm:pr-1">
           {items.map((e) => (
             <CourseCard
               key={e.enrollmentId ?? e.courseId}

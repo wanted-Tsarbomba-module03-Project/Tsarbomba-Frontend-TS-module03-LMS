@@ -3,6 +3,7 @@
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
+import CategoryNav from "@/components/layout/CategoryNav";
 import CourseItem from "@/features/admin/operations/components/CourseItem";
 import {
   ALL_COURSE_CATEGORY,
@@ -51,6 +52,7 @@ export default function CourseListClient({
 }: CourseListClientProps) {
   return (
     <Suspense fallback={null}>
+      <CategoryNav />
       <CourseListContent initialCourses={initialCourses} />
     </Suspense>
   );

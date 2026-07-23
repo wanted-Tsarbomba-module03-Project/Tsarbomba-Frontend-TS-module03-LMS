@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import BluebombLogo from "../../../public/assets/img/bluebomb-Icon.svg";
 import BadgeSelectModal from "@/features/badge/components/BadgeSelectModal";
@@ -67,7 +67,6 @@ export default function Sidebar({
   getProblemButtonClass,
   onToggleProblemList,
 }: SidebarProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const isAdminPath = pathname.startsWith("/admin");
   const isMypage = pathname.startsWith("/user/profile");
@@ -465,14 +464,7 @@ export default function Sidebar({
 
   const chatMenu = (
     <div className="w-full flex flex-col gap-4">
-      <button
-        className="w-full h-11 bg-[#1a237e] text-white rounded-lg flex items-center justify-center font-semibold text-sm cursor-pointer hover:bg-[#111751] transition-colors shadow-sm"
-        onClick={() => router.push("/chat")}
-        type="button"
-      >
-        + 새 대화 시작
-      </button>
-      <h3 className="text-sm font-bold text-[#6b7280] px-2 mt-2">기존 대화</h3>
+      <h3 className="text-sm font-bold text-[#6b7280] px-2">기존 대화</h3>
       <ul className="flex flex-col gap-1 max-h-[50vh] overflow-y-auto">
         {chatRoomsLoading ? (
           <ChatRoomListSkeleton />

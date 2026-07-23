@@ -2,8 +2,11 @@ import { requestAdminOperation } from "@/features/admin/operations/api";
 
 import type {
   AdminInquiryClassificationRequest,
+  AdminInquiryDetail,
+  AdminInquiryFilterRequest,
   AdminInquiryListParams,
   AdminInquiryPageResponse,
+  AdminInquiryReplyRequest,
   AdminInquirySummary,
 } from "./types";
 
@@ -48,6 +51,42 @@ export async function updateAdminInquiryClassification(
 ) {
   return requestAdminOperation<AdminInquirySummary>(
     `/api/v1/admin/inquiries/${inquiryId}/classification`,
+    {
+      body: JSON.stringify(payload),
+      method: "PATCH",
+    },
+  );
+}
+
+export async function getAdminInquiryDetail(
+  inquiryId: number | string,
+  signal?: AbortSignal,
+) {
+  return requestAdminOperation<AdminInquiryDetail>(
+    `/api/v1/admin/inquiries/${inquiryId}`,
+    { signal },
+  );
+}
+
+export async function replyAdminInquiry(
+  inquiryId: number | string,
+  payload: AdminInquiryReplyRequest,
+) {
+  return requestAdminOperation<AdminInquiryDetail>(
+    `/api/v1/admin/inquiries/${inquiryId}/reply`,
+    {
+      body: JSON.stringify(payload),
+      method: "POST",
+    },
+  );
+}
+
+export async function updateAdminInquiryFilter(
+  inquiryId: number | string,
+  payload: AdminInquiryFilterRequest,
+) {
+  return requestAdminOperation<AdminInquiryDetail>(
+    `/api/v1/admin/inquiries/${inquiryId}/filter`,
     {
       body: JSON.stringify(payload),
       method: "PATCH",

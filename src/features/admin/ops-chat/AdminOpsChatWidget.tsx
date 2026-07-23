@@ -5,7 +5,14 @@ import type {
   FormEvent,
   PointerEvent as ReactPointerEvent,
 } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import Image from "next/image";
 
 import { streamChat } from "@/features/chat/stream";
@@ -27,6 +34,7 @@ const SUGGESTED_QUESTIONS = [
   "최근 3일 로그인 실패 추이 알려줘",
   "오늘 보안 브리핑 요약해줘",
 ];
+const OPS_CHAT_ALLOWED_ROLES = new Set(["ADMIN", "MASTER"]);
 
 interface DragPosition {
   x: number;
@@ -40,6 +48,19 @@ interface DragListeners {
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
+
+const subscribeToUserRole = (callback: () => void) => {
+  window.addEventListener("loginSuccess", callback);
+  window.addEventListener("storage", callback);
+
+  return () => {
+    window.removeEventListener("loginSuccess", callback);
+    window.removeEventListener("storage", callback);
+  };
+};
+
+const getStoredUserRole = () => localStorage.getItem("userRole") || "";
+const getServerUserRole = () => "";
 
 function createMessageId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
@@ -55,6 +76,11 @@ function toConversationHistory(
 }
 
 export default function AdminOpsChatWidget() {
+  const userRole = useSyncExternalStore(
+    subscribeToUserRole,
+    getStoredUserRole,
+    getServerUserRole,
+  );
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<AdminOpsChatMessage[]>([]);
@@ -72,6 +98,23 @@ export default function AdminOpsChatWidget() {
   const shouldFollowScrollRef = useRef(true);
 
   const isDisabled = sending;
+  const canUseOpsChat = OPS_CHAT_ALLOWED_ROLES.has(userRole);
+
+  useEffect(() => {
+    if (canUseOpsChat) {
+      return;
+    }
+
+    abortRef.current?.abort();
+    abortRef.current = null;
+
+    const resetTimer = window.setTimeout(() => {
+      setOpen(false);
+      setSending(false);
+    }, 0);
+
+    return () => window.clearTimeout(resetTimer);
+  }, [canUseOpsChat]);
 
   const updateDragPosition = useCallback((position: DragPosition | null) => {
     dragPositionRef.current = position;
@@ -396,6 +439,10 @@ export default function AdminOpsChatWidget() {
       scrollAnchorRef.current?.scrollIntoView({ block: "end" });
     }
   }, [messages, currentStatus, open]);
+
+  if (!canUseOpsChat) {
+    return null;
+  }
 
   return (
     <>

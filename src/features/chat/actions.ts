@@ -5,6 +5,7 @@ import type {
   ChatRoom,
   ChatRoomTitleUpdate,
   FeedbackRating,
+  SuggestedQuestions,
 } from "./types";
 
 export async function getChatRooms(signal?: AbortSignal) {
@@ -111,4 +112,25 @@ export async function updateChatRoomTitle(roomId: string, title: string) {
   );
 
   return result.data;
+}
+
+export async function getSuggestedQuestions(
+  problemSetId: number,
+  problemId: number,
+  signal?: AbortSignal,
+) {
+  const query = new URLSearchParams({
+    problemSetId: String(problemSetId),
+    problemId: String(problemId),
+  });
+  const result = await requestChatJson<SuggestedQuestions>(
+    `/api/v1/chat/suggested-questions?${query.toString()}`,
+    "추천 질문을 불러오지 못했습니다.",
+    {
+      method: "GET",
+      signal,
+    },
+  );
+
+  return result.data ?? null;
 }
