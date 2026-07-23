@@ -1,17 +1,11 @@
 "use client";
 
-import React, {
-  Suspense,
-  useEffect,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import React, { useEffect, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
 import Footer from "../components/layout/Footer";
-import CategoryNav from "../components/layout/CategoryNav";
 import OneButtonModal from "../components/common/OneButtonModal";
 import { mobileSidebarClasses } from "@/components/layout/mobileSidebarClasses";
 import ActiveInquiryRepliesModal from "@/features/inquiries/components/ActiveInquiryRepliesModal";
@@ -58,7 +52,7 @@ export default function RootLayout({
     getHydratedSnapshot,
     getServerHydratedSnapshot,
   );
-  // 로그인 여부(localStorage 닉네임 기준) — 비로그인 홈에선 카테고리 바를 숨긴다.
+  // 로그인 여부(localStorage 닉네임 기준) — 비로그인 사용자의 보호 경로 접근 리다이렉트에 사용.
   const isLoggedIn = !!useSyncExternalStore(
     subscribeToUserRole,
     getStoredLogin,
@@ -94,7 +88,7 @@ export default function RootLayout({
     /^\/courses\/[^/]+\/problems\//.test(pathname);
   const isChatPath =
     pathname.startsWith("/chat") || pathname.startsWith("/user/chat");
-  // 홈(강좌 목록): 카테고리바 바로 아래라 위쪽 여백을 줄인다.
+  // 홈(강좌 목록): 카테고리바가 콘텐츠 상단에 붙으므로 main 위쪽 여백을 없앤다.
   const isHome = pathname === "/";
 
   // 비로그인 접근 허용 경로 — 설명(홈 랜딩) + 인증/오류 페이지만 공개.
@@ -153,16 +147,6 @@ export default function RootLayout({
         <div className="flex flex-col min-h-screen w-full bg-white">
           <Header />
 
-          {isLoggedIn &&
-            !isAdminPath &&
-            !isMypagePath &&
-            !isProblemPath &&
-            !isChatPath && (
-              <Suspense fallback={null}>
-                <CategoryNav />
-              </Suspense>
-            )}
-
           {isFlexBodySection ? (
             <div className="flex flex-1 w-full max-w-300 mx-auto relative box-border gap-5 max-[1024px]:px-5">
               {(isMypagePath ||
@@ -217,7 +201,7 @@ export default function RootLayout({
                 isProblemPath
                   ? "py-0"
                   : isHome
-                    ? "px-5 pt-3 pb-10"
+                    ? "px-5 pb-10"
                     : "px-5 py-10"
               }`}
             >
