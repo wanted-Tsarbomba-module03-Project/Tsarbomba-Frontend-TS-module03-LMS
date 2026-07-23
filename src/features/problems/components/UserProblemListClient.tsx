@@ -189,6 +189,9 @@ export default function UserProblemListClient({
         key: "description",
         label: PROBLEM_LIST_COLUMN_LABELS[2],
         cellClassName: listCellClasses.twoLine,
+        render: (item) => (
+          <span className={listCellClasses.twoLine}>{item.description}</span>
+        ),
       },
       {
         key: "difficulty",
