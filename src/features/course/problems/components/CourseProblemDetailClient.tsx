@@ -1,7 +1,6 @@
 "use client";
 
-// 강좌(강의) 문제풀이 — 기존 문제풀이 UI를 그대로 재사용하되,
-// 데이터는 lecture-problem-sets 계열 URL(강좌 전용 actions)로 처리한다.
+// 강좌 문제풀이 — 문제풀이 UI 재사용, 데이터만 lecture-problem-sets 전용 actions 로 처리.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -17,6 +16,7 @@ import { ApiClientError, handleClientError } from "@/lib/errorHandling";
 // 강좌 전용: 입장/제출/해설조회 (해설조회는 LectureProgress 를 완료 처리하는 강의 전용 엔드포인트)
 import {
   getLectureProblemProgress,
+  getLectureProblemSet,
   submitLectureProblem,
   viewLectureProblemExplanation,
 } from "../actions";
@@ -247,9 +247,8 @@ export default function CourseProblemDetailClient({
     };
   }, []);
 
-  // 재진입 시 SSR 스냅샷/캐시가 stale 하면 해설 열람·정답으로 잠금 해제됐던 소문제가 다시
-  // LOCKED 로 보이는 문제(배포 전용) → 마운트 직후 진행상태를 재조회해 LOCKED 인 소문제만 해제한다.
-  // (router.refresh 무효화가 이탈 타이밍에 유실되는 경우 대비)
+  // 재진입 시 stale 캐시로 잠금 해제됐던 소문제가 다시 LOCKED 로 보이는 문제(배포 전용) 대비 —
+  // 마운트 직후 진행상태를 재조회해 LOCKED 인 소문제만 해제한다.
   useEffect(() => {
     let cancelled = false;
     const syncProgress = async () => {
@@ -270,8 +269,7 @@ export default function CourseProblemDetailClient({
           return problemId != null ? statusById.get(problemId) : undefined;
         };
 
-        // 잠긴(LOCKED) 소문제만 서버 최신값으로 해제한다. 그 외 로컬 상태는 그대로 둬서
-        // 동기화 요청 도중 발생한 제출·해설 열람 등 로컬 변경을 stale 응답이 덮어쓰지 않게 한다.
+        // LOCKED 소문제만 서버 최신값으로 해제 — 나머지 로컬 상태는 stale 응답이 덮어쓰지 않게 유지.
         setProblemStates((prev) =>
           prev.map((state, index) => {
             if (state !== "LOCKED") return state;
@@ -381,8 +379,7 @@ export default function CourseProblemDetailClient({
   // 데이터셋(CSV) 다운로드 — 문제세트 단위 (문제풀이방과 동일). 서버가 서명 URL 발급.
   const handleDatasetDownload = async () => {
     if (isDatasetDownloading) return;
-    // 데이터셋은 문제세트 단위 — problemSetId(선택값) 없으면 정규화된 id 사용.
-    // lectureProblemSetId(강의-문제세트 연결 ID)로 fallback 하면 안 됨.
+    // 데이터셋은 문제세트 단위 — problemSetId 없으면 정규화된 id 사용 (lectureProblemSetId 로 fallback 금지).
     const datasetKey = String(problemSet.problemSetId ?? problemSet.id);
     setIsDatasetDownloading(true);
     try {
@@ -595,10 +592,35 @@ export default function CourseProblemDetailClient({
       setHintEnabled((prev) => updateArrayItem(prev, currentIndex, true));
       setSolutionEnabled((prev) => updateArrayItem(prev, currentIndex, true));
 
-      // 해설 열람으로 다음 소문제가 잠금 해제된 상태를 서버가 persist 했으므로,
-      // 클라이언트 Router Cache(soft navigation 캐시)를 무효화해 재진입 시 stale 상태
-      // (사이드바 비활성)로 되돌아가지 않게 한다. 배포 환경에서만 재현되던 문제.
-      // 힌트 조회(fetchHints) 완료 여부와 무관하게 성공 직후 호출해 캐시 갱신 지연을 방지.
+      // 해설 텍스트가 응답에 비면 서버에서 재조회해 채운다 (진행도 처리와 분리 — 해설이 비어도 잠금 해제/완료는 반영됨).
+      // router.refresh()로는 이 클라이언트 state 가 안 채워져 직접 재조회가 필요.
+      if (!(result.explanation ?? currentProblem.explanation)) {
+        try {
+          const fresh = await getLectureProblemSet(lectureProblemSetId, {
+            cache: "no-store",
+          });
+          const freshExplanation = fresh.problems.find(
+            (problem) => problem.problemId === result.problemId,
+          )?.explanation;
+          if (freshExplanation) {
+            setProblemSet((prev) => ({
+              ...prev,
+              problems: prev.problems.map((problem) =>
+                problem.problemId === result.problemId
+                  ? { ...problem, explanation: freshExplanation }
+                  : problem,
+              ),
+            }));
+            setSubmissionResult((prev) =>
+              prev ? { ...prev, explanation: freshExplanation } : prev,
+            );
+          }
+        } catch {
+          /* 재조회 실패 시 기존 값 유지 — 이후 재진입/새로고침으로 복구 가능 */
+        }
+      }
+
+      // 잠금 해제가 persist 됐으므로 Router Cache 를 무효화해 재진입 시 stale 상태 방지 (배포 전용 재현).
       router.refresh();
 
       if (!hints[currentIndex]?.length) {
@@ -702,8 +724,7 @@ export default function CourseProblemDetailClient({
         setHintEnabled((prev) => updateArrayItem(prev, currentIndex, true));
         setSolutionEnabled((prev) => updateArrayItem(prev, currentIndex, true));
 
-        // 정답 처리로 다음 소문제가 잠금 해제됐으므로 재진입 stale 방지를 위해 Router Cache 무효화.
-        // 힌트 조회(fetchHints) 완료 여부와 무관하게 성공 직후 호출한다.
+        // 잠금 해제 persist 반영 — 재진입 stale 방지를 위해 Router Cache 무효화.
         router.refresh();
 
         if (!hints[currentIndex]?.length) {
@@ -733,8 +754,7 @@ export default function CourseProblemDetailClient({
         window.setTimeout(() => setShowHintToast(false), 2000);
       }
     } catch (error) {
-      // 이미 완료한 문제세트 재제출(LRN-009) — 에러가 아니라 완료로 보고 다음 강의로 안내
-      // BE 오류 계약(ApiClientError)일 때만 처리해 임의 Error 로 실제 실패가 숨겨지지 않게 함
+      // 이미 완료한 문제세트 재제출(LRN-009)은 완료로 보고 다음 강의 안내 (ApiClientError 일 때만).
       if (
         error instanceof ApiClientError &&
         (error.code === "LRN-009" || /already completed/i.test(error.message))
