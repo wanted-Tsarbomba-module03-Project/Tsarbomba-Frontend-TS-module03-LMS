@@ -1,3 +1,8 @@
+export { default as FilterDropdown } from "./FilterDropdown";
+export type {
+  FilterDropdownOption,
+  FilterDropdownValue,
+} from "./FilterDropdown";
 export { default as List, listCellClasses } from "./List";
 export { default as ListSkeleton } from "./ListSkeleton";
 export { default as LoadingIndicator } from "./LoadingIndicator";
