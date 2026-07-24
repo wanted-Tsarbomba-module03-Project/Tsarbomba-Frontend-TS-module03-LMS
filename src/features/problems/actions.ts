@@ -23,9 +23,11 @@ import type {
   FeedbackRating,
   ProblemHint,
   ProblemInfo,
+  ProblemCompletionStatus,
   ProblemCodeSubmission,
   ProblemChatRoom,
   ProblemDatasetDownloadUrl,
+  ProblemDifficulty,
   ProblemTestCase,
   ProblemSetDraft,
   ProblemSetDraftGenerateRequest,
@@ -37,9 +39,11 @@ import type {
   ProblemSetDetailProblem,
   ProblemSetResult,
   ProblemSetSummary,
+  ProblemSetSort,
   SelectableRecommendedCoursesResponse,
   ProblemStatus,
   RawProblemDetail,
+  SortDirection,
   SubmissionResult,
   SubProblem,
   UpdateProblemRequest,
@@ -90,6 +94,16 @@ interface ProblemSetPage {
   problemSets: ProblemSetSummary[];
   totalElements: number;
   totalPages: number;
+}
+
+interface ProblemSetPageQuery {
+  categoryId?: string | null;
+  completionStatus?: ProblemCompletionStatus | null;
+  difficulty?: ProblemDifficulty | null;
+  direction?: SortDirection | null;
+  page?: number;
+  size?: number;
+  sort?: ProblemSetSort | null;
 }
 
 type NextRequestInit = RequestInit & {
@@ -377,14 +391,15 @@ export async function getProblemSets(
 
 export async function getProblemSetPage({
   categoryId,
+  completionStatus,
+  difficulty,
+  direction,
   page,
   size,
+  sort,
   revalidateSeconds,
   init = {},
-}: {
-  categoryId?: string | null;
-  page?: number;
-  size?: number;
+}: ProblemSetPageQuery & {
   revalidateSeconds?: number;
   init?: NextRequestInit;
 } = {}): Promise<ProblemSetPage> {
@@ -394,12 +409,28 @@ export async function getProblemSetPage({
     params.set("categoryId", categoryId);
   }
 
+  if (difficulty) {
+    params.set("difficulty", difficulty);
+  }
+
+  if (completionStatus) {
+    params.set("completionStatus", completionStatus);
+  }
+
   if (typeof page === "number") {
     params.set("page", String(page));
   }
 
   if (typeof size === "number") {
     params.set("size", String(size));
+  }
+
+  if (sort) {
+    params.set("sort", sort);
+  }
+
+  if (direction) {
+    params.set("direction", direction);
   }
 
   const query = params.toString();
@@ -421,17 +452,24 @@ export async function getProblemSetPage({
 
 export async function getAllProblemSets({
   categoryId,
+  completionStatus,
+  difficulty,
+  direction,
+  sort,
   size = PROBLEM_SET_PAGE_SIZE,
   init = {},
-}: {
-  categoryId?: string | null;
+}: Omit<ProblemSetPageQuery, "page" | "size"> & {
   size?: number;
   init?: NextRequestInit;
 } = {}) {
   const firstPage = await getProblemSetPage({
     categoryId,
+    completionStatus,
+    difficulty,
+    direction,
     page: 0,
     size,
+    sort,
     init,
   });
   const totalPages = Math.max(firstPage.totalPages, 1);
@@ -440,8 +478,12 @@ export async function getAllProblemSets({
   for (let page = 1; page < totalPages; page += 1) {
     const nextPage = await getProblemSetPage({
       categoryId,
+      completionStatus,
+      difficulty,
+      direction,
       page,
       size,
+      sort,
       init,
     });
 

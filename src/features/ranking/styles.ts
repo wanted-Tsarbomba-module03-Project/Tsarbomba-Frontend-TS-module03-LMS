@@ -14,7 +14,7 @@ export const rankingClasses = {
     "h-10 cursor-pointer rounded-base px-4 text-body font-semibold text-text-secondary transition-colors hover:bg-bg-box-hover disabled:cursor-not-allowed disabled:opacity-60 max-md:flex-1",
   toggleButtonActive: "bg-button-blue-bg text-text-white hover:bg-button-blue-bg",
   listShell:
-    "overflow-hidden rounded-base border border-border-light bg-bg-box [&_tbody_td]:h-[86px] [&_thead_th]:h-[52px] max-md:[&_tbody_td]:h-[72px]",
+    "[&_tbody_td]:h-[86px] [&_thead_th]:h-[52px] max-md:[&_tbody_td]:h-[72px]",
   rank: "text-body text-text-primary",
   badgeWrap: "flex items-center justify-center",
   badgeImage: "h-11 w-11 object-contain",

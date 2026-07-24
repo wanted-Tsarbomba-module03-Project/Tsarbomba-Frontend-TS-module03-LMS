@@ -2,6 +2,7 @@ import { ListSkeleton } from "@/components/common";
 
 import {
   PROBLEM_LIST_COLUMN_LABELS,
+  PROBLEM_LIST_COLUMN_WIDTHS,
   PROBLEM_SET_PAGE_SIZE,
 } from "../constants";
 
@@ -13,6 +14,7 @@ const problemListSkeletonClasses = {
 export default function ProblemListSkeleton() {
   return (
     <ListSkeleton
+      colWidths={PROBLEM_LIST_COLUMN_WIDTHS}
       columns={[...PROBLEM_LIST_COLUMN_LABELS]}
       containerClassName={problemListSkeletonClasses.container}
       rowCount={PROBLEM_SET_PAGE_SIZE}
