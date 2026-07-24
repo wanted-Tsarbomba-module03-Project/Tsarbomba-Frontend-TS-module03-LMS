@@ -19,23 +19,17 @@ import {
   INITIAL_SUB_PROBLEM,
   updateProblemsRecommendedCourses,
 } from "../actions";
+import { useProblemDraftGeneration } from "../hooks/useProblemDraftGeneration";
 import type {
   ProblemCategory,
   ProblemInfo,
   SelectableRecommendedCourse,
   SubProblem,
 } from "../types";
+import ProblemDraftGeneratorModal from "./ProblemDraftGeneratorModal";
+import ProblemDraftPreviewModal from "./ProblemDraftPreviewModal";
+import { problemFormPageClasses } from "./ProblemRegister.styles";
 import RegisterForm from "./RegisterForm";
-const problemFormPageClasses = {
-  "container": "min-h-screen bg-bg-main p-[30px]",
-  "pageTitle": "mt-0 mb-5 text-title-lg font-bold text-text-primary",
-  "bottomButtonGroup": "flex justify-end gap-[15px]",
-  "submitButton": "min-w-[92px] cursor-pointer rounded-base border border-button-blue-bg bg-button-blue-bg px-[30px] py-3 text-[15px] font-semibold text-text-white hover:not-disabled:bg-button-blue-hover-bg disabled:cursor-not-allowed disabled:opacity-60",
-  "cancelButton": "min-w-[92px] cursor-pointer rounded-base border border-border-light bg-bg-box px-[30px] py-3 text-[15px] font-semibold text-text-primary hover:not-disabled:bg-bg-box-hover disabled:cursor-not-allowed disabled:opacity-60",
-  "deleteButton": "min-w-[92px] cursor-pointer rounded-base border border-button-red-bg bg-bg-box px-[30px] py-3 text-[15px] font-semibold text-text-red hover:not-disabled:bg-button-red-bg hover:not-disabled:text-text-white disabled:cursor-not-allowed disabled:opacity-60"
-} as const;
-
-
 
 interface ProblemRegisterClientProps {
   initialCategories: ProblemCategory[];
@@ -62,6 +56,7 @@ export default function ProblemRegisterClient({
     createInitialSubProblem(),
   ]);
   const [file, setFile] = useState<File | null>(null);
+  const [fileInputVersion, setFileInputVersion] = useState(0);
   const [selectableCourses, setSelectableCourses] = useState<
     SelectableRecommendedCourse[]
   >([]);
@@ -73,6 +68,31 @@ export default function ProblemRegisterClient({
   const [openCancelModal, setOpenCancelModal] = useState(false);
   const [openValidationModal, setOpenValidationModal] = useState(false);
   const [validationMessage, setValidationMessage] = useState("");
+  const {
+    closeDraftPreview,
+    draftFileInputRef,
+    draftForm,
+    draftModalOpen,
+    draftPreview,
+    handleApplyDraft,
+    handleDraftFormChange,
+    handleGenerateDraft,
+    handleRemoveDatasetFile,
+    isGeneratingDraft,
+    setDraftModalOpen,
+  } = useProblemDraftGeneration({
+    categories,
+    file,
+    problemInfo,
+    setFile,
+    setFileInputVersion,
+    setProblemInfo,
+    setProblems,
+    showValidation: (message) => {
+      setValidationMessage(message);
+      setOpenValidationModal(true);
+    },
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -259,6 +279,7 @@ export default function ProblemRegisterClient({
     });
     setProblems([createInitialSubProblem()]);
     setFile(null);
+    setFileInputVersion((version) => version + 1);
   };
 
   const handleGoList = () => {
@@ -390,11 +411,22 @@ export default function ProblemRegisterClient({
 
   return (
     <main className={problemFormPageClasses.container}>
-      <h2 className={problemFormPageClasses.pageTitle}>문제 등록</h2>
+      <div className={problemFormPageClasses.titleBar}>
+        <h2 className={problemFormPageClasses.pageTitle}>문제 등록</h2>
+        <button
+          className={problemFormPageClasses.draftButton}
+          disabled={isSubmitting}
+          onClick={() => setDraftModalOpen(true)}
+          type="button"
+        >
+          AI 초안 생성
+        </button>
+      </div>
 
       <RegisterForm
         categories={categories}
         file={file}
+        key={fileInputVersion}
         onAddProblem={handleAddProblem}
         onAddTestCase={handleAddTestCase}
         onFileChange={setFile}
@@ -402,7 +434,7 @@ export default function ProblemRegisterClient({
         onProblemInfoChange={handleProblemInfoChange}
         onRecommendedCourseChange={handleRecommendedCourseChange}
         onRecommendedCourseSearch={handleRecommendedCourseSearch}
-        onRemoveFile={() => setFile(null)}
+        onRemoveFile={handleRemoveDatasetFile}
         onRemoveProblem={handleRemoveProblem}
         onRemoveTestCase={handleRemoveTestCase}
         onTestCaseChange={handleTestCaseChange}
@@ -463,6 +495,29 @@ export default function ProblemRegisterClient({
         modalTitle="취소하시겠습니까?"
         onClose={() => setOpenCancelModal(false)}
         onConfirm={handleGoList}
+      />
+
+      <ProblemDraftPreviewModal
+        draft={draftPreview}
+        isApplying={isSubmitting}
+        onApply={handleApplyDraft}
+        onClose={closeDraftPreview}
+      />
+      <ProblemDraftGeneratorModal
+        categories={categories}
+        draftFileInputRef={draftFileInputRef}
+        draftForm={draftForm}
+        file={file}
+        isGeneratingDraft={isGeneratingDraft}
+        isOpen={draftModalOpen}
+        isSubmitting={isSubmitting}
+        onClose={() => setDraftModalOpen(false)}
+        onDraftFormChange={handleDraftFormChange}
+        onFileChange={setFile}
+        onGenerate={() => void handleGenerateDraft()}
+        onProblemInfoChange={handleProblemInfoChange}
+        onRemoveFile={handleRemoveDatasetFile}
+        problemInfo={problemInfo}
       />
     </main>
   );

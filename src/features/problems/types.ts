@@ -5,6 +5,15 @@ import type {
 
 export type ProblemDifficulty = "EASY" | "MEDIUM" | "HARD";
 
+export type ProblemCompletionStatus =
+  | "NOT_STARTED"
+  | "IN_PROGRESS"
+  | "COMPLETED";
+
+export type ProblemSetSort = "DEFAULT" | "POPULAR";
+
+export type SortDirection = "ASC" | "DESC";
+
 export type ProblemCategoryId = string;
 
 export interface ProblemCategory {
@@ -61,6 +70,37 @@ export interface CreateProblemRequest {
     explanation: string;
     testCases: ProblemTestCase[];
   }>;
+}
+
+export interface ProblemSetDraftGenerateRequest {
+  question: string;
+  dataFileName: string;
+  topic: string;
+  categoryName: string;
+  difficulty: ProblemDifficulty;
+  problemCount: number;
+  subProblemCount: number;
+}
+
+export interface ProblemSetDraftProblem {
+  title: string;
+  content: string;
+  point: number;
+  startCode: string | null;
+  hint: string;
+  explanation: string;
+  testCases: ProblemTestCase[];
+}
+
+export interface ProblemSetDraft {
+  answer?: string;
+  title: string;
+  description: string;
+  categoryName?: string;
+  difficulty?: ProblemDifficulty;
+  dataFileName?: string;
+  usedTools?: string[];
+  problems: ProblemSetDraftProblem[];
 }
 
 export interface RecommendedCourse {
@@ -121,6 +161,7 @@ export interface ProblemSetSummary {
   description: string;
   difficulty: ProblemDifficulty | string;
   accuracyRate?: number;
+  completionStatus?: ProblemCompletionStatus | string | null;
   createdAt?: string;
 }
 

@@ -59,3 +59,15 @@ export interface EmailVerifyRequest {
   email: string;
   code: string;
 }
+
+/** 세션 상태 응답 data (GET /auth/session, POST /auth/session/extend 공통) */
+export interface SessionStatusData {
+  /** 액세스 토큰 잔여 시간(초) */
+  remainingSeconds: number;
+  /** 액세스 토큰 만료 시각(ISO) */
+  expiresAt: string;
+  /** 세션(리프레시) 만료 시각(ISO) */
+  sessionExpiresAt: string;
+  /** 연장 가능 여부 */
+  extendable: boolean;
+}

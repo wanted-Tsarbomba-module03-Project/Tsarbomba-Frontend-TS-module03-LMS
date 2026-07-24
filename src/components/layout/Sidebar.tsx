@@ -419,11 +419,11 @@ export default function Sidebar({
         </span>
         <span
           aria-hidden="true"
-          className={`text-lg leading-none transition-transform ${
+          className={`text-[10px] leading-none text-[#1a237e] transition-transform ${
             isOpen ? "rotate-180" : ""
           }`}
         >
-          ˅
+          ▼
         </span>
       </button>
 

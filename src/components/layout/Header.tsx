@@ -11,6 +11,7 @@ import WhitebombLogo from "../../../public/assets/img/whitebomb-Icon.svg";
 import { optimizedImageProps } from "@/components/common/imageOptimization";
 import { Searchbar, TwoButtonModal } from "../common";
 import { logoutService } from "@/features/auth/actions";
+import SessionTimer from "@/features/auth/components/SessionTimer";
 import { getMyProfile } from "@/features/user/actions";
 import { ApiClientError } from "@/lib/errorHandling";
 import {
@@ -54,8 +55,18 @@ function HeaderInner({ isSimple }: HeaderProps) {
   const [equippedBadgeUrl, setEquippedBadgeUrl] = useState("");
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const navDrawerRef = useRef<HTMLDivElement>(null);
+
+  // 좁은 화면 네비게이션 항목 — 가로 메뉴와 드로어에서 공유
+  const studentNavLinks = [
+    { href: "/chat", label: "챗봇" },
+    { href: "/myclassroom", label: "내 강의실" },
+    { href: "/problems", label: "문제풀이" },
+    { href: "/ranking", label: "랭킹" },
+  ];
 
   // 드롭다운 열려 있을 때 바깥을 누르면 닫기 (터치·마우스 모두 커버)
   useEffect(() => {
@@ -71,6 +82,21 @@ function HeaderInner({ isSimple }: HeaderProps) {
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [isDropdownOpen]);
+
+  // 네브바 드로어도 바깥을 누르면 닫기
+  useEffect(() => {
+    if (!isNavDrawerOpen) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      if (
+        navDrawerRef.current &&
+        !navDrawerRef.current.contains(e.target as Node)
+      ) {
+        setIsNavDrawerOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [isNavDrawerOpen]);
 
   const syncHeaderStatus = () => {
     const status = getHeaderStatus();
@@ -151,6 +177,19 @@ function HeaderInner({ isSimple }: HeaderProps) {
     }
   };
 
+  // 세션 잔여 시간이 0이 되면 자동 로그아웃 → 비로그인 홈(가이드)으로 이동
+  const handleSessionExpire = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      document.cookie =
+        cookies[i].split("=")[0].trim() +
+        "=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/";
+    }
+    window.location.href = "/";
+  };
+
   const isManagementRole =
     isMounted &&
     isLoggedIn &&
@@ -223,34 +262,66 @@ function HeaderInner({ isSimple }: HeaderProps) {
 
         {/* 우측 네비게이션 및 프로필 영역 */}
         <div className="flex shrink-0 items-center gap-3 sm:gap-6">
-          {/* 일반 학생 유저 로그인 시 메뉴 */}
+          {/* 로그인 세션 잔여 시간 */}
+          {isMounted && isLoggedIn && (
+            <SessionTimer onExpire={handleSessionExpire} />
+          )}
+
+          {/* 일반 학생 유저 로그인 시 메뉴 — 데스크톱(lg↑) 가로 노출 */}
           {!isAdminPath && isLoggedIn && !isManagementRole && (
-            <nav className="flex items-center gap-3 sm:gap-5 text-sm font-semibold text-[#1f2937] whitespace-nowrap">
-              <Link
-                href="/chat"
-                className="cursor-pointer hover:text-[#1a237e] transition-colors"
-              >
-                챗봇
-              </Link>
-              <Link
-                href="/myclassroom"
-                className="cursor-pointer hover:text-[#1a237e] transition-colors"
-              >
-                내 강의실
-              </Link>
-              <Link
-                href="/problems"
-                className="cursor-pointer hover:text-[#1a237e] transition-colors"
-              >
-                문제풀이
-              </Link>
-              <Link
-                href="/ranking"
-                className="cursor-pointer hover:text-[#1a237e] transition-colors"
-              >
-                랭킹
-              </Link>
+            <nav className="hidden lg:flex items-center gap-3 xl:gap-5 text-sm font-semibold text-[#1f2937] whitespace-nowrap">
+              {studentNavLinks.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="cursor-pointer hover:text-[#1a237e] transition-colors"
+                >
+                  {item.label}
+                </Link>
+              ))}
             </nav>
+          )}
+
+          {/* 좁은 화면(lg 미만): 햄버거 → 드로어로 네비게이션 노출 */}
+          {!isAdminPath && isLoggedIn && !isManagementRole && (
+            <div className="relative lg:hidden" ref={navDrawerRef}>
+              <button
+                type="button"
+                aria-label="메뉴"
+                aria-expanded={isNavDrawerOpen}
+                aria-haspopup="menu"
+                onClick={() => setIsNavDrawerOpen((v) => !v)}
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-[#e8e8e8] text-[#1f2937] hover:bg-[#f3f4f6] transition-colors cursor-pointer"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+
+              {isNavDrawerOpen && (
+                <nav className="absolute right-0 mt-1 w-40 bg-white border border-[#e8e8e8] rounded-md shadow-lg py-1 z-50 flex flex-col">
+                  {studentNavLinks.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setIsNavDrawerOpen(false)}
+                      className="px-4 py-2.5 text-sm font-semibold text-[#1f2937] hover:bg-[#f3f4f6] hover:text-[#1a237e] transition-colors whitespace-nowrap"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </nav>
+              )}
+            </div>
           )}
 
           {/* 비로그인 상태 */}
