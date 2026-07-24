@@ -7,7 +7,7 @@ import type { LoginResponseData } from "@/features/auth/types";
 import OneButtonModal from "@/components/common/OneButtonModal";
 import PasswordInput from "@/components/common/PasswordInput";
 
-// 구글 콜백 실패 시 BE 가 /auth/login?error=CODE 로 리다이렉트 → 코드별 안내 문구.
+// 구글 콜백 실패 시 BE 가 /auth/login?error=CODE 로 리다이렉트
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   "AUT-022":
     "이미 이메일로 가입된 계정이에요.\n이메일과 비밀번호로 로그인해 주세요.",
