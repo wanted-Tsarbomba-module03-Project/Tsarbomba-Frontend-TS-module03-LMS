@@ -25,6 +25,8 @@ export default function SessionTimer({ onExpire }: SessionTimerProps) {
   const [remaining, setRemaining] = useState<number | null>(null);
   const [extendable, setExtendable] = useState(false);
   const [isExtending, setIsExtending] = useState(false);
+  // 초기 세션 조회 중 여부 — 로딩 중엔 자리표시, 완료 후 실패면 숨김으로 구분.
+  const [loading, setLoading] = useState(true);
   const expiredRef = useRef(false);
 
   // 최초 세션 조회
@@ -39,6 +41,9 @@ export default function SessionTimer({ onExpire }: SessionTimerProps) {
       .catch(() => {
         // 세션 조회 실패(비로그인·만료 등)는 타이머를 숨김 처리
         if (active) setRemaining(null);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
     return () => {
       active = false;
@@ -84,7 +89,23 @@ export default function SessionTimer({ onExpire }: SessionTimerProps) {
     }
   };
 
-  if (remaining === null) return null;
+  if (remaining === null) {
+    // 초기 조회 중이면 자리표시(팝인·헤더 밀림 방지), 조회 완료 후 실패/만료면 숨김.
+    if (loading) {
+      // 실제 구성(시계 아이콘 + MM:SS + 연장 버튼)과 같은 크기로 자리표시.
+      return (
+        <div
+          className="flex items-center gap-1.5 text-sm whitespace-nowrap"
+          aria-hidden="true"
+        >
+          <span className="h-4 w-4 shrink-0 rounded-full bg-bg-gray-box animate-pulse" />
+          <span className="h-5 w-12 rounded bg-bg-gray-box animate-pulse" />
+          <span className="ml-1 h-6 w-16 rounded-md bg-bg-gray-box animate-pulse" />
+        </div>
+      );
+    }
+    return null;
+  }
 
   const isUrgent = remaining <= 60;
   const showExtend = extendable && remaining > 0;

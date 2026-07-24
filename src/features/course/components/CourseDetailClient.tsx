@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { optimizedImageProps } from "@/components/common/imageOptimization";
 import { deleteCourse } from "@/features/course/actions";
 import {
+  cancelEnrollment,
   enrollCourse,
-  getMyEnrollments,
 } from "@/features/course/enrollmentActions";
 import { COURSE_PROGRESS_COLUMN_LABELS } from "@/features/course/constants";
 import { getCourseLearningProgress } from "@/features/course/progressActions";
@@ -19,6 +19,7 @@ import { resolveThumbnailUrl } from "@/features/course/http";
 import { isEnrollmentCompleted } from "@/features/course/search";
 import type {
   CourseDetail,
+  Enrollment,
   StudentLearningProgress,
   LectureSummary,
 } from "@/features/course/types";
@@ -32,6 +33,8 @@ interface CourseDetailClientProps {
   courseId: string;
   course: CourseDetail;
   lectures: LectureSummary[];
+  // 서버에서 미리 조회한 내 수강 레코드 (없으면 미수강). 클라 로딩/깜빡임 제거용.
+  initialEnrollment: Enrollment | null;
 }
 
 const TEACHER_ROLES = ["INSTRUCTOR", "OPERATOR", "ADMIN"];
@@ -75,6 +78,7 @@ export default function CourseDetailClient({
   courseId,
   course,
   lectures,
+  initialEnrollment,
 }: CourseDetailClientProps) {
   const router = useRouter();
 
@@ -84,31 +88,16 @@ export default function CourseDetailClient({
       ? ""
       : (localStorage.getItem("userRole") ?? ""),
   );
-  const [isEnrolled, setIsEnrolled] = useState(false);
-  const [isCompleted, setIsCompleted] = useState(false);
+  // 수강 상태는 서버에서 받은 initialEnrollment 로 초기화 → 클라 재조회/깜빡임 없음.
+  const [myEnrollment, setMyEnrollment] = useState<Enrollment | null>(
+    initialEnrollment,
+  );
+  const [isEnrolled, setIsEnrolled] = useState(!!initialEnrollment);
+  const [isCompleted, setIsCompleted] = useState(
+    isEnrollmentCompleted(initialEnrollment),
+  );
   const [descExpanded, setDescExpanded] = useState(false);
   const isTeacher = TEACHER_ROLES.includes(userRole);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    // 학생 + 로그인 상태에서만 수강 여부 조회.
-    const loggedIn =
-      !!localStorage.getItem("token") || !!localStorage.getItem("userNickname");
-    if (isTeacher || !loggedIn) return;
-
-    getMyEnrollments()
-      .then((enrollments) => {
-        const mine = enrollments.find(
-          (e) => String(e.courseId) === String(courseId),
-        );
-        setIsEnrolled(!!mine);
-        setIsCompleted(isEnrollmentCompleted(mine));
-      })
-      .catch(() => {
-        /* ignore */
-      });
-  }, [courseId, isTeacher]);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -121,6 +110,9 @@ export default function CourseDetailClient({
 
   const [showEnrollConfirm, setShowEnrollConfirm] = useState(false);
   const [isEnrolling, setIsEnrolling] = useState(false);
+
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // AI 추천 문제 모달
   const [showRecommend, setShowRecommend] = useState(false);
@@ -182,6 +174,14 @@ export default function CourseDetailClient({
   }, [showRecommend]);
 
   const handleRecommendClick = async () => {
+    // 미수강 상태에서 눌리면 추천 대신 수강 신청 안내 모달을 띄운다.
+    if (!isEnrolled) {
+      setResultModal({
+        title: "수강 신청이 필요해요",
+        content: "AI 추천 문제는 수강 신청 후 이용할 수 있어요.",
+      });
+      return;
+    }
     setShowRecommend(true);
     if (recommendLoaded) return;
     setRecommendLoading(true);
@@ -289,6 +289,40 @@ export default function CourseDetailClient({
       setResultModal({ title: "수강 신청 실패", content });
     } finally {
       setIsEnrolling(false);
+    }
+  };
+
+  const handleCancelConfirm = async () => {
+    if (myEnrollment?.enrollmentId == null) {
+      setShowCancelConfirm(false);
+      setResultModal({
+        title: "수강 취소 실패",
+        content: "수강 정보를 찾을 수 없습니다.\n잠시 후 다시 시도해 주세요.",
+      });
+      return;
+    }
+    setIsCancelling(true);
+    try {
+      await cancelEnrollment(myEnrollment.enrollmentId);
+      setShowCancelConfirm(false);
+      // 취소 성공 → 다시 "수강 신청" 상태로 되돌린다.
+      setIsEnrolled(false);
+      setIsCompleted(false);
+      setMyEnrollment(null);
+      setResultModal({
+        title: "수강 취소 완료",
+        content: "수강이 취소되었습니다.",
+      });
+    } catch (err: unknown) {
+      const raw = err instanceof Error ? err.message : "";
+      const content =
+        raw && raw.length <= 60
+          ? raw
+          : "수강 취소에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+      setShowCancelConfirm(false);
+      setResultModal({ title: "수강 취소 실패", content });
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -409,9 +443,9 @@ export default function CourseDetailClient({
                       삭제하기
                     </button>
                   </>
-                ) : isEnrolled ? (
+                ) : (
                   <>
-                    {/* 추천 문제는 수강 + 전체 강의 완료가 전제 → 수강 중일 때만 노출 */}
+                    {/* 추천 문제 버튼은 미수강 포함 항상 노출 — 미수강 시 누르면 수강 신청 안내 모달 */}
                     <button
                       type="button"
                       onClick={handleRecommendClick}
@@ -419,18 +453,30 @@ export default function CourseDetailClient({
                     >
                       AI 추천 문제
                     </button>
-                    <span className="px-6 py-2 text-sm font-medium text-text-blue bg-bg-gray-box rounded-lg whitespace-nowrap">
-                      {isCompleted ? "수강 완료" : "수강 중"}
-                    </span>
+                    {!isEnrolled ? (
+                      <button
+                        type="button"
+                        onClick={handleEnrollClick}
+                        className="px-6 py-2 text-sm font-medium bg-button-blue-bg text-text-white rounded-lg cursor-pointer hover:bg-button-blue-hover-bg transition-colors whitespace-nowrap"
+                      >
+                        수강 신청
+                      </button>
+                    ) : isCompleted ? (
+                      // 완료된 강의는 취소 불가 → "수강 완료" 배지
+                      <span className="px-6 py-2 text-sm font-medium text-text-blue bg-bg-gray-box rounded-lg whitespace-nowrap">
+                        수강 완료
+                      </span>
+                    ) : (
+                      // 수강 중 강의는 "수강 취소" 버튼
+                      <button
+                        type="button"
+                        onClick={() => setShowCancelConfirm(true)}
+                        className="px-4 py-2 text-sm font-medium bg-bg-box text-text-red border border-button-red-bg rounded-lg cursor-pointer hover:bg-button-red-bg hover:text-text-white transition-colors whitespace-nowrap"
+                      >
+                        수강 취소
+                      </button>
+                    )}
                   </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleEnrollClick}
-                    className="px-6 py-2 text-sm font-medium bg-button-blue-bg text-text-white rounded-lg cursor-pointer hover:bg-button-blue-hover-bg transition-colors whitespace-nowrap"
-                  >
-                    수강 신청
-                  </button>
                 )}
               </div>
             </div>
@@ -499,6 +545,15 @@ export default function CourseDetailClient({
         confirmDisabled={isEnrolling}
         modalTitle="수강 신청"
         modalContent="이 강좌를 수강 신청하시겠습니까?"
+      />
+
+      <TwoButtonModal
+        isOpen={showCancelConfirm}
+        onClose={() => setShowCancelConfirm(false)}
+        onConfirm={handleCancelConfirm}
+        confirmDisabled={isCancelling}
+        modalTitle="수강 취소"
+        modalContent={`'${course.title}' 수강을 취소하시겠습니까?`}
       />
 
       <TwoButtonModal

@@ -131,12 +131,14 @@ export default function LoginForm() {
   return (
     <div className="w-full flex flex-col items-center justify-start bg-white px-4 pb-8 sm:pb-16">
       <div className="w-full max-w-100 p-6 sm:p-[30px_40px] bg-white border border-border-light rounded-base text-center box-border shadow-sm">
-        <h1 className="text-2xl font-bold text-text-primary mb-6 sm:mb-7.5">로그인</h1>
+        <h1 className="text-2xl font-bold text-text-primary mb-6 sm:mb-7.5">
+          로그인
+        </h1>
 
         <form onSubmit={handleLoginSubmit} className="space-y-4" noValidate>
           <div className="text-left">
             <label htmlFor="login-email" className="auth-label">
-              아이디
+              이메일
             </label>
             <input
               id="login-email"
@@ -192,7 +194,7 @@ export default function LoginForm() {
               className="cursor-pointer hover:underline transition-all bg-transparent border-none p-0 text-text-blue"
               onClick={() => router.push("/auth/find-id")}
             >
-              아이디 찾기
+              이메일 찾기
             </button>
             <span className="text-text-placeholder">|</span>
             <button
