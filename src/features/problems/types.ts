@@ -5,6 +5,15 @@ import type {
 
 export type ProblemDifficulty = "EASY" | "MEDIUM" | "HARD";
 
+export type ProblemCompletionStatus =
+  | "NOT_STARTED"
+  | "IN_PROGRESS"
+  | "COMPLETED";
+
+export type ProblemSetSort = "DEFAULT" | "POPULAR";
+
+export type SortDirection = "ASC" | "DESC";
+
 export type ProblemCategoryId = string;
 
 export interface ProblemCategory {
@@ -152,6 +161,7 @@ export interface ProblemSetSummary {
   description: string;
   difficulty: ProblemDifficulty | string;
   accuracyRate?: number;
+  completionStatus?: ProblemCompletionStatus | string | null;
   createdAt?: string;
 }
 

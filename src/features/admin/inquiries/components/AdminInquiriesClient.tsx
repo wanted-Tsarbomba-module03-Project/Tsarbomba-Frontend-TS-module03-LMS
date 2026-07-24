@@ -171,7 +171,7 @@ const inquiryListClasses = {
   filterOptionActive: "bg-[#eef2ff] text-[#1a237e]",
   filterSwatch: "h-2.5 w-2.5 shrink-0 rounded-full",
   filterLabel: "truncate",
-  filterCaret: "ml-0.5 text-[10px] text-text-secondary",
+  filterCaret: "ml-0.5 text-[10px] leading-none text-text-secondary",
 } as const;
 
 function formatCreatedAt(createdAt: string) {
