@@ -16,7 +16,7 @@ export default function RankingLoading() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-base border border-border-light bg-bg-box [&_tbody_td]:h-[86px] [&_thead_th]:h-[52px]">
+      <div className="[&_tbody_td]:h-[86px] [&_thead_th]:h-[52px] max-md:[&_tbody_td]:h-[72px]">
         <ListSkeleton
           columns={[...RANKING_LIST_SKELETON_COLUMNS]}
           rowCount={RANKING_PAGE_SIZE}

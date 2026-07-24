@@ -1,10 +1,16 @@
-// SSR(30초 데이터 재검증)+CSR - 회원 문제 전체조회: 세션 기반 목록을 서버에서 갱신하고 행 클릭은 클라이언트에서 처리함
+// SSR(no-store)+CSR - 회원 문제 전체조회: 세션 기반 풀이 상태를 서버에서 갱신하고 행 클릭은 클라이언트에서 처리함
 import { cookies } from "next/headers";
 
 import JsonLdScript from "@/components/common/JsonLdScript";
 import { getProblemSetPage } from "@/features/problems/actions";
 import UserProblemListClient from "@/features/problems/components/UserProblemListClient";
 import { PROBLEM_SET_PAGE_SIZE } from "@/features/problems/constants";
+import type {
+  ProblemCompletionStatus,
+  ProblemDifficulty,
+  ProblemSetSort,
+  SortDirection,
+} from "@/features/problems/types";
 import {
   createBreadcrumbJsonLd,
   createItemListJsonLd,
@@ -21,20 +27,33 @@ export const metadata = createPageMetadata({
 interface ProblemsPageProps {
   searchParams: Promise<{
     categoryId?: string;
+    completionStatus?: string;
+    difficulty?: string;
+    direction?: string;
     page?: string;
+    sort?: string;
   }>;
 }
 
 export default async function ProblemsPage({ searchParams }: ProblemsPageProps) {
-  const { categoryId, page } = await searchParams;
+  const { categoryId, completionStatus, difficulty, direction, page, sort } =
+    await searchParams;
   const currentPage = getPageParam(page);
+  const currentCompletionStatus = getCompletionStatusParam(completionStatus);
+  const currentDifficulty = getDifficultyParam(difficulty);
+  const currentSort = getSortParam(sort);
+  const currentDirection = getDirectionParam(direction);
   const cookieHeader = (await cookies()).toString();
   const problemSetPage = await getProblemSetPage({
     categoryId,
+    completionStatus: currentCompletionStatus,
+    difficulty: currentDifficulty,
+    direction: currentDirection,
     page: currentPage,
     size: PROBLEM_SET_PAGE_SIZE,
-    revalidateSeconds: 30,
+    sort: currentSort,
     init: {
+      cache: "no-store",
       ...(cookieHeader ? { headers: { Cookie: cookieHeader } } : {}),
     },
   });
@@ -59,9 +78,13 @@ export default async function ProblemsPage({ searchParams }: ProblemsPageProps) 
       <JsonLdScript data={problemListJsonLd} id="problem-list-jsonld" />
       <UserProblemListClient
         categoryId={categoryId}
+        completionStatus={currentCompletionStatus}
         currentPage={currentPage}
+        difficulty={currentDifficulty}
+        direction={currentDirection}
         initialProblemSets={problemSetPage.problemSets}
         pageSize={PROBLEM_SET_PAGE_SIZE}
+        sort={currentSort}
         totalPages={problemSetPage.totalPages}
       />
     </>
@@ -76,4 +99,28 @@ function getPageParam(value?: string) {
   }
 
   return page;
+}
+
+function getDifficultyParam(value?: string): ProblemDifficulty | null {
+  return value === "EASY" || value === "MEDIUM" || value === "HARD"
+    ? value
+    : null;
+}
+
+function getCompletionStatusParam(
+  value?: string,
+): ProblemCompletionStatus | null {
+  return value === "NOT_STARTED" ||
+    value === "IN_PROGRESS" ||
+    value === "COMPLETED"
+    ? value
+    : null;
+}
+
+function getSortParam(value?: string): ProblemSetSort {
+  return value === "POPULAR" ? "POPULAR" : "DEFAULT";
+}
+
+function getDirectionParam(value?: string): SortDirection {
+  return value === "DESC" ? "DESC" : "ASC";
 }

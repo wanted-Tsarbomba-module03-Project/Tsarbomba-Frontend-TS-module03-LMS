@@ -20,7 +20,9 @@ import {
   getProblemSetPage,
 } from "../actions";
 import {
+  ADMIN_PROBLEM_LIST_COLUMN_LABELS,
   PROBLEM_LIST_COLUMN_LABELS,
+  PROBLEM_LIST_COLUMN_WIDTHS,
   PROBLEM_SET_PAGE_SIZE,
 } from "../constants";
 import { matchesProblemSetKeyword } from "../search";
@@ -79,6 +81,7 @@ export default function ProblemListClient() {
       {
         key: "problemNumber",
         isRowNumber: true,
+        width: PROBLEM_LIST_COLUMN_WIDTHS[0],
         label: PROBLEM_LIST_COLUMN_LABELS[0],
         render: (item, index) =>
           item.problemNumber ?? page * PROBLEM_SET_PAGE_SIZE + index + 1,
@@ -87,14 +90,17 @@ export default function ProblemListClient() {
         key: "title",
         label: PROBLEM_LIST_COLUMN_LABELS[1],
         cellClassName: listCellClasses.twoLine,
+        width: PROBLEM_LIST_COLUMN_WIDTHS[1],
       },
       {
         key: "description",
         label: PROBLEM_LIST_COLUMN_LABELS[2],
         cellClassName: listCellClasses.twoLine,
+        width: PROBLEM_LIST_COLUMN_WIDTHS[2],
       },
       {
         key: "difficulty",
+        width: PROBLEM_LIST_COLUMN_WIDTHS[3],
         label: PROBLEM_LIST_COLUMN_LABELS[3],
         render: (item) =>
           DIFFICULTY_MAP[item.difficulty as keyof typeof DIFFICULTY_MAP] ??
@@ -102,13 +108,15 @@ export default function ProblemListClient() {
       },
       {
         key: "accuracyRate",
+        width: PROBLEM_LIST_COLUMN_WIDTHS[4],
         label: PROBLEM_LIST_COLUMN_LABELS[4],
         render: (item) =>
           typeof item.accuracyRate === "number" ? `${item.accuracyRate}%` : "-",
       },
       {
         key: "createdAt",
-        label: PROBLEM_LIST_COLUMN_LABELS[5],
+        width: PROBLEM_LIST_COLUMN_WIDTHS[5],
+        label: ADMIN_PROBLEM_LIST_COLUMN_LABELS[5],
         render: (item) => formatDate(item.createdAt),
       },
     ],
@@ -285,7 +293,8 @@ export default function ProblemListClient() {
 
       {isLoading ? (
         <ListSkeleton
-          columns={[...PROBLEM_LIST_COLUMN_LABELS]}
+          colWidths={PROBLEM_LIST_COLUMN_WIDTHS}
+          columns={[...ADMIN_PROBLEM_LIST_COLUMN_LABELS]}
           rowCount={PROBLEM_SET_PAGE_SIZE}
           statusMessage="문제 목록을 불러오는 중입니다."
         />

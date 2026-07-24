@@ -1,16 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
 import {
+  FilterDropdown,
   List,
   ListSkeleton,
   OneButtonModal,
   Pagination,
   TwoButtonModal,
   listCellClasses,
+  type FilterDropdownOption,
+  type FilterDropdownValue,
   type ListColumn,
 } from "@/components/common";
 import { handleClientError } from "@/lib/errorHandling";
@@ -36,13 +38,6 @@ import type {
 } from "../types";
 
 type InquiryFilteredTab = "normal" | "filtered";
-type FilterValue = string | boolean;
-type FilterMenuPosition = {
-  left: number;
-  top: number;
-  minWidth: number;
-  maxHeight: number;
-};
 type ClassificationField = "domain" | "severity";
 type ClassificationDraft = {
   field: ClassificationField;
@@ -52,13 +47,7 @@ type ClassificationDraft = {
   reason: string;
 } | null;
 
-interface FilterHeaderOption<T extends FilterValue> {
-  label: string;
-  value: T;
-  swatchClassName?: string;
-}
-
-const filteredOptions: Array<FilterHeaderOption<InquiryFilteredTab>> = [
+const filteredOptions: Array<FilterDropdownOption<InquiryFilteredTab>> = [
   { label: "정상", value: "normal", swatchClassName: "bg-[#0ea5e9]" },
   { label: "AI 필터링", value: "filtered", swatchClassName: "bg-[#9333ea]" },
 ];
@@ -163,15 +152,6 @@ const inquiryListClasses = {
     "border border-border-light bg-bg-navbar text-text-secondary hover:not-disabled:bg-[#e5e7eb]",
   filterButton:
     "mx-auto flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-base px-2 py-1 text-description font-semibold text-text-primary transition hover:bg-[#e5e7eb] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#1a237e]",
-  filterWrap: "relative mx-auto w-full min-w-0",
-  filterMenu:
-    "fixed z-50 overflow-y-auto rounded-base border border-border-light bg-white p-1.5 text-left shadow-[0_14px_32px_rgba(15,23,42,0.18)]",
-  filterOption:
-    "flex w-full cursor-pointer items-center gap-2 rounded-base px-2.5 py-2 text-left text-description font-semibold text-text-primary transition hover:bg-[#eef2ff] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#1a237e]",
-  filterOptionActive: "bg-[#eef2ff] text-[#1a237e]",
-  filterSwatch: "h-2.5 w-2.5 shrink-0 rounded-full",
-  filterLabel: "truncate",
-  filterCaret: "ml-0.5 text-[10px] text-text-secondary",
 } as const;
 
 function formatCreatedAt(createdAt: string) {
@@ -420,179 +400,31 @@ function ClassificationReasonModal({
   );
 }
 
-function FilterHeader<T extends FilterValue>({
-  label,
-  value,
-  options,
-  onChange,
+// 문의 목록 헤더용 필터: 공용 FilterDropdown에 이 화면의 트리거 스타일만 주입
+function FilterHeader<T extends FilterDropdownValue>({
   includeAll = true,
+  label,
+  onChange,
+  options,
+  value,
 }: {
-  label: string;
-  value: T | "";
-  options: Array<FilterHeaderOption<T>>;
-  onChange: (value: T | "") => void;
   includeAll?: boolean;
+  label: string;
+  onChange: (value: T | "") => void;
+  options: Array<FilterDropdownOption<T>>;
+  value: T | "";
 }) {
-  const [open, setOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<FilterMenuPosition | null>(
-    null,
-  );
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const selectedOption = options.find((option) => option.value === value);
-  const dropdownOptions = includeAll
-    ? [
-        {
-          label: "전체",
-          value: "" as const,
-          swatchClassName: undefined,
-        },
-        ...options,
-      ]
-    : options;
-
-  const updateMenuPosition = useCallback(() => {
-    const button = buttonRef.current;
-
-    if (!button) {
-      return;
-    }
-
-    const rect = button.getBoundingClientRect();
-    const minWidth = Math.max(168, rect.width);
-    const horizontalPadding = 8;
-    const menuMaxHeight = 256;
-    const spaceBelow = window.innerHeight - rect.bottom - 12;
-    const spaceAbove = rect.top - 12;
-    const opensUp = spaceBelow < 140 && spaceAbove > spaceBelow;
-    const maxHeight = Math.max(
-      120,
-      Math.min(menuMaxHeight, opensUp ? spaceAbove : spaceBelow),
-    );
-    const unclampedLeft = rect.left + rect.width / 2;
-    const minLeft = horizontalPadding + minWidth / 2;
-    const maxLeft = window.innerWidth - horizontalPadding - minWidth / 2;
-
-    setMenuPosition({
-      left: Math.min(Math.max(unclampedLeft, minLeft), maxLeft),
-      top: opensUp ? Math.max(8, rect.top - maxHeight - 6) : rect.bottom + 6,
-      minWidth,
-      maxHeight,
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-
-      if (
-        !wrapRef.current?.contains(target) &&
-        !menuRef.current?.contains(target)
-      ) {
-        setOpen(false);
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    };
-
-    updateMenuPosition();
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("resize", updateMenuPosition);
-    window.addEventListener("scroll", updateMenuPosition, true);
-
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("resize", updateMenuPosition);
-      window.removeEventListener("scroll", updateMenuPosition, true);
-    };
-  }, [open, updateMenuPosition]);
-
-  const filterMenu =
-    open && menuPosition && typeof document !== "undefined"
-      ? createPortal(
-          <div
-            className={inquiryListClasses.filterMenu}
-            ref={menuRef}
-            role="listbox"
-            style={{
-              left: menuPosition.left,
-              top: menuPosition.top,
-              minWidth: menuPosition.minWidth,
-              maxHeight: menuPosition.maxHeight,
-              transform: "translateX(-50%)",
-            }}
-          >
-            {dropdownOptions.map((option) => {
-              const optionValue = option.value;
-              const selected = optionValue === value;
-
-              return (
-                <button
-                  aria-selected={selected}
-                  className={`${inquiryListClasses.filterOption} ${
-                    selected ? inquiryListClasses.filterOptionActive : ""
-                  }`}
-                  key={String(optionValue)}
-                  onClick={() => {
-                    onChange(optionValue);
-                    setOpen(false);
-                  }}
-                  role="option"
-                  type="button"
-                >
-                  {option.swatchClassName && (
-                    <span
-                      aria-hidden="true"
-                      className={`${inquiryListClasses.filterSwatch} ${option.swatchClassName}`}
-                    />
-                  )}
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>,
-          document.body,
-        )
-      : null;
-
   return (
-    <div className={inquiryListClasses.filterWrap} ref={wrapRef}>
-      <button
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        aria-label={`${label} 필터 선택`}
-        className={inquiryListClasses.filterButton}
-        onClick={() => setOpen((currentOpen) => !currentOpen)}
-        ref={buttonRef}
-        title={`${label} 필터: ${selectedOption?.label ?? "전체"}`}
-        type="button"
-      >
-        {selectedOption?.swatchClassName && (
-          <span
-            aria-hidden="true"
-            className={`${inquiryListClasses.filterSwatch} ${selectedOption.swatchClassName}`}
-          />
-        )}
-        <span className={inquiryListClasses.filterLabel}>
-          {label}: {selectedOption?.label ?? "전체"}
-        </span>
-        <span aria-hidden="true" className={inquiryListClasses.filterCaret}>
-          ▼
-        </span>
-      </button>
-      {filterMenu}
-    </div>
+    <FilterDropdown
+      buttonClassName={inquiryListClasses.filterButton}
+      className="mx-auto w-full"
+      includeAll={includeAll}
+      label={label}
+      menuMinWidth={168}
+      onChange={onChange}
+      options={options}
+      value={value}
+    />
   );
 }
 
