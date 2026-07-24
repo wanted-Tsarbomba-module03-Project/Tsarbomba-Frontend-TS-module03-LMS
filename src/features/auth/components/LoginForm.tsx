@@ -7,7 +7,7 @@ import type { LoginResponseData } from "@/features/auth/types";
 import OneButtonModal from "@/components/common/OneButtonModal";
 import PasswordInput from "@/components/common/PasswordInput";
 
-// 구글 콜백 실패 시 BE 가 /auth/login?error=CODE 로 리다이렉트 → 코드별 안내 문구.
+// 구글 콜백 실패 시 BE 가 /auth/login?error=CODE 로 리다이렉트
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   "AUT-022":
     "이미 이메일로 가입된 계정이에요.\n이메일과 비밀번호로 로그인해 주세요.",
@@ -131,7 +131,9 @@ export default function LoginForm() {
   return (
     <div className="w-full flex flex-col items-center justify-start bg-white px-4 pb-8 sm:pb-16">
       <div className="w-full max-w-100 p-6 sm:p-[30px_40px] bg-white border border-border-light rounded-base text-center box-border shadow-sm">
-        <h1 className="text-2xl font-bold text-text-primary mb-6 sm:mb-7.5">로그인</h1>
+        <h1 className="text-2xl font-bold text-text-primary mb-6 sm:mb-7.5">
+          로그인
+        </h1>
 
         <form onSubmit={handleLoginSubmit} className="space-y-4" noValidate>
           <div className="text-left">
