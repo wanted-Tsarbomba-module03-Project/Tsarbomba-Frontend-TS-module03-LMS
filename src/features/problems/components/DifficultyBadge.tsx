@@ -10,20 +10,27 @@ const difficultyColorClasses: Record<ProblemDifficulty, string> = {
   HARD: "bg-[#fee2e2] text-[#b91c1c]",
 };
 
-/** 난이도 색상 배지 - 회원/관리자 문제 목록에서 공통 사용 */
-export default function DifficultyBadge({ difficulty }: { difficulty: string }) {
-  const knownDifficulty =
-    difficulty === "EASY" || difficulty === "MEDIUM" || difficulty === "HARD"
-      ? difficulty
-      : null;
+interface DifficultyBadgeProps {
+  difficulty?: ProblemDifficulty | string | null;
+}
 
-  if (!knownDifficulty) {
+export default function DifficultyBadge({ difficulty }: DifficultyBadgeProps) {
+  if (!isProblemDifficulty(difficulty)) {
     return <>{difficulty || "-"}</>;
   }
 
   return (
-    <span className={`${difficultyBadgeClass} ${difficultyColorClasses[knownDifficulty]}`}>
-      {DIFFICULTY_MAP[knownDifficulty]}
+    <span className={`${difficultyBadgeClass} ${difficultyColorClasses[difficulty]}`}>
+      {DIFFICULTY_MAP[difficulty]}
     </span>
+  );
+}
+
+function isProblemDifficulty(
+  difficulty: DifficultyBadgeProps["difficulty"],
+): difficulty is ProblemDifficulty {
+  return (
+    typeof difficulty === "string" &&
+    Object.prototype.hasOwnProperty.call(DIFFICULTY_MAP, difficulty)
   );
 }

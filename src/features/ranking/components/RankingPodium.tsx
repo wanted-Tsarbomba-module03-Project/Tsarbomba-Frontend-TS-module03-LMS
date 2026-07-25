@@ -46,14 +46,17 @@ export default function RankingPodium({ mode, topRankers }: RankingPodiumProps) 
   }
 
   return (
-    <div className={rankingClasses.podium}>
+    <ol
+      aria-label="상위 랭킹"
+      className={`${rankingClasses.podium} list-none p-0`}
+    >
       {topRankers.map((user, index) => {
         const place = toPodiumPlace(user.rank, index + 1);
         const placeStyle = podiumPlaceStyles[place];
         const point = mode === "weekly" ? user.weeklyPoint : user.totalPoint;
 
         return (
-          <div
+          <li
             className={`${rankingClasses.podiumItem} ${placeStyle.item}`}
             key={user.userId}
           >
@@ -77,9 +80,9 @@ export default function RankingPodium({ mode, topRankers }: RankingPodiumProps) 
             <span className={rankingClasses.podiumPoint}>
               {formatPoint(point)} P
             </span>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }

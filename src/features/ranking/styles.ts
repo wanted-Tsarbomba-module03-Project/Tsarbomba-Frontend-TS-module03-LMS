@@ -20,7 +20,7 @@ export const rankingClasses = {
   podiumItem:
     "flex flex-col items-center gap-2 rounded-2xl border bg-bg-box px-4 py-5 text-center transition-transform max-md:gap-1.5 max-md:px-2 max-md:py-4",
   podiumItemFirst:
-    "order-2 border-[#f5c518] bg-gradient-to-b from-[#fff8e1] to-bg-box shadow-[0_16px_36px_-12px_rgba(245,197,24,0.55)] -translate-y-3 max-md:-translate-y-1.5",
+    "order-2 col-start-2 border-[#f5c518] bg-gradient-to-b from-[#fff8e1] to-bg-box shadow-[0_16px_36px_-12px_rgba(245,197,24,0.55)] -translate-y-3 max-md:-translate-y-1.5",
   podiumItemSecond:
     "order-1 border-[#cbd5e1] shadow-[0_10px_22px_-14px_rgba(15,23,42,0.35)]",
   podiumItemThird:

@@ -285,26 +285,14 @@ export default function List<T extends ListItem>({
 
           if (rowClickable) {
             return (
-              <div
+              <button
                 className={cardClassName}
                 key={key}
                 onClick={() => onRowClick?.(item)}
-                onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
-                  if (
-                    isInteractiveTarget(event.target) ||
-                    (event.key !== "Enter" && event.key !== " ")
-                  ) {
-                    return;
-                  }
-
-                  event.preventDefault();
-                  onRowClick?.(item);
-                }}
-                role="button"
-                tabIndex={0}
+                type="button"
               >
                 {cardInner}
-              </div>
+              </button>
             );
           }
 

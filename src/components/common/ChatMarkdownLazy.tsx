@@ -7,7 +7,15 @@ import dynamic from "next/dynamic";
 // 메시지가 실제 렌더될 때 한 번만 로드되며 이후 캐시된다.
 const ChatMarkdown = dynamic(() => import("./ChatMarkdown"), {
   ssr: false,
-  loading: () => null,
+  loading: () => (
+    <span
+      aria-live="polite"
+      className="inline-flex min-h-5 items-center text-description text-text-secondary"
+      role="status"
+    >
+      답변을 표시하는 중입니다.
+    </span>
+  ),
 });
 
 export default ChatMarkdown;
