@@ -124,7 +124,7 @@ export default function LoginForm() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "";
       const isClean = !!msg && !msg.includes("\n") && msg.length <= 60;
-      setErrorMsg(isClean ? msg : "아이디 또는 비밀번호가 일치하지 않습니다.");
+      setErrorMsg(isClean ? msg : "이메일 또는 비밀번호가 일치하지 않습니다.");
     }
   };
 

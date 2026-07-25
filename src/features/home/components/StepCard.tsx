@@ -1,5 +1,7 @@
 "use client";
 
+import type { MouseEvent } from "react";
+
 /**
  * 랜딩 상단 "이렇게 학습합니다" 4단계 카드.
  * 클릭하면 아래 "실제 화면으로 살펴보기(FLOW)"의 해당 항목으로 부드럽게 스크롤한다.
@@ -21,17 +23,19 @@ export default function StepCard({
   desc,
   targetId,
 }: StepCardProps) {
-  const handleClick = () => {
-    document
-      .getElementById(targetId)
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  // 앵커(#targetId)로 시맨틱 이동 + 해시 이동은 유지하되, 스크롤만 부드럽게 처리.
+  const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    e.preventDefault();
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
-    <button
-      type="button"
+    <a
+      href={`#${targetId}`}
       onClick={handleClick}
-      className="w-full cursor-pointer rounded-2xl border border-[#e8e8e8] bg-white p-6 text-left transition-shadow hover:shadow-md"
+      className="block w-full cursor-pointer rounded-2xl border border-[#e8e8e8] bg-white p-6 text-left transition-shadow hover:shadow-md"
     >
       <div className="flex items-center justify-between">
         <span className="text-sm font-bold text-[#1a237e]">{no}</span>
@@ -41,6 +45,6 @@ export default function StepCard({
       </div>
       <h3 className="mt-4 text-lg font-bold text-[#1f2937]">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-[#6b7280]">{desc}</p>
-    </button>
+    </a>
   );
 }
