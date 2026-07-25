@@ -2,47 +2,34 @@
 
 // CSR - 문제풀이 상호작용: 서버 초기 문제 데이터를 상태로 받아 코드 입력, 실행, 제출, 문제 이동을 즉시 처리함
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type {
-  CSSProperties,
-  PointerEvent as ReactPointerEvent,
-} from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import CategoryNav from "@/components/layout/CategoryNav";
 import Sidebar from "@/components/layout/Sidebar";
-import { getSuggestedQuestions } from "@/features/chat/actions";
-import { streamChat } from "@/features/chat/stream";
-import { createChatTypewriter } from "@/features/chat/typewriter";
+import { useProblemChat } from "@/features/problems/hooks/useProblemChat";
+import { useResizableProblemPanel } from "@/features/problems/hooks/useResizableProblemPanel";
 import { handleClientError } from "@/lib/errorHandling";
 
 import {
-  deleteProblemMessageFeedback,
   getProblemDatasetDownloadUrl,
-  getProblemChatMessages,
-  getProblemChatRooms,
   getProblemHints,
   getProblemRecommendedCourses,
   getProblemSetDetailWithProgress,
   getProblemSetProgress,
   getProblemSetResult,
   runProblem,
-  setProblemMessageFeedback,
   submitProblem,
-  updateProblemChatRoomTitle,
   viewProblemExplanation,
 } from "../actions";
 import { problemDetailClasses } from "../problemDetailStyles";
 import type {
-  ChatMessage,
   ExecutionResult,
-  FeedbackRating,
   ProblemHint,
   ProblemResultTab,
   RecommendedCourse,
   ProblemSetDetail,
   ProblemSetResult,
-  ProblemChatRoom,
   ProblemStatus,
   SubmissionResult,
 } from "../types";
@@ -65,14 +52,7 @@ interface UserProblemDetailClientProps {
 const updateArrayItem = <T,>(items: T[], index: number, value: T) =>
   items.map((item, itemIndex) => (itemIndex === index ? value : item));
 
-function createClientMessageId() {
-  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
-}
 
-const MIN_PROBLEM_PANEL_WIDTH = 260;
-const MIN_SOLVE_PANEL_WIDTH = 400;
-const RESIZE_HANDLE_RESERVED_WIDTH = 32;
-const DEFAULT_PROBLEM_PANEL_PERCENT = 33.3333;
 
 const isExplanationViewedStatus = (status?: ProblemStatus) =>
   status === "EXPLANATION_VIEWED";
@@ -229,38 +209,6 @@ function normalizeId(value?: number | string | null) {
   return value == null ? "" : String(value);
 }
 
-function getRoomProblemSetId(room: ProblemChatRoom) {
-  return (
-    room.problemSetId ??
-    room.problemSet?.problemSetId ??
-    room.problemSet?.id ??
-    null
-  );
-}
-
-function getRoomProblemId(room: ProblemChatRoom) {
-  return room.problemId ?? room.problem?.problemId ?? room.problem?.id ?? null;
-}
-
-function findProblemChatRoom(
-  rooms: ProblemChatRoom[],
-  problemSetId: number,
-  problemId: number,
-) {
-  const targetProblemSetId = normalizeId(problemSetId);
-  const targetProblemId = normalizeId(problemId);
-
-  return rooms.find(
-    (room) =>
-      normalizeId(getRoomProblemSetId(room)) === targetProblemSetId &&
-      normalizeId(getRoomProblemId(room)) === targetProblemId,
-  );
-}
-
-function findProblemChatRoomById(rooms: ProblemChatRoom[], roomId: number) {
-  return rooms.find((room) => room.roomId === roomId);
-}
-
 export default function UserProblemDetailClient({
   problemSetId,
   initialProblemSet,
@@ -332,41 +280,16 @@ export default function UserProblemDetailClient({
     title: "",
     content: "",
   });
-  const [chatOpen, setChatOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [hasOpenedChatPanel, setHasOpenedChatPanel] = useState(false);
-  const [chatRoomId, setChatRoomId] = useState<number | null>(null);
-  const [chatRoomTitle, setChatRoomTitle] = useState<string | null>(null);
-  const [chatRoomTitleInput, setChatRoomTitleInput] = useState("");
-  const [chatRoomTitleEditing, setChatRoomTitleEditing] = useState(false);
-  const [chatRoomTitleConfirmOpen, setChatRoomTitleConfirmOpen] = useState(false);
-  const [chatRoomTitleUpdating, setChatRoomTitleUpdating] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [feedbackPendingIds, setFeedbackPendingIds] = useState<Set<number>>(
-    () => new Set(),
-  );
-  const [chatInput, setChatInput] = useState("");
-  const [chatSending, setChatSending] = useState(false);
-  const [showChatResponsePending, setShowChatResponsePending] = useState(false);
-  const [chatLoading, setChatLoading] = useState(false);
-  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
-  const [problemPanelPercent, setProblemPanelPercent] = useState(
-    DEFAULT_PROBLEM_PANEL_PERCENT,
-  );
-  const [isPanelSplitAvailable, setIsPanelSplitAvailable] = useState(false);
-  const contentAreaRef = useRef<HTMLElement | null>(null);
-  const activeChatRoomIdRef = useRef<number | null>(null);
-  const chatStreamAbortRef = useRef<AbortController | null>(null);
+  const {
+    contentAreaRef,
+    isPanelSplitAvailable,
+    problemPanelStyle,
+    handlePanelResizeStart,
+  } = useResizableProblemPanel();
   const appliedTargetProblemIdRef = useRef(targetProblemId);
-
-  useEffect(() => {
-    activeChatRoomIdRef.current = chatRoomId;
-  }, [chatRoomId]);
-
-  useEffect(() => {
-    return () => {
-      chatStreamAbortRef.current?.abort();
-    };
+  const showError = useCallback((title: string, content: string) => {
+    setAlertModal({ open: true, title, content });
   }, []);
 
   const userId = useMemo(() => {
@@ -443,162 +366,45 @@ export default function UserProblemDetailClient({
     problemStates[currentIndex],
   );
 
-  useEffect(() => {
-    const problemSetNumericId = Number(problemSet.id);
-    const problemNumericId = Number(currentProblem?.problemId);
-
-    if (
-      !Number.isFinite(problemSetNumericId) ||
-      problemSetNumericId <= 0 ||
-      !Number.isFinite(problemNumericId) ||
-      problemNumericId <= 0
-    ) {
-      const resetTimer = window.setTimeout(() => {
-        setSuggestedQuestions([]);
-      }, 0);
-
-      return () => window.clearTimeout(resetTimer);
-    }
-
-    const controller = new AbortController();
-
-    getSuggestedQuestions(
-      problemSetNumericId,
-      problemNumericId,
-      controller.signal,
-    )
-      .then((result) => {
-        if (!controller.signal.aborted) {
-          setSuggestedQuestions(result?.questions ?? []);
-        }
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setSuggestedQuestions([]);
-        }
-      });
-
-    return () => controller.abort();
-  }, [currentProblem?.problemId, problemSet.id]);
-
-  const problemPanelStyle = useMemo(
-    () =>
-      ({
-        "--problem-panel-percent": `${problemPanelPercent}%`,
-      }) as CSSProperties & Record<"--problem-panel-percent", string>,
-    [problemPanelPercent],
-  );
-
-  useEffect(() => {
-    const container = contentAreaRef.current;
-
-    if (!container) {
-      return;
-    }
-
-    const updateSplitAvailability = () => {
-      const width = container.getBoundingClientRect().width;
-      const canSplit =
-        width >=
-        MIN_PROBLEM_PANEL_WIDTH +
-          MIN_SOLVE_PANEL_WIDTH +
-          RESIZE_HANDLE_RESERVED_WIDTH;
-
-      setIsPanelSplitAvailable(canSplit);
-
-      if (!canSplit) {
-        setProblemPanelPercent(DEFAULT_PROBLEM_PANEL_PERCENT);
-        return;
-      }
-
-      const minPercent = (MIN_PROBLEM_PANEL_WIDTH / width) * 100;
-      const maxPercent =
-        ((width - MIN_SOLVE_PANEL_WIDTH - RESIZE_HANDLE_RESERVED_WIDTH) /
-          width) *
-        100;
-
-      setProblemPanelPercent((prev) =>
-        Math.min(Math.max(prev, minPercent), maxPercent),
-      );
-    };
-
-    updateSplitAvailability();
-
-    const resizeObserver = new ResizeObserver(updateSplitAvailability);
-    resizeObserver.observe(container);
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
-  const handlePanelResizeStart = useCallback(
-    (event: ReactPointerEvent<HTMLButtonElement>) => {
-      event.preventDefault();
-
-      if (!isPanelSplitAvailable) {
-        return;
-      }
-
-      const container = contentAreaRef.current;
-
-      if (!container) {
-        return;
-      }
-
-      const rect = container.getBoundingClientRect();
-      const maxProblemWidth =
-        rect.width - MIN_SOLVE_PANEL_WIDTH - RESIZE_HANDLE_RESERVED_WIDTH;
-
-      if (maxProblemWidth < MIN_PROBLEM_PANEL_WIDTH) {
-        return;
-      }
-
-      const updatePanelWidth = (clientX: number) => {
-        const nextWidth = Math.min(
-          Math.max(clientX - rect.left, MIN_PROBLEM_PANEL_WIDTH),
-          maxProblemWidth,
-        );
-
-        setProblemPanelPercent((nextWidth / rect.width) * 100);
-      };
-
-      const handlePointerMove = (pointerEvent: PointerEvent) => {
-        updatePanelWidth(pointerEvent.clientX);
-      };
-      const handlePointerUp = () => {
-        window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("pointerup", handlePointerUp);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-      };
-
-      updatePanelWidth(event.clientX);
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-      window.addEventListener("pointermove", handlePointerMove);
-      window.addEventListener("pointerup", handlePointerUp, { once: true });
-    },
-    [isPanelSplitAvailable],
-  );
+  const {
+    chatOpen,
+    setChatOpen,
+    hasOpenedChatPanel,
+    chatRoomId,
+    chatRoomTitle,
+    chatRoomTitleInput,
+    setChatRoomTitleInput,
+    chatRoomTitleEditing,
+    chatRoomTitleConfirmOpen,
+    setChatRoomTitleConfirmOpen,
+    chatRoomTitleUpdating,
+    chatMessages,
+    feedbackPendingIds,
+    chatInput,
+    setChatInput,
+    chatSending,
+    showChatResponsePending,
+    chatLoading,
+    suggestedQuestions,
+    toggleChat,
+    resetChatState,
+    sendChat,
+    handleChatFeedback,
+    handleSelectSuggestedQuestion,
+    startChatRoomTitleEdit,
+    cancelChatRoomTitleEdit,
+    requestChatRoomTitleUpdate,
+    handleChatRoomTitleUpdate,
+  } = useProblemChat({
+    problemSetId: problemSet.id,
+    currentProblemId: currentProblem?.problemId,
+    showError,
+  });
 
   const toggleProblemChat = useCallback(() => {
-    setHasOpenedChatPanel(true);
     setMobileSidebarOpen(false);
-    setChatOpen((prev) => !prev);
-  }, []);
-
-  const resetChatState = useCallback(() => {
-    chatStreamAbortRef.current?.abort();
-    chatStreamAbortRef.current = null;
-    setChatRoomId(null);
-    setChatRoomTitle(null);
-    setChatRoomTitleInput("");
-    setChatRoomTitleEditing(false);
-    setChatRoomTitleConfirmOpen(false);
-    setChatMessages([]);
-    setChatInput("");
-    setChatSending(false);
-    setShowChatResponsePending(false);
-  }, []);
+    toggleChat();
+  }, [toggleChat]);
 
   useEffect(() => {
     let isMounted = true;
@@ -735,78 +541,6 @@ export default function UserProblemDetailClient({
       isMounted = false;
     };
   }, [currentProblem?.problemId, recommendedCourses]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadProblemChatRoom = async () => {
-      if (!hasOpenedChatPanel) {
-        return;
-      }
-
-      if (!problemSet.id || !currentProblem?.problemId) {
-        resetChatState();
-        return;
-      }
-
-      resetChatState();
-      setChatLoading(true);
-
-      try {
-        const rooms = await getProblemChatRooms();
-        const room = findProblemChatRoom(
-          rooms,
-          problemSet.id,
-          currentProblem.problemId,
-        );
-
-        if (!isMounted || !room) {
-          return;
-        }
-
-        setChatRoomId(room.roomId);
-        setChatRoomTitle(room.title || null);
-        setChatRoomTitleInput(room.title || "");
-
-        const messages = await getProblemChatMessages(room.roomId);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setChatMessages(messages);
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        handleClientError(error, {
-          router,
-          fallbackTitle: "채팅방 조회 실패",
-          fallbackMessage:
-            "문제 전용 채팅방을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
-          showModal: (title, content) =>
-            setAlertModal({ open: true, title, content }),
-        });
-      } finally {
-        if (isMounted) {
-          setChatLoading(false);
-        }
-      }
-    };
-
-    loadProblemChatRoom();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [
-    currentProblem?.problemId,
-    hasOpenedChatPanel,
-    problemSet.id,
-    resetChatState,
-    router,
-  ]);
 
   const canMoveProblem = (index: number) => problemStates[index] !== "LOCKED";
 
@@ -1175,320 +909,6 @@ export default function UserProblemDetailClient({
     const targetCourseId = pendingRecommendedCourseId;
     setPendingRecommendedCourseId(null);
     router.push(`/courses/${targetCourseId}`);
-  };
-
-  const startChatRoomTitleEdit = () => {
-    setChatRoomTitleInput(chatRoomTitle ?? "");
-    setChatRoomTitleEditing(true);
-  };
-
-  const cancelChatRoomTitleEdit = () => {
-    setChatRoomTitleInput(chatRoomTitle ?? "");
-    setChatRoomTitleEditing(false);
-    setChatRoomTitleConfirmOpen(false);
-  };
-
-  const requestChatRoomTitleUpdate = () => {
-    const nextTitle = chatRoomTitleInput.trim();
-
-    if (!nextTitle || nextTitle === (chatRoomTitle ?? "")) {
-      cancelChatRoomTitleEdit();
-      return;
-    }
-
-    setChatRoomTitleConfirmOpen(true);
-  };
-
-  const handleChatRoomTitleUpdate = async () => {
-    if (!chatRoomId || chatRoomTitleUpdating) {
-      return;
-    }
-
-    const targetRoomId = chatRoomId;
-    const nextTitle = chatRoomTitleInput.trim();
-
-    if (!nextTitle) {
-      return;
-    }
-
-    setChatRoomTitleUpdating(true);
-
-    try {
-      const updatedRoom = await updateProblemChatRoomTitle(targetRoomId, nextTitle);
-
-      if (activeChatRoomIdRef.current !== targetRoomId) {
-        return;
-      }
-
-      const updatedTitle = updatedRoom?.title ?? nextTitle;
-
-      setChatRoomTitle(updatedTitle);
-      setChatRoomTitleInput(updatedTitle);
-      setChatRoomTitleEditing(false);
-      setChatRoomTitleConfirmOpen(false);
-      window.dispatchEvent(new Event("chatRoomUpdated"));
-    } catch (error) {
-      setChatRoomTitleConfirmOpen(false);
-      handleClientError(error, {
-        router,
-        fallbackTitle: "채팅방 이름 수정 실패",
-        fallbackMessage:
-          "채팅방 이름을 수정하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        showModal: (title, content) =>
-          setAlertModal({ open: true, title, content }),
-      });
-    } finally {
-      setChatRoomTitleUpdating(false);
-    }
-  };
-
-  const refreshProblemChatMessages = useCallback(async (roomId: number) => {
-    const refreshed = await getProblemChatMessages(roomId);
-    if (activeChatRoomIdRef.current === roomId) {
-      setChatMessages(refreshed);
-    }
-  }, []);
-
-  const handleChatFeedback = useCallback(
-    async (messageId: number, nextRating: FeedbackRating) => {
-      if (feedbackPendingIds.has(messageId)) {
-        return false;
-      }
-
-      const currentFeedback =
-        chatMessages.find((message) => message.messageId === messageId)
-          ?.feedback ?? null;
-      const isCancel = currentFeedback === nextRating;
-
-      setFeedbackPendingIds((prev) => new Set(prev).add(messageId));
-
-      setChatMessages((prev) =>
-        prev.map((message) =>
-          message.messageId === messageId
-            ? { ...message, feedback: isCancel ? null : nextRating }
-            : message,
-        ),
-      );
-
-      try {
-        if (isCancel) {
-          await deleteProblemMessageFeedback(messageId);
-        } else {
-          await setProblemMessageFeedback(messageId, nextRating);
-        }
-
-        return true;
-      } catch (error) {
-        setChatMessages((prev) =>
-          prev.map((message) =>
-            message.messageId === messageId
-              ? { ...message, feedback: currentFeedback }
-              : message,
-          ),
-        );
-        handleClientError(error, {
-          router,
-          fallbackTitle: "평가 저장 실패",
-          fallbackMessage:
-            "메시지 평가를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-          showModal: (title, content) =>
-            setAlertModal({ open: true, title, content }),
-        });
-
-        return false;
-      } finally {
-        setFeedbackPendingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(messageId);
-          return next;
-        });
-      }
-    },
-    [chatMessages, feedbackPendingIds, router],
-  );
-
-  const sendChat = async (overrideMessage?: string) => {
-    const userMessage =
-      typeof overrideMessage === "string" ? overrideMessage.trim() : chatInput.trim();
-
-    if (
-      !userMessage ||
-      chatSending ||
-      chatLoading ||
-      !problemSet.id ||
-      !currentProblem?.problemId
-    ) {
-      return;
-    }
-
-    const targetRoomId = chatRoomId;
-    const targetProblemId = currentProblem.problemId;
-    const controller = new AbortController();
-    let newRoomId: number | undefined;
-    let streamErrorReceived = false;
-    const userMessageId = createClientMessageId();
-    const assistantMessageId = createClientMessageId();
-
-    setChatMessages((prev) => [
-      ...prev,
-      { role: "USER", content: userMessage, clientId: userMessageId },
-      { role: "ASSISTANT", content: "", clientId: assistantMessageId },
-    ]);
-    setChatInput("");
-    setChatSending(true);
-    setShowChatResponsePending(true);
-    chatStreamAbortRef.current?.abort();
-    chatStreamAbortRef.current = controller;
-
-    const setLastAssistant = (content: string, error = false) => {
-      setChatMessages((prev) => {
-        const next = [...prev];
-        const messageIndex = next.findIndex(
-          (message) => message.clientId === assistantMessageId,
-        );
-
-        if (messageIndex < 0) {
-          return prev;
-        }
-
-        next[messageIndex] = {
-          ...next[messageIndex],
-          content,
-          error,
-        };
-
-        return next;
-      });
-    };
-    const refreshNewChatRoomTitle = async (roomId: number) => {
-      try {
-        const rooms = await getProblemChatRooms();
-
-        if (
-          controller.signal.aborted ||
-          activeChatRoomIdRef.current !== roomId
-        ) {
-          return;
-        }
-
-        const room = findProblemChatRoomById(rooms, roomId);
-        const nextTitle = room?.title || null;
-
-        setChatRoomTitle(nextTitle);
-        setChatRoomTitleInput(nextTitle ?? "");
-      } catch {
-        // 채팅방 이름 갱신 실패는 메시지 스트림을 방해하지 않는다.
-      }
-    };
-    const typewriter = createChatTypewriter({
-      onUpdate: setLastAssistant,
-      signal: controller.signal,
-    });
-
-    try {
-      const path = targetRoomId
-        ? `/api/v1/chat/${targetRoomId}/messages`
-        : "/api/v1/chat/messages";
-
-      await streamChat(
-        path,
-        targetRoomId
-          ? { userMessage }
-          : {
-              userMessage,
-              problemSetId: problemSet.id,
-              problemId: targetProblemId,
-            },
-        {
-          onToken: (token) => {
-            setShowChatResponsePending(false);
-            typewriter.push(token);
-          },
-          onRoom: (roomId) => {
-            newRoomId = roomId;
-            activeChatRoomIdRef.current = roomId;
-            setChatRoomId(roomId);
-            void refreshNewChatRoomTitle(roomId);
-          },
-          onError: (error) => {
-            streamErrorReceived = true;
-            setShowChatResponsePending(false);
-            typewriter.stop();
-            setLastAssistant(error.message, true);
-          },
-          onDone: () => {
-            const refreshRoomId = newRoomId ?? activeChatRoomIdRef.current;
-
-            if (refreshRoomId) {
-              void refreshProblemChatMessages(refreshRoomId).catch((error) => {
-                handleClientError(error, {
-                  router,
-                  fallbackTitle: "메시지 동기화 실패",
-                  fallbackMessage:
-                    "최신 메시지를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
-                  showModal: (title, content) =>
-                    setAlertModal({ open: true, title, content }),
-                });
-              });
-            }
-          },
-        },
-        controller.signal,
-      );
-
-      await typewriter.flush();
-
-      if (streamErrorReceived) {
-        return;
-      }
-
-      if (!targetRoomId && newRoomId) {
-        setChatRoomId(newRoomId);
-      }
-
-      window.dispatchEvent(new Event("chatRoomUpdated"));
-    } catch (error) {
-      if (controller.signal.aborted) {
-        typewriter.stop();
-        return;
-      }
-
-      typewriter.stop();
-      setLastAssistant(
-        "AI 답변을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        true,
-      );
-      setShowChatResponsePending(false);
-
-      handleClientError(error, {
-        router,
-        fallbackTitle: "메시지 전송 실패",
-        fallbackMessage:
-          "메시지를 전송하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        showModal: (title, content) =>
-          setAlertModal({ open: true, title, content }),
-      });
-    } finally {
-      if (chatStreamAbortRef.current === controller) {
-        chatStreamAbortRef.current = null;
-      }
-
-      typewriter.stop();
-
-      if (!controller.signal.aborted) {
-        setChatSending(false);
-        setShowChatResponsePending(false);
-      }
-    }
-  };
-
-  const handleSelectSuggestedQuestion = (question: string) => {
-    if (!chatOpen) {
-      setChatOpen(true);
-      setHasOpenedChatPanel(true);
-    }
-
-    setChatInput(question);
   };
 
   return (
