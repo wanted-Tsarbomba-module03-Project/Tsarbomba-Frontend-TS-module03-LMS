@@ -22,6 +22,14 @@ export interface ListColumn<T extends ListItem> {
   title?: (item: T, index: number) => string | undefined;
   width?: string;
   render?: (item: T, index: number) => ReactNode;
+  /** 모바일 카드에서 헤드라인으로 표시 (라벨 없이 강조) */
+  mobilePrimary?: boolean;
+  /** 모바일 카드에서 헤더 아래 전체 폭 보조 텍스트로 표시 (라벨 없이) */
+  mobileSecondary?: boolean;
+  /** 모바일 카드에서 이 컬럼을 숨김 */
+  hideOnMobileCard?: boolean;
+  /** 모바일 카드 메타행 라벨 (label이 문자열이 아닐 때 사용) */
+  mobileLabel?: string;
 }
 
 interface ListProps<T extends ListItem> {
@@ -46,9 +54,27 @@ interface ListCellContentProps {
 
 const listClasses = {
   container: "w-full min-w-0",
-  card: "overflow-hidden rounded-[12px] border border-border-light bg-bg-box shadow-[0_1px_2px_rgba(16,24,40,0.04),0_6px_20px_-12px_rgba(16,24,40,0.16)]",
+  card: "md:overflow-hidden md:rounded-[12px] md:border md:border-border-light md:bg-bg-box md:shadow-[0_1px_2px_rgba(16,24,40,0.04),0_6px_20px_-12px_rgba(16,24,40,0.16)]",
+  tableView: "hidden md:block",
   scrollArea:
     "w-full max-w-full overscroll-x-contain overflow-x-auto [scrollbar-width:thin]",
+  mobileList: "flex flex-col gap-2.5 md:hidden",
+  mobileEmpty:
+    "flex min-h-[120px] items-center justify-center rounded-[12px] border border-border-light bg-bg-box px-4 py-8 text-description text-text-secondary",
+  mobileCard:
+    "flex w-full flex-col gap-2 rounded-[12px] border border-border-light bg-bg-box p-4 text-left text-inherit no-underline shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#1a237e]",
+  mobileCardClickable: "cursor-pointer hover:bg-[#f6f8fc]",
+  mobileCardHeader: "flex items-baseline gap-2",
+  mobileCardIndex: "shrink-0 text-[12px] font-semibold text-text-secondary",
+  mobileCardPrimary:
+    "min-w-0 flex-1 break-keep text-body font-semibold text-text-primary line-clamp-2",
+  mobileCardSecondary:
+    "break-keep text-description text-text-secondary line-clamp-2",
+  mobileCardMeta: "flex flex-col gap-1.5",
+  mobileCardMetaRow: "flex items-center justify-between gap-3",
+  mobileCardMetaLabel: "shrink-0 text-[12px] font-medium text-text-secondary",
+  mobileCardMetaValue:
+    "min-w-0 truncate text-right text-description font-medium text-text-primary [font-variant-numeric:tabular-nums]",
   table:
     "w-full min-w-[720px] table-fixed border-separate border-spacing-0 text-description max-[760px]:min-w-[640px] max-[420px]:min-w-[560px] [&_td]:overflow-hidden [&_td]:text-ellipsis [&_td]:whitespace-nowrap [&_th]:overflow-visible [&_th]:whitespace-nowrap [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-[1] [&_thead_th]:h-[54px] [&_thead_th]:border-b [&_thead_th]:border-border-light [&_thead_th]:bg-[#fafbfc] [&_thead_th]:px-3 [&_thead_th]:text-center [&_thead_th]:align-middle [&_thead_th]:text-body [&_thead_th]:font-semibold [&_tbody_td]:h-[60px] [&_tbody_td]:border-b [&_tbody_td]:border-[#f0f1f4] [&_tbody_td]:p-0 [&_tbody_td]:text-center [&_tbody_td]:align-middle [&_tbody_td]:text-text-primary [&_tbody_td]:[font-variant-numeric:tabular-nums] [&_tbody_td]:transition-colors [&_tbody_td]:duration-150 [&_tbody_tr:last-child_td]:border-b-0 [&_tbody_tr:hover_td]:cursor-pointer [&_tbody_tr:hover_td]:bg-[#f6f8fc] [&_tbody_tr:focus-visible_td]:bg-[#eef1fb]",
   cellContent:
@@ -171,14 +197,141 @@ export default function List<T extends ListItem>({
     </table>
   );
 
+  const indexColumn = columns.find(isRowNumberColumn);
+  const primaryColumn =
+    columns.find((column) => column.mobilePrimary) ??
+    columns.find(
+      (column) =>
+        !isRowNumberColumn(column) &&
+        !column.mobileSecondary &&
+        !column.hideOnMobileCard,
+    );
+  const secondaryColumns = columns.filter(
+    (column) => column.mobileSecondary && !column.hideOnMobileCard,
+  );
+  const metaColumns = columns.filter(
+    (column) =>
+      !isRowNumberColumn(column) &&
+      column !== primaryColumn &&
+      !column.mobileSecondary &&
+      !column.hideOnMobileCard,
+  );
+
+  const mobileList = (
+    <div className={listClasses.mobileList}>
+      {data.length > 0 ? (
+        data.map((item, index) => {
+          const href = rowHref?.(item, index);
+          const rowClickable = !href && Boolean(onRowClick);
+          const key = rowKey?.(item, index) ?? item.id ?? index;
+          const cardClassName = [
+            listClasses.mobileCard,
+            href || rowClickable ? listClasses.mobileCardClickable : "",
+            getRowClassName(rowClassName, item, index),
+          ]
+            .filter(Boolean)
+            .join(" ");
+          const cardInner = (
+            <>
+              <div className={listClasses.mobileCardHeader}>
+                {indexColumn && (
+                  <span className={listClasses.mobileCardIndex}>
+                    {getCellContent(item, indexColumn, index, rowNumberOffset)}
+                  </span>
+                )}
+                {primaryColumn && (
+                  <span className={listClasses.mobileCardPrimary}>
+                    {getCellContent(item, primaryColumn, index, rowNumberOffset)}
+                  </span>
+                )}
+              </div>
+
+              {secondaryColumns.map((column) => (
+                <div
+                  className={listClasses.mobileCardSecondary}
+                  key={String(column.key)}
+                >
+                  {getCellContent(item, column, index, rowNumberOffset)}
+                </div>
+              ))}
+
+              {metaColumns.length > 0 && (
+                <div className={listClasses.mobileCardMeta}>
+                  {metaColumns.map((column) => (
+                    <div
+                      className={listClasses.mobileCardMetaRow}
+                      key={String(column.key)}
+                    >
+                      <span className={listClasses.mobileCardMetaLabel}>
+                        {getMobileLabel(column)}
+                      </span>
+                      <span className={listClasses.mobileCardMetaValue}>
+                        {getCellContent(item, column, index, rowNumberOffset)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          );
+
+          if (href) {
+            return (
+              <Link className={cardClassName} href={href} key={key}>
+                {cardInner}
+              </Link>
+            );
+          }
+
+          if (rowClickable) {
+            return (
+              <div
+                className={cardClassName}
+                key={key}
+                onClick={() => onRowClick?.(item)}
+                onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+                  if (
+                    isInteractiveTarget(event.target) ||
+                    (event.key !== "Enter" && event.key !== " ")
+                  ) {
+                    return;
+                  }
+
+                  event.preventDefault();
+                  onRowClick?.(item);
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                {cardInner}
+              </div>
+            );
+          }
+
+          return (
+            <div className={cardClassName} key={key}>
+              {cardInner}
+            </div>
+          );
+        })
+      ) : (
+        <div className={listClasses.mobileEmpty}>{emptyMessage}</div>
+      )}
+    </div>
+  );
+
   return (
     <div className={listClasses.container}>
       <div className={listClasses.card}>
-        {scrollable ? (
-          <div className={listClasses.scrollArea}>{table}</div>
-        ) : (
-          table
-        )}
+        <div className={listClasses.tableView}>
+          {scrollable ? (
+            <div className={listClasses.scrollArea}>{table}</div>
+          ) : (
+            table
+          )}
+        </div>
+
+        {mobileList}
       </div>
 
       {pagination && <div className={listClasses.pagination}>{pagination}</div>}
@@ -337,6 +490,18 @@ function getCellTitle<T extends ListItem>(
   }
 
   return undefined;
+}
+
+function getMobileLabel<T extends ListItem>(column: ListColumn<T>): ReactNode {
+  if (column.mobileLabel) {
+    return column.mobileLabel;
+  }
+
+  if (typeof column.label === "string" || typeof column.label === "number") {
+    return column.label;
+  }
+
+  return String(column.key);
 }
 
 function isRowNumberColumn<T extends ListItem>(column: ListColumn<T>) {
