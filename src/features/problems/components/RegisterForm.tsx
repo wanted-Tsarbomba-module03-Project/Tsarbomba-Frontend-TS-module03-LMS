@@ -3,6 +3,8 @@
 import type { ChangeEvent } from "react";
 import { useRef } from "react";
 import { MultiSelect } from "primereact/multiselect";
+// primeicons는 MultiSelect 내부 아이콘 전용 - 이 컴포넌트가 쓰이는 라우트에서만 로드
+import "primeicons/primeicons.css";
 
 import { DIFFICULTY_MAP } from "../actions";
 const registerFormClasses = {

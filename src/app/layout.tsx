@@ -11,7 +11,6 @@ import { mobileSidebarClasses } from "@/components/layout/mobileSidebarClasses";
 import ActiveInquiryRepliesModal from "@/features/inquiries/components/ActiveInquiryRepliesModal";
 import "primereact/resources/themes/lara-light-blue/theme.css";
 import "primereact/resources/primereact.min.css";
-import "primeicons/primeicons.css";
 import "./globals.css";
 
 const subscribeToUserRole = (callback: () => void) => {
