@@ -26,8 +26,7 @@ export default function RiskIpTable({ riskIps, onLock, lockingKey }: Props) {
   return (
     <section className={s.card}>
       <div className={s.cardHeader}>
-        <h2 className={s.cardTitle}>위험 IP 드릴다운</h2>
-        <span className={s.cardBadge}>드릴다운 + 잠금</span>
+        <h2 className={s.cardTitle}>위험 IP</h2>
       </div>
 
       {riskIps.length === 0 ? (
