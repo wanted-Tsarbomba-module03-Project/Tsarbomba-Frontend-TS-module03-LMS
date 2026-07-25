@@ -44,6 +44,7 @@ export default function MyClassroomClient({
 
   return (
     <div className="max-w-6xl mx-auto px-6 space-y-6">
+      {/* 진행 중인 강의만 수강 취소 가능 */}
       <Section
         title="진행 중인 강의"
         count={inProgress.length}
@@ -52,12 +53,12 @@ export default function MyClassroomClient({
         onCancel={setCancelTarget}
       />
 
+      {/* 완료한 강의는 취소 불가 → onCancel 미전달 */}
       <Section
         title="완료한 강의"
         count={completed.length}
         emptyText="완료한 강의가 없습니다."
         items={completed}
-        onCancel={setCancelTarget}
       />
 
       <TwoButtonModal
@@ -77,16 +78,10 @@ interface SectionProps {
   count: number;
   emptyText: string;
   items: Enrollment[];
-  onCancel: (enrollment: Enrollment) => void;
+  onCancel?: (enrollment: Enrollment) => void;
 }
 
-function Section({
-  title,
-  count,
-  emptyText,
-  items,
-  onCancel,
-}: SectionProps) {
+function Section({ title, count, emptyText, items, onCancel }: SectionProps) {
   return (
     <section className="border border-border-light rounded-lg p-6">
       <div className="flex items-center gap-2 mb-4">
@@ -106,7 +101,7 @@ function Section({
             <CourseCard
               key={e.enrollmentId ?? e.courseId}
               enrollment={e}
-              onCancel={() => onCancel(e)}
+              onCancel={onCancel ? () => onCancel(e) : undefined}
             />
           ))}
         </div>
@@ -120,7 +115,7 @@ function CourseCard({
   onCancel,
 }: {
   enrollment: Enrollment;
-  onCancel: () => void;
+  onCancel?: () => void;
 }) {
   const thumb = resolveThumbnailUrl(enrollment.courseThumbnailUrl);
   const courseHref = enrollment.courseId
@@ -179,15 +174,20 @@ function CourseCard({
           </p>
         )}
 
-        <button
-          type="button"
-          onClick={() => {
-            onCancel();
-          }}
-          className="mt-3 w-full py-2 text-sm font-medium text-text-red border border-button-red-bg rounded-lg hover:bg-button-red-bg hover:text-text-white transition-colors"
-        >
-          수강 취소
-        </button>
+        {/* 진행 중: 수강 취소 버튼 / 완료: "수강 완료" 배지 — 같은 자리·높이로 카드 정렬 일치 */}
+        {onCancel ? (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="mt-3 w-full py-2 text-sm font-medium text-text-red border border-button-red-bg rounded-lg hover:bg-button-red-bg hover:text-text-white transition-colors"
+          >
+            수강 취소
+          </button>
+        ) : (
+          <div className="mt-3 w-full rounded-lg bg-bg-gray-box py-2 text-center text-sm font-medium text-text-blue">
+            수강 완료
+          </div>
+        )}
       </div>
     </article>
   );

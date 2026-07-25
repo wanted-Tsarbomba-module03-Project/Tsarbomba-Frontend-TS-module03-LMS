@@ -45,15 +45,18 @@ interface ListCellContentProps {
 }
 
 const listClasses = {
-  container: "w-full min-w-0 overflow-hidden",
+  container: "w-full min-w-0",
+  card: "overflow-hidden rounded-[12px] border border-border-light bg-bg-box shadow-[0_1px_2px_rgba(16,24,40,0.04),0_6px_20px_-12px_rgba(16,24,40,0.16)]",
   scrollArea:
-    "w-full max-w-full overscroll-x-contain overflow-auto max-h-[min(520px,calc(100dvh-260px))] [scrollbar-gutter:stable] [scrollbar-width:thin]",
+    "w-full max-w-full overscroll-x-contain overflow-x-auto [scrollbar-width:thin]",
   table:
-    "w-full min-w-[720px] table-fixed border-separate border-spacing-0 max-[760px]:min-w-[640px] max-[420px]:min-w-[560px] [&_td]:overflow-hidden [&_td]:text-ellipsis [&_td]:whitespace-nowrap [&_th]:overflow-visible [&_th]:whitespace-nowrap [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-[1] [&_thead_th]:h-[50px] [&_thead_th]:border-y [&_thead_th]:border-border-light [&_thead_th]:bg-bg-navbar [&_thead_th]:text-center [&_thead_th]:align-middle [&_thead_th]:font-semibold [&_tbody_td]:h-[58px] [&_tbody_td]:border-b [&_tbody_td]:border-border-light [&_tbody_td]:p-0 [&_tbody_td]:text-center [&_tbody_td]:align-middle [&_tbody_tr:hover_td]:cursor-pointer [&_tbody_tr:hover_td]:bg-[#f0f0f0] [&_tbody_tr:focus-visible_td]:bg-[#eef2ff]",
+    "w-full min-w-[720px] table-fixed border-separate border-spacing-0 text-description max-[760px]:min-w-[640px] max-[420px]:min-w-[560px] [&_td]:overflow-hidden [&_td]:text-ellipsis [&_td]:whitespace-nowrap [&_th]:overflow-visible [&_th]:whitespace-nowrap [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-[1] [&_thead_th]:h-[54px] [&_thead_th]:border-b [&_thead_th]:border-border-light [&_thead_th]:bg-[#fafbfc] [&_thead_th]:px-3 [&_thead_th]:text-center [&_thead_th]:align-middle [&_thead_th]:text-body [&_thead_th]:font-semibold [&_tbody_td]:h-[60px] [&_tbody_td]:border-b [&_tbody_td]:border-[#f0f1f4] [&_tbody_td]:p-0 [&_tbody_td]:text-center [&_tbody_td]:align-middle [&_tbody_td]:text-text-primary [&_tbody_td]:[font-variant-numeric:tabular-nums] [&_tbody_td]:transition-colors [&_tbody_td]:duration-150 [&_tbody_tr:last-child_td]:border-b-0 [&_tbody_tr:hover_td]:cursor-pointer [&_tbody_tr:hover_td]:bg-[#f6f8fc] [&_tbody_tr:focus-visible_td]:bg-[#eef1fb]",
   cellContent:
-    "box-border min-w-0 overflow-hidden text-ellipsis whitespace-nowrap break-keep px-1 py-2",
+    "box-border min-w-0 overflow-hidden text-ellipsis whitespace-nowrap break-keep px-3 py-2",
+  emptyState:
+    "flex min-h-[160px] items-center justify-center px-4 py-10 text-description text-text-secondary",
   pagination:
-    "mt-4 flex min-w-0 flex-wrap justify-center gap-2 overflow-x-auto pb-1",
+    "mt-5 flex min-w-0 flex-wrap justify-center gap-2 overflow-x-auto pb-1",
 };
 
 const INDEX_COLUMN_WIDTH = "clamp(48px, 6ch, 72px)";
@@ -160,7 +163,7 @@ export default function List<T extends ListItem>({
         ) : (
           <tr>
             <td colSpan={columns.length}>
-              <div className={listClasses.cellContent}>{emptyMessage}</div>
+              <div className={listClasses.emptyState}>{emptyMessage}</div>
             </td>
           </tr>
         )}
@@ -170,11 +173,13 @@ export default function List<T extends ListItem>({
 
   return (
     <div className={listClasses.container}>
-      {scrollable ? (
-        <div className={listClasses.scrollArea}>{table}</div>
-      ) : (
-        table
-      )}
+      <div className={listClasses.card}>
+        {scrollable ? (
+          <div className={listClasses.scrollArea}>{table}</div>
+        ) : (
+          table
+        )}
+      </div>
 
       {pagination && <div className={listClasses.pagination}>{pagination}</div>}
     </div>

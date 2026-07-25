@@ -47,9 +47,7 @@ export default function FindIdPage() {
       const email = await findEmail(trimmedName, trimmedPhone);
       setResultEmail(email);
     } catch (err) {
-      setErrorMsg(
-        toUserMessage(err, "일치하는 회원 정보를 찾을 수 없습니다."),
-      );
+      setErrorMsg(toUserMessage(err, "일치하는 회원 정보를 찾을 수 없습니다."));
     } finally {
       setLoading(false);
     }
@@ -61,9 +59,13 @@ export default function FindIdPage() {
         {!resultEmail ? (
           <>
             <h1 className="text-title-lg font-bold text-text-primary mb-6">
-              아이디 찾기
+              이메일 찾기
             </h1>
-            <form onSubmit={handleFindIdSubmit} className="space-y-4" noValidate>
+            <form
+              onSubmit={handleFindIdSubmit}
+              className="space-y-4"
+              noValidate
+            >
               <div className="text-left flex flex-col">
                 <label className="auth-label">이름*</label>
                 <input
@@ -109,7 +111,7 @@ export default function FindIdPage() {
         ) : (
           <>
             <h1 className="text-title-lg font-bold text-text-primary mb-6">
-              아이디 찾기 결과
+              이메일 찾기 결과
             </h1>
             <div className="text-title-md font-bold text-text-blue my-12 text-center select-all">
               {resultEmail}

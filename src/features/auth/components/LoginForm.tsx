@@ -124,7 +124,7 @@ export default function LoginForm() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "";
       const isClean = !!msg && !msg.includes("\n") && msg.length <= 60;
-      setErrorMsg(isClean ? msg : "아이디 또는 비밀번호가 일치하지 않습니다.");
+      setErrorMsg(isClean ? msg : "이메일 또는 비밀번호가 일치하지 않습니다.");
     }
   };
 
@@ -138,7 +138,7 @@ export default function LoginForm() {
         <form onSubmit={handleLoginSubmit} className="space-y-4" noValidate>
           <div className="text-left">
             <label htmlFor="login-email" className="auth-label">
-              아이디
+              이메일
             </label>
             <input
               id="login-email"
@@ -194,7 +194,7 @@ export default function LoginForm() {
               className="cursor-pointer hover:underline transition-all bg-transparent border-none p-0 text-text-blue"
               onClick={() => router.push("/auth/find-id")}
             >
-              아이디 찾기
+              이메일 찾기
             </button>
             <span className="text-text-placeholder">|</span>
             <button

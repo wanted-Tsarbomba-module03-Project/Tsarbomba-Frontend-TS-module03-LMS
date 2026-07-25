@@ -1,6 +1,7 @@
 import { ListSkeleton } from "@/components/common";
 import {
-  PROBLEM_LIST_COLUMN_LABELS,
+  ADMIN_PROBLEM_LIST_COLUMN_LABELS,
+  PROBLEM_LIST_COLUMN_WIDTHS,
   PROBLEM_SET_PAGE_SIZE,
 } from "@/features/problems/constants";
 
@@ -14,7 +15,8 @@ export default function AdminProblemsLoading() {
       </div>
 
       <ListSkeleton
-        columns={[...PROBLEM_LIST_COLUMN_LABELS]}
+        colWidths={PROBLEM_LIST_COLUMN_WIDTHS}
+        columns={[...ADMIN_PROBLEM_LIST_COLUMN_LABELS]}
         rowCount={PROBLEM_SET_PAGE_SIZE}
         statusMessage="문제 목록을 불러오는 중입니다."
       />
