@@ -8,7 +8,7 @@ import StepCard from "./StepCard";
  * "이 사이트에서는 이렇게 학습합니다" 를 첫 화면에서 자연스럽게 안내한다.
  * (로그인 사용자는 강좌 목록을 보므로 이 컴포넌트는 렌더되지 않는다)
  *
- * 스크린샷은 public/assets/img/guide/ 에 정해진 파일명으로 저장한다(README 참고).
+ * 스크린샷은 public/assets/img/onboarding/ 에 정해진 파일명으로 저장한다(README 참고).
  */
 
 // targetId — 클릭 시 아래 FLOW(실제 화면으로 살펴보기)의 대응 항목으로 스크롤
@@ -52,37 +52,37 @@ const FLOW = [
     desc: "관심 있는 강의를 영상으로 학습해요. 영상을 끝까지 봐야 다음 강의가 열립니다.",
   },
   {
-    img: "problem-catalog.png",
+    img: "problem-catalog.webp",
     step: "STEP 2",
     title: "문제 확인",
     desc: "문제풀이 목록에서 카테고리별로 원하는 문제를 골라요. 난이도와 정답률도 한눈에 확인할 수 있어요.",
   },
   {
-    img: "code-run.png",
+    img: "code-run.webp",
     step: "STEP 3",
     title: "코드 작성 & 실행",
     desc: "pandas로 분석 코드를 작성하고, 정답을 result 변수에 담아 실행해 결과를 확인해요.",
   },
   {
-    img: "problem-chatbot.png",
+    img: "problem-chatbot.webp",
     step: "막힐 땐",
     title: "AI 문제풀이 챗봇",
     desc: "풀다가 막히면 문제풀이 챗봇에게 물어보세요. 문제 맥락에 맞춰 어떻게 접근하면 되는지 알려줘요.",
   },
   {
-    img: "correct.png",
+    img: "correct.webp",
     step: "STEP 4",
     title: "제출 & 채점",
     desc: "제출하면 자동으로 채점돼요. 정답을 맞히면 점수를 얻고 랭킹에 반영됩니다.",
   },
   {
-    img: "explanation.png",
+    img: "explanation.webp",
     step: "막힐 땐",
     title: "힌트 · 해설",
     desc: "문제가 어려우면 힌트와 해설로 학습을 이어갈 수 있어요. (해설을 보면 점수는 미획득)",
   },
   {
-    img: "done.png",
+    img: "done.webp",
     step: "완료",
     title: "학습 완료",
     desc: "문제세트를 모두 풀면 완료! 획득한 점수가 랭킹에 반영돼요.",
@@ -155,14 +155,14 @@ export default function HomeLandingGuide() {
           {FLOW.map((s, i) => (
             <div
               key={s.img}
-              id={`flow-${s.img.replace(/\.png$/, "")}`}
+              id={`flow-${s.img.replace(/\.\w+$/, "")}`}
               className={`scroll-mt-28 flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-10 ${
                 i % 2 === 1 ? "sm:flex-row-reverse" : ""
               }`}
             >
               <div className="sm:w-3/5">
                 <Shot
-                  src={`/assets/img/guide/${s.img}`}
+                  src={`/assets/img/onboarding/${s.img}`}
                   alt={`${s.title} 화면`}
                 />
               </div>
@@ -227,7 +227,7 @@ export default function HomeLandingGuide() {
         />
         <div className="mx-auto mt-10 max-w-2xl">
           <Shot
-            src="/assets/img/guide/ranking-board.png"
+            src="/assets/img/onboarding/ranking-board.png"
             alt="랭킹 페이지 화면"
           />
         </div>
@@ -288,7 +288,7 @@ function SectionHeading({
 // 스크린샷 프레임 — 파일이 아직 없으면 빈 프레임(placeholder)만 보인다.
 function Shot({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl border border-[#e8e8e8] bg-white shadow-sm">
+    <div className="relative aspect-[19/10] w-full overflow-hidden rounded-xl border border-[#e8e8e8] bg-[#f4f5f7] shadow-sm">
       <Image
         src={src}
         alt={alt}
