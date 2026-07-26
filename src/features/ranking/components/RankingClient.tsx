@@ -23,6 +23,7 @@ import type { RankingMode, RankingUser } from "../types";
 import MyRankingCard from "./MyRankingCard";
 import RankingList from "./RankingList";
 import RankingModeToggle from "./RankingModeToggle";
+import RankingPodium from "./RankingPodium";
 
 interface RankingClientProps {
   initialMyRanking: RankingUser | null;
@@ -92,6 +93,14 @@ export default function RankingClient({
 
     return rankings.slice(start, start + RANKING_PAGE_SIZE);
   }, [currentPage, rankings]);
+  const topRankers = useMemo(
+    () =>
+      [...rankings]
+        .filter((user) => user.rank != null)
+        .sort((first, second) => (first.rank as number) - (second.rank as number))
+        .slice(0, 3),
+    [rankings],
+  );
 
   const handleModeChange = (nextMode: RankingMode) => {
     if (nextMode === mode || loading) {
@@ -118,6 +127,8 @@ export default function RankingClient({
           onChange={handleModeChange}
         />
       </div>
+
+      <RankingPodium mode={mode} topRankers={topRankers} />
 
       <div className={rankingClasses.listShell}>
         {loading ? (

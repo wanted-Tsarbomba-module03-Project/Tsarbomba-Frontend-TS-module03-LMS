@@ -14,11 +14,7 @@ import {
 } from "@/components/common";
 import { handleClientError } from "@/lib/errorHandling";
 
-import {
-  DIFFICULTY_MAP,
-  getAllProblemSets,
-  getProblemSetPage,
-} from "../actions";
+import { getAllProblemSets, getProblemSetPage } from "../actions";
 import {
   ADMIN_PROBLEM_LIST_COLUMN_LABELS,
   PROBLEM_LIST_COLUMN_LABELS,
@@ -27,6 +23,7 @@ import {
 } from "../constants";
 import { matchesProblemSetKeyword } from "../search";
 import type { ProblemSetSummary } from "../types";
+import DifficultyBadge from "./DifficultyBadge";
 
 const problemListClasses = {
   container: "min-h-screen bg-bg-main p-[30px]",
@@ -91,20 +88,21 @@ export default function ProblemListClient() {
         label: PROBLEM_LIST_COLUMN_LABELS[1],
         cellClassName: listCellClasses.twoLine,
         width: PROBLEM_LIST_COLUMN_WIDTHS[1],
+        mobilePrimary: true,
       },
       {
         key: "description",
         label: PROBLEM_LIST_COLUMN_LABELS[2],
         cellClassName: listCellClasses.twoLine,
         width: PROBLEM_LIST_COLUMN_WIDTHS[2],
+        mobileSecondary: true,
       },
       {
         key: "difficulty",
         width: PROBLEM_LIST_COLUMN_WIDTHS[3],
         label: PROBLEM_LIST_COLUMN_LABELS[3],
-        render: (item) =>
-          DIFFICULTY_MAP[item.difficulty as keyof typeof DIFFICULTY_MAP] ??
-          item.difficulty,
+        title: () => undefined,
+        render: (item) => <DifficultyBadge difficulty={item.difficulty} />,
       },
       {
         key: "accuracyRate",

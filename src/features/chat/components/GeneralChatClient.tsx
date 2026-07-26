@@ -14,7 +14,7 @@ import {
   ChatCopyButton,
   ChatFeedbackActions,
 } from "@/components/common/ChatMessageActions";
-import ChatMarkdown from "@/components/common/ChatMarkdown";
+import ChatMarkdown from "@/components/common/ChatMarkdownLazy";
 import { getProblemSetDetail } from "@/features/problems/actions";
 import { handleClientError } from "@/lib/errorHandling";
 

@@ -39,6 +39,7 @@ import type {
   ProblemSetSummary,
   SortDirection,
 } from "../types";
+import DifficultyBadge from "./DifficultyBadge";
 import ProblemRecommendationModal from "./ProblemRecommendationModal";
 
 const userProblemListClasses = {
@@ -120,12 +121,6 @@ const sortDirectionOptions: Array<FilterDropdownOption<SortDirectionValue>> = [
     value: "POPULAR:DESC",
   },
 ];
-
-const difficultyClassNames: Record<ProblemDifficulty, string> = {
-  EASY: "bg-[#dcfce7] text-[#15803d]",
-  MEDIUM: "bg-[#fef9c3] text-[#854d0e]",
-  HARD: "bg-[#fee2e2] text-[#b91c1c]",
-};
 
 const completionStatusClassNames: Record<ProblemCompletionStatus, string> = {
   NOT_STARTED: "bg-[#f1f5f9] text-[#475569]",
@@ -280,12 +275,14 @@ export default function UserProblemListClient({
         label: PROBLEM_LIST_COLUMN_LABELS[1],
         cellClassName: listCellClasses.twoLineKeepAll,
         width: PROBLEM_LIST_COLUMN_WIDTHS[1],
+        mobilePrimary: true,
       },
       {
         key: "description",
         label: PROBLEM_LIST_COLUMN_LABELS[2],
         cellClassName: listCellClasses.twoLine,
         width: PROBLEM_LIST_COLUMN_WIDTHS[2],
+        mobileSecondary: true,
         render: (item) => (
           <span className={listCellClasses.twoLine}>{item.description}</span>
         ),
@@ -293,6 +290,7 @@ export default function UserProblemListClient({
       {
         key: "difficulty",
         width: PROBLEM_LIST_COLUMN_WIDTHS[3],
+        mobileLabel: PROBLEM_LIST_COLUMN_LABELS[3],
         label: (
           <FilterDropdown
             buttonClassName={userProblemListClasses.filterButton}
@@ -307,28 +305,7 @@ export default function UserProblemListClient({
           />
         ),
         title: () => undefined,
-        render: (item) => {
-          const knownDifficulty =
-            item.difficulty === "EASY" ||
-            item.difficulty === "MEDIUM" ||
-            item.difficulty === "HARD"
-              ? item.difficulty
-              : null;
-
-          if (!knownDifficulty) {
-            return item.difficulty || "-";
-          }
-
-          return (
-            <span
-              className={`${userProblemListClasses.difficultyBadge} ${
-                difficultyClassNames[knownDifficulty]
-              }`}
-            >
-              {DIFFICULTY_MAP[knownDifficulty]}
-            </span>
-          );
-        },
+        render: (item) => <DifficultyBadge difficulty={item.difficulty} />,
       },
       {
         key: "accuracyRate",
@@ -340,6 +317,7 @@ export default function UserProblemListClient({
       {
         key: "completionStatus",
         width: PROBLEM_LIST_COLUMN_WIDTHS[5],
+        mobileLabel: PROBLEM_LIST_COLUMN_LABELS[5],
         label: (
           <FilterDropdown
             buttonClassName={userProblemListClasses.filterButton}

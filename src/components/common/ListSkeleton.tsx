@@ -15,9 +15,14 @@ interface ListSkeletonProps {
 const listSkeletonClasses = {
   container: "w-full min-w-0",
   title: "mt-0 mb-5 text-title-lg font-bold text-text-primary",
-  card: "overflow-hidden rounded-[12px] border border-border-light bg-bg-box shadow-[0_1px_2px_rgba(16,24,40,0.04),0_6px_20px_-12px_rgba(16,24,40,0.16)]",
+  card: "md:overflow-hidden md:rounded-[12px] md:border md:border-border-light md:bg-bg-box md:shadow-[0_1px_2px_rgba(16,24,40,0.04),0_6px_20px_-12px_rgba(16,24,40,0.16)]",
+  tableView: "hidden md:block",
   scrollArea:
     "w-full max-w-full overscroll-x-contain overflow-x-auto [scrollbar-width:thin]",
+  mobileList: "flex flex-col gap-2.5 md:hidden",
+  mobileCard:
+    "flex flex-col gap-3 rounded-[12px] border border-border-light bg-bg-box p-4 shadow-[0_1px_2px_rgba(16,24,40,0.05)]",
+  mobileCardMetaRow: "flex items-center justify-between gap-3",
   table:
     "w-full min-w-[720px] table-fixed border-separate border-spacing-0 max-[760px]:min-w-[640px] max-[420px]:min-w-[560px] [&_td]:overflow-hidden [&_td]:text-ellipsis [&_td]:whitespace-nowrap [&_th]:overflow-hidden [&_th]:text-ellipsis [&_th]:whitespace-nowrap [&_thead_th]:h-[54px] [&_thead_th]:border-b [&_thead_th]:border-border-light [&_thead_th]:bg-[#fafbfc] [&_thead_th]:px-3 [&_thead_th]:text-center [&_thead_th]:align-middle [&_thead_th]:font-semibold [&_tbody_td]:h-[60px] [&_tbody_td]:border-b [&_tbody_td]:border-[#f0f1f4] [&_tbody_td]:p-0 [&_tbody_td]:text-center [&_tbody_td]:align-middle [&_tbody_tr:last-child_td]:border-b-0",
   cellContent:
@@ -83,8 +88,9 @@ export default function ListSkeleton({
       {title && <h2 className={titleClassName}>{title}</h2>}
 
       <div aria-hidden="true" className={listSkeletonClasses.card}>
-        <div className={listSkeletonClasses.scrollArea}>
-          <table className={listSkeletonClasses.table}>
+        <div className={listSkeletonClasses.tableView}>
+          <div className={listSkeletonClasses.scrollArea}>
+            <table className={listSkeletonClasses.table}>
             {colWidths && (
               <colgroup>
                 {columns.map((column, columnIndex) => (
@@ -117,7 +123,21 @@ export default function ListSkeleton({
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
+        </div>
+
+        <div className={listSkeletonClasses.mobileList}>
+          {Array.from({ length: rowCount }, (_, rowIndex) => (
+            <div className={listSkeletonClasses.mobileCard} key={rowIndex}>
+              <Skeleton borderRadius="8px" height="18px" width="70%" />
+              <Skeleton borderRadius="8px" height="14px" width="90%" />
+              <div className={listSkeletonClasses.mobileCardMetaRow}>
+                <Skeleton borderRadius="8px" height="14px" width="30%" />
+                <Skeleton borderRadius="8px" height="14px" width="20%" />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

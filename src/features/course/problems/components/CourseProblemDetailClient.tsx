@@ -8,7 +8,7 @@ import Image from "next/image";
 import CategoryNav from "@/components/layout/CategoryNav";
 import Sidebar from "@/components/layout/Sidebar";
 import { OneButtonModal, TwoButtonModal, WarningModal } from "@/components/common";
-import { getSuggestedQuestions } from "@/features/chat/actions";
+import { createClientMessageId } from "@/features/chat/clientMessageId";
 import { streamChat } from "@/features/chat/stream";
 import { createChatTypewriter } from "@/features/chat/typewriter";
 import { ApiClientError, handleClientError } from "@/lib/errorHandling";
@@ -24,17 +24,14 @@ import { getCourseLectures } from "@/features/course/lectureActions";
 import { getCourseProblemSets } from "@/features/course/problemSetActions";
 // 공통 재사용: 실행/힌트/챗봇
 import {
-  deleteProblemMessageFeedback,
   getProblemDatasetDownloadUrl,
   getProblemChatMessages,
   getProblemHints,
   runProblem,
-  setProblemMessageFeedback,
 } from "@/features/problems/actions";
 import type {
   ChatMessage,
   ExecutionResult,
-  FeedbackRating,
   ProblemHint,
   ProblemResultTab,
   ProblemSetDetail,
@@ -44,6 +41,8 @@ import type {
 import ProblemChatPanel from "@/features/problems/components/ProblemChatPanel";
 import ProblemCodeEditor from "@/features/problems/components/ProblemCodeEditor";
 import ProblemResultPanel from "@/features/problems/components/ProblemResultPanel";
+import { useProblemChatFeedback } from "@/features/problems/hooks/useProblemChatFeedback";
+import { useProblemSuggestedQuestions } from "@/features/problems/hooks/useProblemSuggestedQuestions";
 import { useResizableProblemPanel } from "@/features/problems/hooks/useResizableProblemPanel";
 
 // 스타일은 문제풀이 화면과 동일하게 공유하되, 클라이언트 컴포넌트 의존 없이 스타일 파일만 참조함
@@ -57,10 +56,6 @@ interface CourseProblemDetailClientProps {
 
 const updateArrayItem = <T,>(items: T[], index: number, value: T) =>
   items.map((item, itemIndex) => (itemIndex === index ? value : item));
-
-function createClientMessageId() {
-  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
-}
 
 // 문제세트별 작성 중 답안 임시 저장 (localStorage). 정답 처리되면 클리어.
 const draftKey = (lpsId: string) => `lps-draft-${lpsId}`;
@@ -231,7 +226,6 @@ export default function CourseProblemDetailClient({
   const [chatInput, setChatInput] = useState("");
   const [chatSending, setChatSending] = useState(false);
   const [showChatResponsePending, setShowChatResponsePending] = useState(false);
-  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
 
   // 이 문제 풀이가 속한 강의 + 다음 강의 정보 — 나가기/완료 시 정확한 lecture 페이지로 이동.
   const [currentLectureId, setCurrentLectureId] = useState<number | null>(null);
@@ -338,43 +332,10 @@ export default function CourseProblemDetailClient({
     problemStates[currentIndex],
   );
 
-  useEffect(() => {
-    const problemSetNumericId = Number(problemSet.problemSetId ?? problemSet.id);
-    const problemNumericId = Number(currentProblem?.problemId);
-
-    if (
-      !Number.isFinite(problemSetNumericId) ||
-      problemSetNumericId <= 0 ||
-      !Number.isFinite(problemNumericId) ||
-      problemNumericId <= 0
-    ) {
-      const resetTimer = window.setTimeout(() => {
-        setSuggestedQuestions([]);
-      }, 0);
-
-      return () => window.clearTimeout(resetTimer);
-    }
-
-    const controller = new AbortController();
-
-    getSuggestedQuestions(
-      problemSetNumericId,
-      problemNumericId,
-      controller.signal,
-    )
-      .then((result) => {
-        if (!controller.signal.aborted) {
-          setSuggestedQuestions(result?.questions ?? []);
-        }
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setSuggestedQuestions([]);
-        }
-      });
-
-    return () => controller.abort();
-  }, [currentProblem?.problemId, problemSet.id, problemSet.problemSetId]);
+  const suggestedQuestions = useProblemSuggestedQuestions(
+    problemSet.problemSetId ?? problemSet.id,
+    currentProblem?.problemId,
+  );
 
   // 데이터셋(CSV) 다운로드 — 문제세트 단위 (문제풀이방과 동일). 서버가 서명 URL 발급.
   const handleDatasetDownload = async () => {
@@ -786,63 +747,19 @@ export default function CourseProblemDetailClient({
     }
   }, []);
 
-  const handleChatFeedback = useCallback(
-    async (messageId: number, nextRating: FeedbackRating) => {
-      if (feedbackPendingIds.has(messageId)) {
-        return false;
-      }
-
-      const currentFeedback =
-        chatMessages.find((message) => message.messageId === messageId)
-          ?.feedback ?? null;
-      const isCancel = currentFeedback === nextRating;
-
-      setFeedbackPendingIds((prev) => new Set(prev).add(messageId));
-
-      setChatMessages((prev) =>
-        prev.map((message) =>
-          message.messageId === messageId
-            ? { ...message, feedback: isCancel ? null : nextRating }
-            : message,
-        ),
-      );
-
-      try {
-        if (isCancel) {
-          await deleteProblemMessageFeedback(messageId);
-        } else {
-          await setProblemMessageFeedback(messageId, nextRating);
-        }
-
-        return true;
-      } catch (error) {
-        setChatMessages((prev) =>
-          prev.map((message) =>
-            message.messageId === messageId
-              ? { ...message, feedback: currentFeedback }
-              : message,
-          ),
-        );
-        handleClientError(error, {
-          router,
-          fallbackTitle: "평가 저장 실패",
-          fallbackMessage:
-            "메시지 평가를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-          showModal: (title, content) =>
-            setAlertModal({ open: true, title, content }),
-        });
-
-        return false;
-      } finally {
-        setFeedbackPendingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(messageId);
-          return next;
-        });
-      }
-    },
-    [chatMessages, feedbackPendingIds, router],
+  const showError = useCallback(
+    (title: string, content: string) =>
+      setAlertModal({ open: true, title, content }),
+    [],
   );
+
+  const handleChatFeedback = useProblemChatFeedback({
+    chatMessages,
+    setChatMessages,
+    feedbackPendingIds,
+    setFeedbackPendingIds,
+    showError,
+  });
 
   const sendChat = async (overrideMessage?: string) => {
     const userMessage =

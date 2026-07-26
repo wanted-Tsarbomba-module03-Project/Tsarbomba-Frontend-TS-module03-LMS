@@ -15,7 +15,33 @@ export const rankingClasses = {
   toggleButtonActive: "bg-button-blue-bg text-text-white hover:bg-button-blue-bg",
   listShell:
     "[&_tbody_td]:h-[86px] [&_thead_th]:h-[52px] max-md:[&_tbody_td]:h-[72px]",
+  // ── 상위 1~3위 포디움 ──
+  podium: "mb-7 grid grid-cols-3 items-end gap-3 max-md:mb-6 max-md:gap-2",
+  podiumItem:
+    "flex flex-col items-center gap-2 rounded-2xl border bg-bg-box px-4 py-5 text-center transition-transform max-md:gap-1.5 max-md:px-2 max-md:py-4",
+  podiumItemFirst:
+    "order-2 col-start-2 border-[#f5c518] bg-gradient-to-b from-[#fff8e1] to-bg-box shadow-[0_16px_36px_-12px_rgba(245,197,24,0.55)] -translate-y-3 max-md:-translate-y-1.5",
+  podiumItemSecond:
+    "order-1 border-[#cbd5e1] shadow-[0_10px_22px_-14px_rgba(15,23,42,0.35)]",
+  podiumItemThird:
+    "order-3 border-[#e2b48c] shadow-[0_10px_22px_-14px_rgba(15,23,42,0.35)]",
+  podiumMedal:
+    "flex h-9 w-9 items-center justify-center rounded-full text-body font-bold text-text-white shadow-sm max-md:h-8 max-md:w-8 max-md:text-description",
+  podiumMedalFirst: "bg-[#f59e0b]",
+  podiumMedalSecond: "bg-[#94a3b8]",
+  podiumMedalThird: "bg-[#c2814e]",
+  podiumBadge: "flex items-center justify-center",
+  podiumBadgeImage: "object-contain",
+  podiumName:
+    "max-w-full truncate text-body font-bold text-text-primary max-md:text-description",
+  podiumPoint:
+    "text-description font-semibold text-text-secondary max-md:text-[12px]",
   rank: "text-body text-text-primary",
+  rankMedal:
+    "inline-flex h-8 w-8 items-center justify-center rounded-full text-description font-bold text-text-white",
+  rankMedalFirst: "bg-[#f59e0b]",
+  rankMedalSecond: "bg-[#94a3b8]",
+  rankMedalThird: "bg-[#c2814e]",
   badgeWrap: "flex items-center justify-center",
   badgeImage: "h-11 w-11 object-contain",
   userName: "text-text-primary",

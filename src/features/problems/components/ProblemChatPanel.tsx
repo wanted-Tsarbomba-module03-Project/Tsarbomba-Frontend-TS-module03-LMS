@@ -9,7 +9,7 @@ import {
   ChatCopyButton,
   ChatFeedbackActions,
 } from "@/components/common/ChatMessageActions";
-import ChatMarkdown from "@/components/common/ChatMarkdown";
+import ChatMarkdown from "@/components/common/ChatMarkdownLazy";
 import { problemChatClasses } from "@/features/chat/styles";
 import { isUserMessage, resizeChatInput } from "@/features/chat/utils";
 

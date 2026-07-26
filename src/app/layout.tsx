@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "primereact/resources/themes/lara-light-blue/theme.css";
 import "primereact/resources/primereact.min.css";
-import "primeicons/primeicons.css";
 import "./globals.css";
 
 import AppShell from "@/components/layout/AppShell";
