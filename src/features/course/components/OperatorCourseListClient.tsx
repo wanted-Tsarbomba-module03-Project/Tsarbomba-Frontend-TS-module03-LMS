@@ -18,6 +18,19 @@ interface OperatorCourseListClientProps {
 
 type CourseStatus = "ACTIVE" | "DRAFT" | "DELETED";
 
+// 문제 관리 화면과 동일한 헤더 반응형 규칙 (모바일에서 세로 스택 + 컨트롤 풀폭).
+const courseListClasses = {
+  header:
+    "mb-6 flex items-center justify-between gap-4 max-md:flex-col max-md:items-stretch",
+  pageTitle: "text-2xl font-bold text-gray-800",
+  headerActions:
+    "flex flex-wrap items-center justify-end gap-3 max-md:justify-start",
+  sortSelect:
+    "cursor-pointer rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 shadow-sm focus:outline-none max-md:w-full",
+  registerButton:
+    "cursor-pointer rounded-lg bg-blue-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-950 max-md:w-full",
+} as const;
+
 export default function OperatorCourseListClient({
   initialCourses,
 }: OperatorCourseListClientProps) {
@@ -107,10 +120,10 @@ export default function OperatorCourseListClient({
 
   return (
     <div className="min-h-screen w-full p-8">
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-800">강의 관리</h1>
+      <div className={courseListClasses.header}>
+        <h1 className={courseListClasses.pageTitle}>강의 관리</h1>
 
-        <div className="flex flex-wrap items-center justify-end gap-3">
+        <div className={courseListClasses.headerActions}>
           <Searchbar
             className="max-w-[260px]"
             onChange={setSearchInput}
@@ -119,16 +132,8 @@ export default function OperatorCourseListClient({
             value={searchInput}
           />
 
-          <button
-            className="cursor-pointer rounded-lg bg-blue-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-950"
-            onClick={() => router.push("/admin/courses/new")}
-            type="button"
-          >
-            등록하기
-          </button>
-
           <select
-            className="cursor-pointer rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 shadow-sm focus:outline-none"
+            className={courseListClasses.sortSelect}
             onChange={(event) =>
               setSortFilter(event.target.value as CourseStatusFilter)
             }
@@ -138,6 +143,14 @@ export default function OperatorCourseListClient({
             <option value="open">공개</option>
             <option value="hidden">비공개</option>
           </select>
+
+          <button
+            className={courseListClasses.registerButton}
+            onClick={() => router.push("/admin/courses/new")}
+            type="button"
+          >
+            등록하기
+          </button>
         </div>
       </div>
 
