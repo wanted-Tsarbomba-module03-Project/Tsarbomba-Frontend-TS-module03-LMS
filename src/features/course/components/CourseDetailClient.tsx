@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { optimizedImageProps } from "@/components/common/imageOptimization";
 import { deleteCourse } from "@/features/course/actions";
 import {
@@ -103,10 +104,14 @@ export default function CourseDetailClient({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [showProgress, setShowProgress] = useState(false);
-  const [progressData, setProgressData] = useState<StudentLearningProgress[]>(
-    [],
-  );
-  const [progressLoading, setProgressLoading] = useState(false);
+  // 학습현황은 "진행상태 보기"를 누른 뒤에만(enabled) 조회한다. 캐싱은 전역 기본값(staleTime)을
+  // 따르므로, 재진입 시 신선하지 않으면 최신 수강 현황으로 갱신된다.
+  // (기존 수동 캐싱 `if (progressData.length > 0) return` 을 useQuery 로 대체)
+  const { data: progressData = [], isFetching: progressLoading } = useQuery({
+    queryKey: ["courseLearningProgress", courseId],
+    queryFn: async () => (await getCourseLearningProgress(courseId)).content,
+    enabled: showProgress,
+  });
 
   const [showEnrollConfirm, setShowEnrollConfirm] = useState(false);
   const [isEnrolling, setIsEnrolling] = useState(false);
@@ -233,18 +238,9 @@ export default function CourseDetailClient({
     }
   };
 
-  const handleProgressClick = async () => {
+  const handleProgressClick = () => {
+    // 조회는 useQuery(enabled: showProgress)가 담당 — 여기선 패널을 열기만 한다.
     setShowProgress(true);
-    if (progressData.length > 0) return;
-    setProgressLoading(true);
-    try {
-      const page = await getCourseLearningProgress(courseId);
-      setProgressData(page.content);
-    } catch {
-      /* ignore */
-    } finally {
-      setProgressLoading(false);
-    }
   };
 
   const handleEnrollClick = () => {

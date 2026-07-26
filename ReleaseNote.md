@@ -1,5 +1,36 @@
 ﻿# v1.6.16 (2026-07-26)
 
+### 서버측 인증 가드(proxy.ts) 도입 및 보호 경로 깜빡임 제거
+
+- **Added**
+  - 서버측 인증 가드 `src/proxy.ts` 추가 — httpOnly 인증 쿠키(accessToken/refreshToken) 기준으로 비로그인 사용자의 보호 경로 접근을 렌더 이전에 로그인 페이지로 리다이렉트 (Next.js 16 proxy 규칙)
+- **Changed**
+  - 로그인 판정 기준을 조작 가능한 `localStorage`에서 httpOnly 쿠키 존재 여부로 전환해 실제 서버측 보호 확보
+  - 공개 경로(홈·인증·소셜 콜백·오류·강좌) 허용 규칙을 기존 클라이언트 가드와 동일하게 유지
+- **Fixed**
+  - 클라이언트 hydration 이후 판정으로 보호 페이지가 잠깐 노출됐다 사라지던 깜빡임(FOUC) 제거
+
+### 루트 레이아웃 서버 컴포넌트 복원 및 metadata 정석 배치
+
+- **Added**
+  - 경로 분기·사이드바 토글·역할 라우팅·접근 권한 모달 등 클라이언트 상호작용을 담는 `AppShell` 컴포넌트 추가
+- **Changed**
+  - 루트 레이아웃(`src/app/layout.tsx`)에서 `"use client"`를 제거해 서버 컴포넌트로 복원하고, `metadata`·`viewport`를 루트에서 정석대로 export (`(user)/layout.tsx` 우회 정리)
+  - 챗 화면 전용 스크롤바 숨김 처리를 `AppShell`의 효과로 문서 루트에 토글하도록 이동해 기존 동작 유지
+
+### 데이터 패칭 TanStack Query 도입 (랭킹·강좌 학습 진행상태)
+
+- **Added**
+  - 전역 `QueryProvider`(TanStack Query) 추가 — 캐싱·중복 요청 제거·자동 재시도를 기본 적용
+- **Changed**
+  - 랭킹 화면의 전체/주간 전환 수동 패칭(`useEffect`+`fetch`+`useState`)을 `useQuery`로 전환해 모드별 캐싱·재전환 즉시 표시
+  - 강좌 상세 학습 진행상태 조회의 수동 캐싱(`progressData` 존재 검사)을 `useQuery`(조회 시점 `enabled`)로 대체
+
+### 강의 관리 헤더 버튼 위치·모바일 반응형 정리
+
+- **Changed**
+  - 강의 관리 목록 헤더의 `등록하기` 버튼을 맨 오른쪽으로 배치하고, 모바일에서 검색·정렬·등록 컨트롤이 세로로 스택되도록 반응형을 문제 관리 화면과 통일
+
 ### 문제풀이 상세/챗봇 공통 훅 분리 및 중복 로직 정리
 
 - **Added**
