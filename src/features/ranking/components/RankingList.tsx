@@ -20,13 +20,39 @@ interface RankingListProps {
   rankings: RankingUser[];
 }
 
+function getRankMedalClass(rank: number | null) {
+  if (rank === 1) {
+    return rankingClasses.rankMedalFirst;
+  }
+
+  if (rank === 2) {
+    return rankingClasses.rankMedalSecond;
+  }
+
+  if (rank === 3) {
+    return rankingClasses.rankMedalThird;
+  }
+
+  return "";
+}
+
 const rankingColumns: ListColumn<RankingUser>[] = [
   {
     key: "rank",
     label: RANKING_LIST_COLUMN_LABELS.rank,
-    render: (item) => (
-      <span className={rankingClasses.rank}>{formatRank(item.rank)}</span>
-    ),
+    render: (item) => {
+      const medalClass = getRankMedalClass(item.rank);
+
+      if (medalClass) {
+        return (
+          <span className={`${rankingClasses.rankMedal} ${medalClass}`}>
+            {item.rank}
+          </span>
+        );
+      }
+
+      return <span className={rankingClasses.rank}>{formatRank(item.rank)}</span>;
+    },
   },
   {
     key: "badgeImageUrl",

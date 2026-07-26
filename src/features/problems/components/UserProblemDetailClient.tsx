@@ -1,50 +1,22 @@
 ﻿"use client";
 
 // CSR - 문제풀이 상호작용: 서버 초기 문제 데이터를 상태로 받아 코드 입력, 실행, 제출, 문제 이동을 즉시 처리함
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type {
-  CSSProperties,
-  PointerEvent as ReactPointerEvent,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import CategoryNav from "@/components/layout/CategoryNav";
 import Sidebar from "@/components/layout/Sidebar";
-import { getSuggestedQuestions } from "@/features/chat/actions";
-import { streamChat } from "@/features/chat/stream";
-import { createChatTypewriter } from "@/features/chat/typewriter";
-import { handleClientError } from "@/lib/errorHandling";
+import { useProblemChat } from "@/features/problems/hooks/useProblemChat";
+import { useProblemWorkspace } from "@/features/problems/hooks/useProblemWorkspace";
+import { useResizableProblemPanel } from "@/features/problems/hooks/useResizableProblemPanel";
 
-import {
-  deleteProblemMessageFeedback,
-  getProblemDatasetDownloadUrl,
-  getProblemChatMessages,
-  getProblemChatRooms,
-  getProblemHints,
-  getProblemRecommendedCourses,
-  getProblemSetDetailWithProgress,
-  getProblemSetProgress,
-  getProblemSetResult,
-  runProblem,
-  setProblemMessageFeedback,
-  submitProblem,
-  updateProblemChatRoomTitle,
-  viewProblemExplanation,
-} from "../actions";
+import { getProblemRecommendedCourses } from "../actions";
 import { problemDetailClasses } from "../problemDetailStyles";
 import type {
-  ChatMessage,
-  ExecutionResult,
-  FeedbackRating,
-  ProblemHint,
-  ProblemResultTab,
   RecommendedCourse,
   ProblemSetDetail,
   ProblemSetResult,
-  ProblemChatRoom,
-  ProblemStatus,
-  SubmissionResult,
 } from "../types";
 import ProblemDetailModals from "./ProblemDetailModals";
 import ProblemSolveSection from "./ProblemSolveSection";
@@ -62,204 +34,6 @@ interface UserProblemDetailClientProps {
   initialUserId: string;
 }
 
-const updateArrayItem = <T,>(items: T[], index: number, value: T) =>
-  items.map((item, itemIndex) => (itemIndex === index ? value : item));
-
-function createClientMessageId() {
-  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
-}
-
-const MIN_PROBLEM_PANEL_WIDTH = 260;
-const MIN_SOLVE_PANEL_WIDTH = 400;
-const RESIZE_HANDLE_RESERVED_WIDTH = 32;
-const DEFAULT_PROBLEM_PANEL_PERCENT = 33.3333;
-
-const isExplanationViewedStatus = (status?: ProblemStatus) =>
-  status === "EXPLANATION_VIEWED";
-
-const isCorrectLikeStatus = (status?: ProblemStatus) =>
-  status === "CORRECT" || isExplanationViewedStatus(status);
-
-// 서버 진행상태 문자열을 알려진 ProblemStatus 로만 안전하게 변환 (미확인 값은 무시).
-const KNOWN_PROBLEM_STATUSES = new Set<ProblemStatus>([
-  "LOCKED",
-  "UNSOLVED",
-  "CORRECT",
-  "WRONG",
-  "EXPLANATION_VIEWED",
-]);
-const toKnownProblemStatus = (status?: string | null): ProblemStatus | null => {
-  if (!status) return null;
-  // BE 가 ANSWER_VIEWED 로 줄 수 있어 EXPLANATION_VIEWED 로 정규화
-  const normalized = status === "ANSWER_VIEWED" ? "EXPLANATION_VIEWED" : status;
-  return KNOWN_PROBLEM_STATUSES.has(normalized as ProblemStatus)
-    ? (normalized as ProblemStatus)
-    : null;
-};
-
-function getInitialProblemIndex(
-  problemSet: ProblemSetDetail,
-  targetProblemId = "",
-) {
-  if (targetProblemId) {
-    const targetProblemIndex = problemSet.problems.findIndex(
-      (problem) => normalizeId(problem.problemId) === targetProblemId,
-    );
-
-    if (targetProblemIndex >= 0) {
-      return targetProblemIndex;
-    }
-  }
-
-  return Math.max(
-    problemSet.problems.findIndex((problem) =>
-      problemSet.currentProblemId
-        ? problem.problemId === problemSet.currentProblemId
-        : problem.problemNumber === problemSet.currentProblemNumber,
-    ),
-    0,
-  );
-}
-
-function getCorrectSubmissionMap(problemSetResult: ProblemSetResult | null) {
-  return new Map(
-    (problemSetResult?.submissions ?? [])
-      .filter((submission) => submission.isCorrect)
-      .map((submission) => [submission.problemId, submission]),
-  );
-}
-
-function getInitialProblemCode(
-  problem: ProblemSetDetail["problems"][number] | undefined,
-  correctSubmissionMap: Map<number, ProblemSetResult["submissions"][number]>,
-) {
-  if (!problem) {
-    return "";
-  }
-
-  return (
-    problem.submittedCode ??
-    problem.latestSubmission?.submittedCode ??
-    correctSubmissionMap.get(problem.problemId)?.submittedAnswer ??
-    problem.startCode ??
-    ""
-  );
-}
-
-function getInitialProblemState(
-  problemSet: ProblemSetDetail,
-  problemSetResult: ProblemSetResult | null,
-  targetProblemId = "",
-) {
-  const initialIndex = getInitialProblemIndex(problemSet, targetProblemId);
-  const correctSubmissionMap = getCorrectSubmissionMap(problemSetResult);
-  const submissionResults = problemSet.problems.map((problem) => {
-    if (problem.latestSubmission) {
-      return {
-        isCorrect: problem.latestSubmission.isCorrect,
-        passedTestCount: problem.latestSubmission.passedTestCount,
-        totalTestCount: problem.latestSubmission.totalTestCount,
-        executionStatus: problem.latestSubmission.executionStatus,
-        errorMessage: problem.latestSubmission.errorMessage ?? undefined,
-        explanation: problem.explanation,
-        submittedAt: problem.latestSubmission.submittedAt,
-      } satisfies SubmissionResult;
-    }
-
-    const submission = correctSubmissionMap.get(problem.problemId);
-
-    if (!submission) {
-      return null;
-    }
-
-    return {
-      isCorrect: submission.isCorrect,
-      explanation: submission.explanation ?? problem.explanation,
-      submittedAt: submission.submittedAt,
-    } satisfies SubmissionResult;
-  });
-
-  return {
-    currentIndex: initialIndex,
-    problemStates: problemSet.problems.map((problem) =>
-      problem.latestSubmission?.isCorrect ||
-      correctSubmissionMap.has(problem.problemId)
-        ? "CORRECT"
-        : (problem.status ?? "UNSOLVED"),
-    ),
-    hintEnabled: problemSet.problems.map(
-      (problem) =>
-        correctSubmissionMap.has(problem.problemId) ||
-        problem.status === "WRONG" ||
-        isCorrectLikeStatus(problem.status),
-    ),
-    solutionEnabled: problemSet.problems.map(
-      (problem) =>
-        correctSubmissionMap.has(problem.problemId) ||
-        isCorrectLikeStatus(problem.status),
-    ),
-    hints: problemSet.problems.map(() => [] as ProblemHint[]),
-    userCodes: problemSet.problems.map((problem) =>
-      getInitialProblemCode(problem, correctSubmissionMap),
-    ),
-    submissionResults,
-    code: getInitialProblemCode(
-      problemSet.problems[initialIndex],
-      correctSubmissionMap,
-    ),
-  };
-}
-
-function getInitialLoadedExplanationIds(
-  problemSet: ProblemSetDetail,
-  submissionResults: Array<SubmissionResult | null>,
-) {
-  return new Set(
-    problemSet.problems
-      .filter(
-        (problem, index) =>
-          Boolean(problem.explanation) ||
-          Boolean(submissionResults[index]?.explanation),
-      )
-      .map((problem) => problem.problemId),
-  );
-}
-
-function normalizeId(value?: number | string | null) {
-  return value == null ? "" : String(value);
-}
-
-function getRoomProblemSetId(room: ProblemChatRoom) {
-  return (
-    room.problemSetId ??
-    room.problemSet?.problemSetId ??
-    room.problemSet?.id ??
-    null
-  );
-}
-
-function getRoomProblemId(room: ProblemChatRoom) {
-  return room.problemId ?? room.problem?.problemId ?? room.problem?.id ?? null;
-}
-
-function findProblemChatRoom(
-  rooms: ProblemChatRoom[],
-  problemSetId: number,
-  problemId: number,
-) {
-  const targetProblemSetId = normalizeId(problemSetId);
-  const targetProblemId = normalizeId(problemId);
-
-  return rooms.find(
-    (room) =>
-      normalizeId(getRoomProblemSetId(room)) === targetProblemSetId &&
-      normalizeId(getRoomProblemId(room)) === targetProblemId,
-  );
-}
-
-function findProblemChatRoomById(rooms: ProblemChatRoom[], roomId: number) {
-  return rooms.find((room) => room.roomId === roomId);
-}
 
 export default function UserProblemDetailClient({
   problemSetId,
@@ -268,63 +42,11 @@ export default function UserProblemDetailClient({
   initialUserId,
 }: UserProblemDetailClientProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const targetProblemId = normalizeId(searchParams.get("problemId"));
-  const initialState = useMemo(
-    () =>
-      getInitialProblemState(
-        initialProblemSet,
-        initialProblemSetResult,
-        targetProblemId,
-      ),
-    [initialProblemSet, initialProblemSetResult, targetProblemId],
-  );
 
-  const [problemSet, setProblemSet] = useState<ProblemSetDetail>(initialProblemSet);
-  const [currentIndex, setCurrentIndex] = useState(initialState.currentIndex);
-  const [code, setCode] = useState(initialState.code);
-  const [userCodes, setUserCodes] = useState<string[]>(initialState.userCodes);
-  const [problemStates, setProblemStates] = useState<ProblemStatus[]>(
-    initialState.problemStates,
-  );
-  const [hintEnabled, setHintEnabled] = useState<boolean[]>(
-    initialState.hintEnabled,
-  );
-  const [solutionEnabled, setSolutionEnabled] = useState<boolean[]>(
-    initialState.solutionEnabled,
-  );
-  const [hints, setHints] = useState<ProblemHint[][]>(initialState.hints);
   const [recommendedCourses, setRecommendedCourses] = useState<
     Record<number, RecommendedCourse[]>
   >({});
-  const [activeTab, setActiveTab] = useState<ProblemResultTab>("result");
-  const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
-  const [submissionResults, setSubmissionResults] = useState<
-    Array<SubmissionResult | null>
-  >(initialState.submissionResults);
-  const [submissionResult, setSubmissionResult] =
-    useState<SubmissionResult | null>(
-      initialState.submissionResults[initialState.currentIndex],
-    );
-  const [isRunning, setIsRunning] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDatasetDownloading, setIsDatasetDownloading] = useState(false);
-  const [showHintToast, setShowHintToast] = useState(false);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
-  const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const [problemCompleteModalOpen, setProblemCompleteModalOpen] =
-    useState(false);
-  const [emptySubmitModalOpen, setEmptySubmitModalOpen] = useState(false);
-  const [explanationViewConfirmOpen, setExplanationViewConfirmOpen] =
-    useState(false);
-  const [isViewingExplanation, setIsViewingExplanation] = useState(false);
-  const [loadedExplanationProblemIds, setLoadedExplanationProblemIds] =
-    useState<Set<number>>(() =>
-      getInitialLoadedExplanationIds(
-        initialProblemSet,
-        initialState.submissionResults,
-      ),
-    );
   const [pendingRecommendedCourseId, setPendingRecommendedCourseId] =
     useState<number | null>(null);
   const [alertModal, setAlertModal] = useState({
@@ -332,384 +54,125 @@ export default function UserProblemDetailClient({
     title: "",
     content: "",
   });
-  const [chatOpen, setChatOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [hasOpenedChatPanel, setHasOpenedChatPanel] = useState(false);
-  const [chatRoomId, setChatRoomId] = useState<number | null>(null);
-  const [chatRoomTitle, setChatRoomTitle] = useState<string | null>(null);
-  const [chatRoomTitleInput, setChatRoomTitleInput] = useState("");
-  const [chatRoomTitleEditing, setChatRoomTitleEditing] = useState(false);
-  const [chatRoomTitleConfirmOpen, setChatRoomTitleConfirmOpen] = useState(false);
-  const [chatRoomTitleUpdating, setChatRoomTitleUpdating] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [feedbackPendingIds, setFeedbackPendingIds] = useState<Set<number>>(
-    () => new Set(),
-  );
-  const [chatInput, setChatInput] = useState("");
-  const [chatSending, setChatSending] = useState(false);
-  const [showChatResponsePending, setShowChatResponsePending] = useState(false);
-  const [chatLoading, setChatLoading] = useState(false);
-  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
-  const [problemPanelPercent, setProblemPanelPercent] = useState(
-    DEFAULT_PROBLEM_PANEL_PERCENT,
-  );
-  const [isPanelSplitAvailable, setIsPanelSplitAvailable] = useState(false);
-  const contentAreaRef = useRef<HTMLElement | null>(null);
-  const activeChatRoomIdRef = useRef<number | null>(null);
-  const chatStreamAbortRef = useRef<AbortController | null>(null);
-  const appliedTargetProblemIdRef = useRef(targetProblemId);
-
-  useEffect(() => {
-    activeChatRoomIdRef.current = chatRoomId;
-  }, [chatRoomId]);
-
-  useEffect(() => {
-    return () => {
-      chatStreamAbortRef.current?.abort();
-    };
+  const {
+    contentAreaRef,
+    isPanelSplitAvailable,
+    problemPanelStyle,
+    handlePanelResizeStart,
+  } = useResizableProblemPanel();
+  const showError = useCallback((title: string, content: string) => {
+    setAlertModal({ open: true, title, content });
   }, []);
+  const resetChatRef = useRef<() => void>(() => {});
+  const resetChat = useCallback(() => resetChatRef.current(), []);
+  const closeMobileSidebar = useCallback(() => setMobileSidebarOpen(false), []);
 
-  const userId = useMemo(() => {
-    if (typeof window === "undefined") {
-      return searchParams.get("userId") ?? "";
-    }
+  const {
+    problemSet,
+    currentProblem,
+    currentIndex,
+    currentHints,
+    isCurrentProblemCorrect,
+    code,
+    problemStates,
+    hintEnabled,
+    solutionEnabled,
+    activeTab,
+    executionResult,
+    submissionResult,
+    isRunning,
+    isSubmitting,
+    isViewingExplanation,
+    isDatasetDownloading,
+    showHintToast,
+    successModalOpen,
+    setSuccessModalOpen,
+    problemCompleteModalOpen,
+    emptySubmitModalOpen,
+    setEmptySubmitModalOpen,
+    explanationViewConfirmOpen,
+    setExplanationViewConfirmOpen,
+    canMoveProblem,
+    getProblemButtonClass,
+    moveProblem,
+    handleCodeChange,
+    handleTabChange,
+    handleExplanationViewConfirm,
+    handleRun,
+    handleSubmit,
+    handleDatasetDownload,
+  } = useProblemWorkspace({
+    problemSetId,
+    initialProblemSet,
+    initialProblemSetResult,
+    initialUserId,
+    resetChat,
+    closeMobileSidebar,
+    showError,
+  });
 
-    return searchParams.get("userId") ?? localStorage.getItem("userId") ?? "";
-  }, [searchParams]);
+  const {
+    chatOpen,
+    setChatOpen,
+    hasOpenedChatPanel,
+    chatRoomId,
+    chatRoomTitle,
+    chatRoomTitleInput,
+    setChatRoomTitleInput,
+    chatRoomTitleEditing,
+    chatRoomTitleConfirmOpen,
+    setChatRoomTitleConfirmOpen,
+    chatRoomTitleUpdating,
+    chatMessages,
+    feedbackPendingIds,
+    chatInput,
+    setChatInput,
+    chatSending,
+    showChatResponsePending,
+    chatLoading,
+    suggestedQuestions,
+    toggleChat,
+    resetChatState,
+    sendChat,
+    handleChatFeedback,
+    handleSelectSuggestedQuestion,
+    startChatRoomTitleEdit,
+    cancelChatRoomTitleEdit,
+    requestChatRoomTitleUpdate,
+    handleChatRoomTitleUpdate,
+  } = useProblemChat({
+    problemSetId: problemSet.id,
+    currentProblemId: currentProblem?.problemId,
+    showError,
+  });
 
-  // 재진입 시 SSR 스냅샷/캐시가 stale 하면 해설 열람·정답으로 잠금 해제됐던 소문제가 다시
-  // LOCKED 로 보이는 문제(배포 전용) → 마운트 직후 진행상태를 재조회해 LOCKED 인 소문제만 해제한다.
+  // workspace 의 소문제 이동/URL 동기화가 chat 을 초기화할 수 있도록 최신 resetChatState 를
+  // ref 로 연결(순환결합 차단). resetChat 호출은 항상 이벤트/타이머라 커밋 후 참조되어 안전.
   useEffect(() => {
-    // 다른 사용자 조회(관리자)는 아래 fetchProblemSet 이 전체 재조회하므로 중복 실행 방지
-    if (userId && userId !== initialUserId) {
-      return;
-    }
-
-    let cancelled = false;
-    const syncLockStatus = async () => {
-      try {
-        const progress = await getProblemSetProgress(problemSetId, userId, {
-          cache: "no-store",
-        });
-        if (cancelled || !progress?.problems?.length) return;
-
-        const statusById = new Map<number, ProblemStatus>();
-        progress.problems.forEach((p) => {
-          if (p.problemId == null) return;
-          const status = toKnownProblemStatus(p.status);
-          if (status) statusById.set(p.problemId, status);
-        });
-        const freshOf = (index: number) => {
-          const problemId = initialProblemSet.problems[index]?.problemId;
-          return problemId != null ? statusById.get(problemId) : undefined;
-        };
-
-        // 잠긴(LOCKED) 소문제만 서버 최신값으로 해제한다. 그 외 로컬 상태(정답/오답/해설열람,
-        // 동기화 요청 도중 LOCKED→UNSOLVED 로 바뀐 다음 문제 등)는 stale 응답이 덮어쓰지 않게 보존.
-        setProblemStates((prev) =>
-          prev.map((state, index) => {
-            if (state !== "LOCKED") return state;
-            const fresh = freshOf(index);
-            return fresh && fresh !== "LOCKED" ? fresh : state;
-          }),
-        );
-        setHintEnabled((prev) =>
-          prev.map((enabled, index) => {
-            const fresh = freshOf(index);
-            if (!fresh) return enabled;
-            return enabled || fresh === "WRONG" || isCorrectLikeStatus(fresh);
-          }),
-        );
-        setSolutionEnabled((prev) =>
-          prev.map((enabled, index) => {
-            const fresh = freshOf(index);
-            if (!fresh) return enabled;
-            return enabled || isCorrectLikeStatus(fresh);
-          }),
-        );
-      } catch {
-        /* 재조회 실패 시 SSR 초기 상태 유지 */
-      }
-    };
-    void syncLockStatus();
-    return () => {
-      cancelled = true;
-    };
-  }, [problemSetId, userId, initialUserId, initialProblemSet]);
-
-  const currentProblem = problemSet.problems[currentIndex];
-  const currentHints = hints[currentIndex] ?? [];
-  const isCurrentProblemCorrect = isCorrectLikeStatus(
-    problemStates[currentIndex],
-  );
-
-  useEffect(() => {
-    const problemSetNumericId = Number(problemSet.id);
-    const problemNumericId = Number(currentProblem?.problemId);
-
-    if (
-      !Number.isFinite(problemSetNumericId) ||
-      problemSetNumericId <= 0 ||
-      !Number.isFinite(problemNumericId) ||
-      problemNumericId <= 0
-    ) {
-      const resetTimer = window.setTimeout(() => {
-        setSuggestedQuestions([]);
-      }, 0);
-
-      return () => window.clearTimeout(resetTimer);
-    }
-
-    const controller = new AbortController();
-
-    getSuggestedQuestions(
-      problemSetNumericId,
-      problemNumericId,
-      controller.signal,
-    )
-      .then((result) => {
-        if (!controller.signal.aborted) {
-          setSuggestedQuestions(result?.questions ?? []);
-        }
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setSuggestedQuestions([]);
-        }
-      });
-
-    return () => controller.abort();
-  }, [currentProblem?.problemId, problemSet.id]);
-
-  const problemPanelStyle = useMemo(
-    () =>
-      ({
-        "--problem-panel-percent": `${problemPanelPercent}%`,
-      }) as CSSProperties & Record<"--problem-panel-percent", string>,
-    [problemPanelPercent],
-  );
-
-  useEffect(() => {
-    const container = contentAreaRef.current;
-
-    if (!container) {
-      return;
-    }
-
-    const updateSplitAvailability = () => {
-      const width = container.getBoundingClientRect().width;
-      const canSplit =
-        width >=
-        MIN_PROBLEM_PANEL_WIDTH +
-          MIN_SOLVE_PANEL_WIDTH +
-          RESIZE_HANDLE_RESERVED_WIDTH;
-
-      setIsPanelSplitAvailable(canSplit);
-
-      if (!canSplit) {
-        setProblemPanelPercent(DEFAULT_PROBLEM_PANEL_PERCENT);
-        return;
-      }
-
-      const minPercent = (MIN_PROBLEM_PANEL_WIDTH / width) * 100;
-      const maxPercent =
-        ((width - MIN_SOLVE_PANEL_WIDTH - RESIZE_HANDLE_RESERVED_WIDTH) /
-          width) *
-        100;
-
-      setProblemPanelPercent((prev) =>
-        Math.min(Math.max(prev, minPercent), maxPercent),
-      );
-    };
-
-    updateSplitAvailability();
-
-    const resizeObserver = new ResizeObserver(updateSplitAvailability);
-    resizeObserver.observe(container);
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
-  const handlePanelResizeStart = useCallback(
-    (event: ReactPointerEvent<HTMLButtonElement>) => {
-      event.preventDefault();
-
-      if (!isPanelSplitAvailable) {
-        return;
-      }
-
-      const container = contentAreaRef.current;
-
-      if (!container) {
-        return;
-      }
-
-      const rect = container.getBoundingClientRect();
-      const maxProblemWidth =
-        rect.width - MIN_SOLVE_PANEL_WIDTH - RESIZE_HANDLE_RESERVED_WIDTH;
-
-      if (maxProblemWidth < MIN_PROBLEM_PANEL_WIDTH) {
-        return;
-      }
-
-      const updatePanelWidth = (clientX: number) => {
-        const nextWidth = Math.min(
-          Math.max(clientX - rect.left, MIN_PROBLEM_PANEL_WIDTH),
-          maxProblemWidth,
-        );
-
-        setProblemPanelPercent((nextWidth / rect.width) * 100);
-      };
-
-      const handlePointerMove = (pointerEvent: PointerEvent) => {
-        updatePanelWidth(pointerEvent.clientX);
-      };
-      const handlePointerUp = () => {
-        window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("pointerup", handlePointerUp);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-      };
-
-      updatePanelWidth(event.clientX);
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-      window.addEventListener("pointermove", handlePointerMove);
-      window.addEventListener("pointerup", handlePointerUp, { once: true });
-    },
-    [isPanelSplitAvailable],
-  );
+    resetChatRef.current = resetChatState;
+  }, [resetChatState]);
 
   const toggleProblemChat = useCallback(() => {
-    setHasOpenedChatPanel(true);
     setMobileSidebarOpen(false);
-    setChatOpen((prev) => !prev);
-  }, []);
-
-  const resetChatState = useCallback(() => {
-    chatStreamAbortRef.current?.abort();
-    chatStreamAbortRef.current = null;
-    setChatRoomId(null);
-    setChatRoomTitle(null);
-    setChatRoomTitleInput("");
-    setChatRoomTitleEditing(false);
-    setChatRoomTitleConfirmOpen(false);
-    setChatMessages([]);
-    setChatInput("");
-    setChatSending(false);
-    setShowChatResponsePending(false);
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchProblemSet = async () => {
-      try {
-        if (!userId || userId === initialUserId) {
-          return;
-        }
-
-        const [data, result] = await Promise.all([
-          getProblemSetDetailWithProgress(problemSetId, userId, {
-            cache: "no-store",
-          }),
-          getProblemSetResult(problemSetId, { cache: "no-store" }).catch(
-            () => null,
-          ),
-        ]);
-        const nextState = getInitialProblemState(data, result, targetProblemId);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setProblemSet(data);
-        setCurrentIndex(nextState.currentIndex);
-        setProblemStates(nextState.problemStates);
-        setHintEnabled(nextState.hintEnabled);
-        setSolutionEnabled(nextState.solutionEnabled);
-        setHints(nextState.hints);
-        setUserCodes(nextState.userCodes);
-        setSubmissionResults(nextState.submissionResults);
-        setSubmissionResult(nextState.submissionResults[nextState.currentIndex]);
-        setCode(nextState.code);
-        setLoadedExplanationProblemIds(
-          getInitialLoadedExplanationIds(data, nextState.submissionResults),
-        );
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        handleClientError(error, {
-          router,
-          fallbackTitle: "문제 조회 실패",
-          fallbackMessage: "문제 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
-          showModal: (title, content) =>
-            setAlertModal({ open: true, title, content }),
-        });
-      }
-    };
-
-    fetchProblemSet();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [initialUserId, problemSetId, router, targetProblemId, userId]);
-
-  useEffect(() => {
-    if (appliedTargetProblemIdRef.current === targetProblemId) {
-      return;
-    }
-
-    appliedTargetProblemIdRef.current = targetProblemId;
-
-    if (!targetProblemId) {
-      return;
-    }
-
-    const nextIndex = problemSet.problems.findIndex(
-      (problem) => normalizeId(problem.problemId) === targetProblemId,
-    );
-
-    if (nextIndex < 0 || nextIndex === currentIndex) {
-      return;
-    }
-
-    const nextCodes = updateArrayItem(userCodes, currentIndex, code);
-
-    const syncTimer = window.setTimeout(() => {
-      setUserCodes(nextCodes);
-      setCurrentIndex(nextIndex);
-      setCode(nextCodes[nextIndex] ?? "");
-      setSubmissionResult(submissionResults[nextIndex] ?? null);
-      setActiveTab("result");
-      setExecutionResult(null);
-      resetChatState();
-    }, 0);
-
-    return () => window.clearTimeout(syncTimer);
-  }, [
-    code,
-    currentIndex,
-    problemSet.problems,
-    resetChatState,
-    submissionResults,
-    targetProblemId,
-    userCodes,
-  ]);
+    toggleChat();
+  }, [toggleChat]);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadRecommendedCourses = async () => {
-      if (!currentProblem?.problemId || recommendedCourses[currentProblem.problemId]) {
+      if (
+        !currentProblem?.problemId ||
+        recommendedCourses[currentProblem.problemId]
+      ) {
         return;
       }
 
       try {
-        const courses = await getProblemRecommendedCourses(currentProblem.problemId);
+        const courses = await getProblemRecommendedCourses(
+          currentProblem.problemId,
+        );
 
         if (isMounted) {
           setRecommendedCourses((prev) => ({
@@ -736,433 +199,6 @@ export default function UserProblemDetailClient({
     };
   }, [currentProblem?.problemId, recommendedCourses]);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadProblemChatRoom = async () => {
-      if (!hasOpenedChatPanel) {
-        return;
-      }
-
-      if (!problemSet.id || !currentProblem?.problemId) {
-        resetChatState();
-        return;
-      }
-
-      resetChatState();
-      setChatLoading(true);
-
-      try {
-        const rooms = await getProblemChatRooms();
-        const room = findProblemChatRoom(
-          rooms,
-          problemSet.id,
-          currentProblem.problemId,
-        );
-
-        if (!isMounted || !room) {
-          return;
-        }
-
-        setChatRoomId(room.roomId);
-        setChatRoomTitle(room.title || null);
-        setChatRoomTitleInput(room.title || "");
-
-        const messages = await getProblemChatMessages(room.roomId);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setChatMessages(messages);
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        handleClientError(error, {
-          router,
-          fallbackTitle: "채팅방 조회 실패",
-          fallbackMessage:
-            "문제 전용 채팅방을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
-          showModal: (title, content) =>
-            setAlertModal({ open: true, title, content }),
-        });
-      } finally {
-        if (isMounted) {
-          setChatLoading(false);
-        }
-      }
-    };
-
-    loadProblemChatRoom();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [
-    currentProblem?.problemId,
-    hasOpenedChatPanel,
-    problemSet.id,
-    resetChatState,
-    router,
-  ]);
-
-  const canMoveProblem = (index: number) => problemStates[index] !== "LOCKED";
-
-  const getProblemButtonClass = (state: ProblemStatus | undefined, isCurrent: boolean) => {
-    if (isCurrent) {
-      return "bg-[#1a237e] text-white";
-    }
-
-    if (isCorrectLikeStatus(state)) {
-      return "border border-[#1a237e] text-[#1a237e] bg-white";
-    }
-
-    if (state === "WRONG") {
-      return "border border-[#fb2c36] text-[#fb2c36] bg-white";
-    }
-
-    return "border border-[#e8e8e8] text-[#1f2937] bg-white hover:bg-[#f3f4f6]";
-  };
-
-  const moveProblem = (index: number) => {
-    if (!canMoveProblem(index)) {
-      return;
-    }
-
-    const nextCodes = updateArrayItem(userCodes, currentIndex, code);
-
-    setUserCodes(nextCodes);
-    setCurrentIndex(index);
-    setCode(nextCodes[index] ?? "");
-    setActiveTab("result");
-    setExecutionResult(null);
-    setSubmissionResult(submissionResults[index] ?? null);
-    resetChatState();
-    setMobileSidebarOpen(false);
-  };
-
-  const handleCodeChange = (nextCode: string) => {
-    setCode(nextCode);
-    setUserCodes((prev) => updateArrayItem(prev, currentIndex, nextCode));
-  };
-
-  const fetchHints = async (problemId: number, index: number) => {
-    try {
-      const hintList = await getProblemHints(problemId);
-      setHints((prev) => updateArrayItem(prev, index, hintList));
-      return hintList;
-    } catch (error) {
-      handleClientError(error, {
-        router,
-        fallbackTitle: "힌트 조회 실패",
-        fallbackMessage: "힌트를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        showModal: (title, content) =>
-          setAlertModal({ open: true, title, content }),
-      });
-      return [];
-    }
-  };
-
-  const handleTabChange = (tab: ProblemResultTab) => {
-    if (
-      tab === "solution" &&
-      isCorrectLikeStatus(problemStates[currentIndex])
-    ) {
-      if (
-        currentProblem?.problemId &&
-        loadedExplanationProblemIds.has(currentProblem.problemId)
-      ) {
-        setActiveTab("solution");
-        return;
-      }
-
-      void handleExplanationViewConfirm();
-      return;
-    }
-
-    if (tab === "solution" && !solutionEnabled[currentIndex]) {
-      setExplanationViewConfirmOpen(true);
-      return;
-    }
-
-    setActiveTab(tab);
-
-    if (
-      tab === "hint" &&
-      currentProblem?.problemId &&
-      !hints[currentIndex]?.length
-    ) {
-      void fetchHints(currentProblem.problemId, currentIndex);
-    }
-  };
-
-  const handleExplanationViewConfirm = async () => {
-    if (!currentProblem?.problemId || isViewingExplanation) {
-      return;
-    }
-
-    setIsViewingExplanation(true);
-
-    try {
-      const result = await viewProblemExplanation(currentProblem.problemId);
-
-      if (!result) {
-        return;
-      }
-
-      setLoadedExplanationProblemIds((prev) => {
-        const next = new Set(prev);
-        next.add(result.problemId);
-        return next;
-      });
-
-      const currentProblemState = problemStates[currentIndex];
-      const nextCurrentProblemState =
-        currentProblemState === "CORRECT" ? "CORRECT" : "EXPLANATION_VIEWED";
-      const nextProblemStates = problemStates.map((state, index) => {
-        const problemId = problemSet.problems[index]?.problemId;
-
-        if (index === currentIndex) {
-          return nextCurrentProblemState;
-        }
-
-        if (
-          result.nextProblemId &&
-          problemId === result.nextProblemId &&
-          state === "LOCKED"
-        ) {
-          return "UNSOLVED";
-        }
-
-        return state;
-      });
-
-      setProblemStates(nextProblemStates);
-      setProblemSet((prev) => ({
-        ...prev,
-        isCompleted: result.problemSetCompleted ?? prev.isCompleted,
-        problems: prev.problems.map((problem) =>
-          problem.problemId === result.problemId
-            ? {
-                ...problem,
-                explanation: result.explanation ?? problem.explanation,
-                status: nextCurrentProblemState,
-              }
-            : problem,
-        ),
-      }));
-      setExecutionResult(null);
-      setSubmissionResult({
-        isCorrect: true,
-        explanation: result.explanation ?? currentProblem.explanation,
-        nextProblemId: result.nextProblemId ?? undefined,
-      });
-      setSubmissionResults((prev) =>
-        updateArrayItem(prev, currentIndex, {
-          isCorrect: true,
-          explanation: result.explanation ?? currentProblem.explanation,
-          nextProblemId: result.nextProblemId ?? undefined,
-        }),
-      );
-      setHintEnabled((prev) => updateArrayItem(prev, currentIndex, true));
-      setSolutionEnabled((prev) => updateArrayItem(prev, currentIndex, true));
-
-      // 해설 열람으로 다음 소문제가 잠금 해제된 상태를 서버가 persist 했으므로,
-      // 클라이언트 Router Cache(soft navigation 캐시)를 무효화해 재진입 시 stale 상태
-      // (사이드바 비활성)로 되돌아가지 않게 한다. 배포 환경에서만 재현되던 문제.
-      // 힌트 조회(fetchHints) 완료 여부와 무관하게 성공 직후 호출해 캐시 갱신 지연을 방지.
-      router.refresh();
-
-      if (!hints[currentIndex]?.length) {
-        await fetchHints(currentProblem.problemId, currentIndex);
-      }
-
-      setExplanationViewConfirmOpen(false);
-      setActiveTab("solution");
-    } catch (error) {
-      handleClientError(error, {
-        router,
-        fallbackTitle: "해설 조회 실패",
-        fallbackMessage: "해설을 조회하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        showModal: (title, content) =>
-          setAlertModal({ open: true, title, content }),
-      });
-    } finally {
-      setIsViewingExplanation(false);
-    }
-  };
-
-  const handleRun = async () => {
-    if (!currentProblem?.problemId || isRunning) {
-      return;
-    }
-
-    if (!code.trim()) {
-      setEmptySubmitModalOpen(true);
-      return;
-    }
-
-    setIsRunning(true);
-
-    try {
-      const result = await runProblem(currentProblem.problemId, userId, code);
-      setSubmissionResult(null);
-      setExecutionResult(result);
-      setActiveTab("result");
-    } catch (error) {
-      handleClientError(error, {
-        router,
-        fallbackTitle: "코드 실행 실패",
-        fallbackMessage: "코드를 실행하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        showModal: (title, content) =>
-          setAlertModal({ open: true, title, content }),
-      });
-    } finally {
-      setIsRunning(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!currentProblem?.problemId || isSubmitting || isCurrentProblemCorrect) {
-      return;
-    }
-
-    if (!code.trim()) {
-      setEmptySubmitModalOpen(true);
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const result = await submitProblem(currentProblem.problemId, userId, code);
-
-      setExecutionResult(null);
-      setSubmissionResult(result);
-      setSubmissionResults((prev) => updateArrayItem(prev, currentIndex, result));
-      setActiveTab("result");
-
-      if (result.isCorrect) {
-        const nextProblemStates = problemStates.map((state, index) => {
-          const problemId = problemSet?.problems[index]?.problemId;
-
-          if (index === currentIndex) {
-            return "CORRECT";
-          }
-
-          if (
-            result.nextProblemId &&
-            problemId === result.nextProblemId &&
-            state === "LOCKED"
-          ) {
-            return "UNSOLVED";
-          }
-
-          return state;
-        });
-        setProblemStates(nextProblemStates);
-        setHintEnabled((prev) => updateArrayItem(prev, currentIndex, true));
-        setSolutionEnabled((prev) => updateArrayItem(prev, currentIndex, true));
-
-        // 정답 처리로 다음 소문제가 잠금 해제됐으므로 재진입 stale 방지를 위해 Router Cache 무효화.
-        // 힌트 조회(fetchHints) 완료 여부와 무관하게 성공 직후 호출한다.
-        router.refresh();
-
-        if (!hints[currentIndex]?.length) {
-          await fetchHints(currentProblem.problemId, currentIndex);
-        }
-
-        const totalProblemCount =
-          problemSet.totalProblemCount ?? problemSet.problems.length;
-        const isLastProblem =
-          currentIndex === problemSet.problems.length - 1 ||
-          (currentProblem.problemNumber ?? currentIndex + 1) >= totalProblemCount;
-        const isAllCorrect = nextProblemStates.every(
-          (state) => isCorrectLikeStatus(state),
-        );
-
-        if (isLastProblem || isAllCorrect || problemSet.isCompleted) {
-          setProblemCompleteModalOpen(true);
-        } else {
-          setSuccessModalOpen(true);
-        }
-      } else {
-        setProblemStates((prev) => updateArrayItem(prev, currentIndex, "WRONG"));
-        setHintEnabled((prev) => updateArrayItem(prev, currentIndex, true));
-
-        if (!hints[currentIndex]?.length) {
-          await fetchHints(currentProblem.problemId, currentIndex);
-        }
-
-        setShowHintToast(true);
-        window.setTimeout(() => setShowHintToast(false), 2000);
-      }
-    } catch (error) {
-      handleClientError(error, {
-        router,
-        fallbackTitle: "답안 제출 실패",
-        fallbackMessage: "답안을 제출하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        showModal: (title, content) =>
-          setAlertModal({ open: true, title, content }),
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDatasetDownload = async () => {
-    if (isDatasetDownloading) {
-      return;
-    }
-
-    setIsDatasetDownloading(true);
-
-    try {
-      const dataset = await getProblemDatasetDownloadUrl(problemSetId);
-
-      if (!dataset?.downloadUrl) {
-        setAlertModal({
-          open: true,
-          title: "CSV 다운로드 실패",
-          content: "다운로드할 데이터셋을 찾지 못했습니다.",
-        });
-        return;
-      }
-
-      const parsedUrl = new URL(dataset.downloadUrl, window.location.origin);
-
-      if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-        setAlertModal({
-          open: true,
-          title: "CSV 다운로드 실패",
-          content: "유효하지 않은 다운로드 주소입니다.",
-        });
-        return;
-      }
-
-      const link = document.createElement("a");
-      link.href = parsedUrl.toString();
-      link.download = dataset.fileName || "dataset.csv";
-      link.rel = "noopener noreferrer";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (error) {
-      handleClientError(error, {
-        router,
-        fallbackTitle: "CSV 다운로드 실패",
-        fallbackMessage:
-          "CSV 다운로드 URL을 발급받지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        showModal: (title, content) =>
-          setAlertModal({ open: true, title, content }),
-      });
-    } finally {
-      setIsDatasetDownloading(false);
-    }
-  };
-
   const handleRecommendedCourseSelect = (courseId: number) => {
     setPendingRecommendedCourseId(courseId);
   };
@@ -1175,320 +211,6 @@ export default function UserProblemDetailClient({
     const targetCourseId = pendingRecommendedCourseId;
     setPendingRecommendedCourseId(null);
     router.push(`/courses/${targetCourseId}`);
-  };
-
-  const startChatRoomTitleEdit = () => {
-    setChatRoomTitleInput(chatRoomTitle ?? "");
-    setChatRoomTitleEditing(true);
-  };
-
-  const cancelChatRoomTitleEdit = () => {
-    setChatRoomTitleInput(chatRoomTitle ?? "");
-    setChatRoomTitleEditing(false);
-    setChatRoomTitleConfirmOpen(false);
-  };
-
-  const requestChatRoomTitleUpdate = () => {
-    const nextTitle = chatRoomTitleInput.trim();
-
-    if (!nextTitle || nextTitle === (chatRoomTitle ?? "")) {
-      cancelChatRoomTitleEdit();
-      return;
-    }
-
-    setChatRoomTitleConfirmOpen(true);
-  };
-
-  const handleChatRoomTitleUpdate = async () => {
-    if (!chatRoomId || chatRoomTitleUpdating) {
-      return;
-    }
-
-    const targetRoomId = chatRoomId;
-    const nextTitle = chatRoomTitleInput.trim();
-
-    if (!nextTitle) {
-      return;
-    }
-
-    setChatRoomTitleUpdating(true);
-
-    try {
-      const updatedRoom = await updateProblemChatRoomTitle(targetRoomId, nextTitle);
-
-      if (activeChatRoomIdRef.current !== targetRoomId) {
-        return;
-      }
-
-      const updatedTitle = updatedRoom?.title ?? nextTitle;
-
-      setChatRoomTitle(updatedTitle);
-      setChatRoomTitleInput(updatedTitle);
-      setChatRoomTitleEditing(false);
-      setChatRoomTitleConfirmOpen(false);
-      window.dispatchEvent(new Event("chatRoomUpdated"));
-    } catch (error) {
-      setChatRoomTitleConfirmOpen(false);
-      handleClientError(error, {
-        router,
-        fallbackTitle: "채팅방 이름 수정 실패",
-        fallbackMessage:
-          "채팅방 이름을 수정하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        showModal: (title, content) =>
-          setAlertModal({ open: true, title, content }),
-      });
-    } finally {
-      setChatRoomTitleUpdating(false);
-    }
-  };
-
-  const refreshProblemChatMessages = useCallback(async (roomId: number) => {
-    const refreshed = await getProblemChatMessages(roomId);
-    if (activeChatRoomIdRef.current === roomId) {
-      setChatMessages(refreshed);
-    }
-  }, []);
-
-  const handleChatFeedback = useCallback(
-    async (messageId: number, nextRating: FeedbackRating) => {
-      if (feedbackPendingIds.has(messageId)) {
-        return false;
-      }
-
-      const currentFeedback =
-        chatMessages.find((message) => message.messageId === messageId)
-          ?.feedback ?? null;
-      const isCancel = currentFeedback === nextRating;
-
-      setFeedbackPendingIds((prev) => new Set(prev).add(messageId));
-
-      setChatMessages((prev) =>
-        prev.map((message) =>
-          message.messageId === messageId
-            ? { ...message, feedback: isCancel ? null : nextRating }
-            : message,
-        ),
-      );
-
-      try {
-        if (isCancel) {
-          await deleteProblemMessageFeedback(messageId);
-        } else {
-          await setProblemMessageFeedback(messageId, nextRating);
-        }
-
-        return true;
-      } catch (error) {
-        setChatMessages((prev) =>
-          prev.map((message) =>
-            message.messageId === messageId
-              ? { ...message, feedback: currentFeedback }
-              : message,
-          ),
-        );
-        handleClientError(error, {
-          router,
-          fallbackTitle: "평가 저장 실패",
-          fallbackMessage:
-            "메시지 평가를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-          showModal: (title, content) =>
-            setAlertModal({ open: true, title, content }),
-        });
-
-        return false;
-      } finally {
-        setFeedbackPendingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(messageId);
-          return next;
-        });
-      }
-    },
-    [chatMessages, feedbackPendingIds, router],
-  );
-
-  const sendChat = async (overrideMessage?: string) => {
-    const userMessage =
-      typeof overrideMessage === "string" ? overrideMessage.trim() : chatInput.trim();
-
-    if (
-      !userMessage ||
-      chatSending ||
-      chatLoading ||
-      !problemSet.id ||
-      !currentProblem?.problemId
-    ) {
-      return;
-    }
-
-    const targetRoomId = chatRoomId;
-    const targetProblemId = currentProblem.problemId;
-    const controller = new AbortController();
-    let newRoomId: number | undefined;
-    let streamErrorReceived = false;
-    const userMessageId = createClientMessageId();
-    const assistantMessageId = createClientMessageId();
-
-    setChatMessages((prev) => [
-      ...prev,
-      { role: "USER", content: userMessage, clientId: userMessageId },
-      { role: "ASSISTANT", content: "", clientId: assistantMessageId },
-    ]);
-    setChatInput("");
-    setChatSending(true);
-    setShowChatResponsePending(true);
-    chatStreamAbortRef.current?.abort();
-    chatStreamAbortRef.current = controller;
-
-    const setLastAssistant = (content: string, error = false) => {
-      setChatMessages((prev) => {
-        const next = [...prev];
-        const messageIndex = next.findIndex(
-          (message) => message.clientId === assistantMessageId,
-        );
-
-        if (messageIndex < 0) {
-          return prev;
-        }
-
-        next[messageIndex] = {
-          ...next[messageIndex],
-          content,
-          error,
-        };
-
-        return next;
-      });
-    };
-    const refreshNewChatRoomTitle = async (roomId: number) => {
-      try {
-        const rooms = await getProblemChatRooms();
-
-        if (
-          controller.signal.aborted ||
-          activeChatRoomIdRef.current !== roomId
-        ) {
-          return;
-        }
-
-        const room = findProblemChatRoomById(rooms, roomId);
-        const nextTitle = room?.title || null;
-
-        setChatRoomTitle(nextTitle);
-        setChatRoomTitleInput(nextTitle ?? "");
-      } catch {
-        // 채팅방 이름 갱신 실패는 메시지 스트림을 방해하지 않는다.
-      }
-    };
-    const typewriter = createChatTypewriter({
-      onUpdate: setLastAssistant,
-      signal: controller.signal,
-    });
-
-    try {
-      const path = targetRoomId
-        ? `/api/v1/chat/${targetRoomId}/messages`
-        : "/api/v1/chat/messages";
-
-      await streamChat(
-        path,
-        targetRoomId
-          ? { userMessage }
-          : {
-              userMessage,
-              problemSetId: problemSet.id,
-              problemId: targetProblemId,
-            },
-        {
-          onToken: (token) => {
-            setShowChatResponsePending(false);
-            typewriter.push(token);
-          },
-          onRoom: (roomId) => {
-            newRoomId = roomId;
-            activeChatRoomIdRef.current = roomId;
-            setChatRoomId(roomId);
-            void refreshNewChatRoomTitle(roomId);
-          },
-          onError: (error) => {
-            streamErrorReceived = true;
-            setShowChatResponsePending(false);
-            typewriter.stop();
-            setLastAssistant(error.message, true);
-          },
-          onDone: () => {
-            const refreshRoomId = newRoomId ?? activeChatRoomIdRef.current;
-
-            if (refreshRoomId) {
-              void refreshProblemChatMessages(refreshRoomId).catch((error) => {
-                handleClientError(error, {
-                  router,
-                  fallbackTitle: "메시지 동기화 실패",
-                  fallbackMessage:
-                    "최신 메시지를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
-                  showModal: (title, content) =>
-                    setAlertModal({ open: true, title, content }),
-                });
-              });
-            }
-          },
-        },
-        controller.signal,
-      );
-
-      await typewriter.flush();
-
-      if (streamErrorReceived) {
-        return;
-      }
-
-      if (!targetRoomId && newRoomId) {
-        setChatRoomId(newRoomId);
-      }
-
-      window.dispatchEvent(new Event("chatRoomUpdated"));
-    } catch (error) {
-      if (controller.signal.aborted) {
-        typewriter.stop();
-        return;
-      }
-
-      typewriter.stop();
-      setLastAssistant(
-        "AI 답변을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        true,
-      );
-      setShowChatResponsePending(false);
-
-      handleClientError(error, {
-        router,
-        fallbackTitle: "메시지 전송 실패",
-        fallbackMessage:
-          "메시지를 전송하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-        showModal: (title, content) =>
-          setAlertModal({ open: true, title, content }),
-      });
-    } finally {
-      if (chatStreamAbortRef.current === controller) {
-        chatStreamAbortRef.current = null;
-      }
-
-      typewriter.stop();
-
-      if (!controller.signal.aborted) {
-        setChatSending(false);
-        setShowChatResponsePending(false);
-      }
-    }
-  };
-
-  const handleSelectSuggestedQuestion = (question: string) => {
-    if (!chatOpen) {
-      setChatOpen(true);
-      setHasOpenedChatPanel(true);
-    }
-
-    setChatInput(question);
   };
 
   return (
