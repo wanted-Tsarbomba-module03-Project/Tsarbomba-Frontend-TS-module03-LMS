@@ -53,7 +53,11 @@ export function proxy(request: NextRequest) {
   }
 
   // 미인증 사용자의 보호 경로 접근 → 렌더 전에 로그인 페이지로.
-  const loginUrl = new URL("/auth/login", request.url);
+  // request.url 은 ALB/프록시 뒤에서 내부 오리진을 담을 수 있으므로, 사용자 오리진을
+  // 보존하는 nextUrl.clone() 으로 리다이렉트 대상을 만든다.
+  const loginUrl = request.nextUrl.clone();
+  loginUrl.pathname = "/auth/login";
+  loginUrl.search = "";
   return NextResponse.redirect(loginUrl);
 }
 

@@ -41,6 +41,13 @@ export default function RankingClient({
 }: RankingClientProps) {
   const router = useRouter();
   const [mode, setMode] = useState<RankingMode>("total");
+  // 응답에 사용자별 myRanking 이 포함되므로, 계정 전환 시 이전 사용자의 캐시가
+  // 재사용되지 않도록 사용자 식별자를 쿼리 키에 포함한다.
+  const [userKey] = useState(() =>
+    typeof window === "undefined"
+      ? ""
+      : (localStorage.getItem("userNickname") ?? ""),
+  );
   const [page, setPage] = useState(0);
   const [modal, setModal] = useState({
     open: false,
@@ -51,7 +58,7 @@ export default function RankingClient({
   // 모드(전체/주간)별로 목록 + 내 랭킹을 함께 조회. 전체 모드는 SSR 초기 데이터로 시드해
   // 마운트 직후 재요청을 막고, 한 번 본 모드는 캐시되어 재전환 시 즉시 표시된다.
   const { data, isFetching, isError, error } = useQuery<RankingSnapshot>({
-    queryKey: ["rankings", mode],
+    queryKey: ["rankings", mode, userKey],
     queryFn: async () => {
       const [rankings, myRanking] = await Promise.all([
         getPointRankingsByMode(mode),

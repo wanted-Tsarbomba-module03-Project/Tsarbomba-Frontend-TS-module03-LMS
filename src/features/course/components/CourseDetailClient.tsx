@@ -104,13 +104,13 @@ export default function CourseDetailClient({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [showProgress, setShowProgress] = useState(false);
-  // 학습현황은 "진행상태 보기"를 누른 뒤에만(enabled) 조회하고, 한 번 받으면 캐시해 재조회하지 않는다.
+  // 학습현황은 "진행상태 보기"를 누른 뒤에만(enabled) 조회한다. 캐싱은 전역 기본값(staleTime)을
+  // 따르므로, 재진입 시 신선하지 않으면 최신 수강 현황으로 갱신된다.
   // (기존 수동 캐싱 `if (progressData.length > 0) return` 을 useQuery 로 대체)
   const { data: progressData = [], isFetching: progressLoading } = useQuery({
     queryKey: ["courseLearningProgress", courseId],
     queryFn: async () => (await getCourseLearningProgress(courseId)).content,
     enabled: showProgress,
-    staleTime: Infinity,
   });
 
   const [showEnrollConfirm, setShowEnrollConfirm] = useState(false);

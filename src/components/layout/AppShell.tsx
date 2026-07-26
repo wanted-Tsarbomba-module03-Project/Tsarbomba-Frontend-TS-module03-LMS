@@ -111,6 +111,9 @@ export default function AppShell({
   const canAccessCurrentAdmin =
     canAccessAdmin && (!isMasterAdminPath || userRole === "MASTER");
   const showAdminAuthModal = isMount && isAdminPath && !canAccessCurrentAdmin;
+  // 사이드바·토글·백드롭이 동일 조건으로 함께 켜지도록 단일 파생 변수로 관리.
+  const showSidebar =
+    isMypagePath || isChatPath || (isAdminPath && canAccessCurrentAdmin);
 
   const handleAccessDeniedClose = () => {
     router.replace("/");
@@ -138,15 +141,9 @@ export default function AppShell({
 
         {isFlexBodySection ? (
           <div className="flex flex-1 w-full max-w-300 mx-auto relative box-border gap-5 max-[1024px]:px-5">
-            {(isMypagePath ||
-              isChatPath ||
-              (isAdminPath && canAccessCurrentAdmin)) && (
-              <Sidebar isOpen={isOpen} />
-            )}
+            {showSidebar && <Sidebar isOpen={isOpen} />}
 
-            {(isMypagePath ||
-              isChatPath ||
-              (isAdminPath && canAccessCurrentAdmin)) && (
+            {showSidebar && (
                 <button
                   aria-label={isOpen ? "사이드바 닫기" : "사이드바 열기"}
                   aria-pressed={isOpen}
@@ -164,10 +161,7 @@ export default function AppShell({
               </button>
             )}
 
-            {isOpen &&
-              (isMypagePath ||
-                isChatPath ||
-                (isAdminPath && canAccessCurrentAdmin)) && (
+            {isOpen && showSidebar && (
                 <button
                   aria-label="사이드바 닫기"
                   className={mobileSidebarClasses.backdrop}
@@ -204,7 +198,7 @@ export default function AppShell({
       <OneButtonModal
         isOpen={showAdminAuthModal}
         onClose={handleAccessDeniedClose}
-        modalTitle="입력 확인"
+        modalTitle="접근 권한 없음"
         modalContent="접근 권한이 없습니다."
       />
       <ActiveInquiryRepliesModal
