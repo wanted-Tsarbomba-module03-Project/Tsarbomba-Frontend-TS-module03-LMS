@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 
 import CategoryNav from "@/components/layout/CategoryNav";
 import CourseItem from "@/features/admin/operations/components/CourseItem";
+import CourseListSkeleton from "@/features/course/components/CourseListSkeleton";
 import {
   ALL_COURSE_CATEGORY,
   COURSE_SEARCH_PARAM,
@@ -51,7 +52,7 @@ export default function CourseListClient({
   initialCourses,
 }: CourseListClientProps) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<CourseListSkeleton />}>
       <CategoryNav />
       <CourseListContent initialCourses={initialCourses} />
     </Suspense>
